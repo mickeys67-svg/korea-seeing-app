@@ -1,0 +1,3 @@
+.moon-phase-clip {
+    clip-path: inset(0 var(--moon-clip-percentage) 0 0);
+}

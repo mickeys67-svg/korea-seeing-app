@@ -1,5 +1,6 @@
 import React from 'react';
 import { Moon } from 'lucide-react';
+import './MoonPhase.css';
 
 interface MoonProps {
     data: {
@@ -29,9 +30,10 @@ const MoonPhase: React.FC<MoonProps> = ({ data }) => {
                 </div>
                 {/* Placeholder for Moon visual - could be an SVG that changes path based on phase */}
                 <div className="w-16 h-16 rounded-full bg-gray-600 border-2 border-gray-500 flex items-center justify-center overflow-hidden relative">
+                    {/* eslint-disable-next-line */}
                     <div
-                        className="absolute bg-yellow-200 rounded-full h-full w-full opacity-80"
-                        style={{ clipPath: `inset(0 ${100 - percentage}% 0 0)` }}
+                        className="absolute bg-yellow-200 rounded-full h-full w-full opacity-80 moon-phase-clip"
+                        style={{ '--moon-clip-percentage': `${100 - percentage}%` } as React.CSSProperties}
                     />
                 </div>
             </div>
