@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Bot } from 'lucide-react';
 import { predictSeeing } from '../utils/aiService';
-import type { WeatherInput } from '../utils/aiService';
 
 interface Props {
     weather: {
