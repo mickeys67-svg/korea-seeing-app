@@ -1,0 +1,9 @@
+@echo off
+echo Starting Korea Sky Seeing Application...
+echo Closing existing Node.js processes (optional, to free up ports)...
+taskkill /F /IM node.exe >nul 2>&1
+
+cd /d "%~dp0"
+echo Starting Servers...
+node start_all.js
+pause
