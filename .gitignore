@@ -1,12 +1,10 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Environment variables
 .env
 
 # Build outputs
-dist/
 build/
 
 # IDE/OS
