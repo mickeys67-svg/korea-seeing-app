@@ -5,10 +5,30 @@ import NotificationSetup from './NotificationSetup';
 import AiPrediction from './AiPrediction';
 import { Loader2, MapPin } from 'lucide-react';
 
+// Define types for Weather Service Data
+interface ForecastItem {
+    timepoint: number;
+    seeing: number;
+    transparency: number;
+    cloudCover: number;
+    liftedIndex?: number;
+    rh2m: number;
+    wind10m: { direction: string; speed: number };
+    temp2m: number;
+}
+
+interface MoonData {
+    phase: number;
+    fraction: number;
+    phaseName: string;
+    rise: string;
+    set: string;
+}
+
 interface WeatherData {
     location: { lat: number; lon: number };
-    moon: any;
-    forecast: any[];
+    moon: MoonData;
+    forecast: ForecastItem[];
 }
 
 import useGeolocation from '../hooks/useGeolocation';
@@ -97,7 +117,7 @@ const Dashboard: React.FC = () => {
             <div className="w-full bg-gray-800 p-6 rounded-2xl mt-6">
                 <h3 className="text-lg font-semibold text-gray-300 mb-2">3-Day Forecast (Simplifed)</h3>
                 <div className="flex overflow-x-auto gap-4 pb-2">
-                    {data.forecast.slice(0, 8).map((point: any, idx: number) => (
+                    {data.forecast.slice(0, 8).map((point: ForecastItem, idx: number) => (
                         <div key={idx} className="flex-shrink-0 bg-gray-700 p-3 rounded-lg flex flex-col items-center min-w-[80px]">
                             <span className="text-xs text-gray-400">+{point.timepoint}h</span>
                             <span className="font-bold text-blue-300 my-1">{point.seeing}/8</span>

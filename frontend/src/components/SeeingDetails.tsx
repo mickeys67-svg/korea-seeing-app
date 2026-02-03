@@ -6,7 +6,6 @@ interface SeeingProps {
         cloudCover: number;
         seeing: number;
         transparency: number;
-        liftedIndex: number;
         rh2m: number;
         wind10m: {
             direction: string;

@@ -7,10 +7,20 @@ interface LocationState {
 }
 
 const useGeolocation = () => {
-    const [location, setLocation] = useState<LocationState>({
-        loaded: false,
-        val: null,
-        error: null,
+    const [location, setLocation] = useState<LocationState>(() => {
+        // Lazy initialization to handle unsupported browser instantly without effect error
+        if (!("geolocation" in navigator)) {
+            return {
+                loaded: true,
+                val: null,
+                error: "Geolocation not supported",
+            };
+        }
+        return {
+            loaded: false,
+            val: null,
+            error: null,
+        };
     });
 
     const onSuccess = (position: GeolocationPosition) => {
@@ -33,15 +43,7 @@ const useGeolocation = () => {
     };
 
     useEffect(() => {
-        if (!("geolocation" in navigator)) {
-            setLocation({
-                loaded: true,
-                val: null,
-                error: "Geolocation not supported",
-            });
-            return;
-        }
-
+        if (!("geolocation" in navigator)) return;
         navigator.geolocation.getCurrentPosition(onSuccess, onError);
     }, []);
 
