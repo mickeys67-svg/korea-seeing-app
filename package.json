@@ -4,7 +4,7 @@
     "description": "Korea Sky Seeing & Weather App",
     "main": "backend/server.js",
     "scripts": {
-        "start": "node backend/server.js",
+        "start": "cd backend && npm start",
         "server": "cd backend && npm start",
         "client": "cd frontend && npm run dev",
         "build": "cd frontend && npm install && npm run build",
