@@ -50,11 +50,13 @@ const WeatherService = {
                 capes: []
             };
 
-            // --- 1. 7Timer Data ---
-            if (item.temp2m != null) values.temps.push(item.temp2m);
-            if (item.rh2m != null) values.humidities.push(item.rh2m);
+            // --- 1. 7Timer Data (Defensive Checks) ---
+            const isValid = (val) => val != null && val > -9000; // Filter sentinels like -9999 or -20000
+
+            if (isValid(item.temp2m)) values.temps.push(item.temp2m);
+            if (isValid(item.rh2m)) values.humidities.push(item.rh2m);
             // 7Timer Cloud: 1-9 -> 0-8
-            if (item.cloudcover != null) values.clouds.push(Math.max(0, item.cloudcover - 1));
+            if (isValid(item.cloudcover)) values.clouds.push(Math.max(0, item.cloudcover - 1));
 
             // --- 2. Open-Meteo Data ---
             if (omData && omData.hourly && omData.hourly.time) {
@@ -104,11 +106,20 @@ const WeatherService = {
             const finalCape = avg(values.capes);
 
             // --- Scoring ---
-            const rawSeeing = item.seeing || 5;
-            const seeingScore = (rawSeeing - 1) * 2;
+            // Fix: Clamp raw values to ensure scores stay in bounds (0-8)
+            // 7Timer Seeing is 1 (Best) to 5 (Worst). If API returns > 5, clamp it.
+            let rawSeeing = item.seeing || 5;
+            if (rawSeeing > 5) rawSeeing = 5;
+            if (rawSeeing < 1) rawSeeing = 1;
 
-            const rawTransparency = item.transparency || 8;
-            const transparencyScore = Math.max(0, rawTransparency - 1);
+            const seeingScore = (rawSeeing - 1) * 2; // Result: 0, 2, 4, 6, 8
+
+            // 7Timer Transparency is 1 (Best) to 8 (Worst)
+            let rawTransparency = item.transparency || 8;
+            if (rawTransparency > 8) rawTransparency = 8;
+            if (rawTransparency < 1) rawTransparency = 1;
+
+            const transparencyScore = Math.max(0, rawTransparency - 1); // Result: 0-7
 
             let windScore = 0;
             if (finalWind < 2) windScore = 0;
