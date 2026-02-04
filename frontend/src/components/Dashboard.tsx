@@ -76,8 +76,8 @@ const Dashboard: React.FC = () => {
             <NotificationSetup />
 
             {/* Version Footer for Debugging */}
-            <div className="mt-8 text-center text-xs text-gray-600">
-                <p>Korea Sky Seeing v2.5 (Live)</p>
+            <div className="mt-8 text-center text-xs text-gray-600 font-medium">
+                <p>Clearskies ! Forme Observatory Ganghwado Island v2.5 (Live)</p>
             </div>
         </div>
     );
