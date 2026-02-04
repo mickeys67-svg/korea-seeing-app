@@ -73,18 +73,25 @@ const AstronomyService = {
                 }
             });
 
-            // Post-processing: If Set is missing (and not always Up/Down), find the next set event from the next day
+            // Post-processing: If Set is missing OR occurs before Rise (historic), find next Set
             const currentItem = forecast[i];
             if (!currentItem.moon.alwaysUp && !currentItem.moon.alwaysDown) {
-                if (!currentItem.moon.set) {
+                let shouldFetchNextSet = !currentItem.moon.set;
+
+                // If both exist, but Set is before Rise, implies Set belongs to previous night's arc
+                if (currentItem.moon.set && currentItem.moon.rise && currentItem.moon.set < currentItem.moon.rise) {
+                    shouldFetchNextSet = true;
+                }
+
+                if (shouldFetchNextSet) {
                     const nextDayDate = new Date(noonDate);
                     nextDayDate.setDate(nextDayDate.getDate() + 1);
                     const nextMoonTimes = SunCalc.getMoonTimes(nextDayDate, lat, lon);
                     if (nextMoonTimes.set) {
                         currentItem.moon.set = nextMoonTimes.set;
-                        // Optional: Add metadata that it is next day? The ISO string contains date.
                     }
                 }
+
                 // Logic for missing rise? usually less critical for "tonight" observation if it rose yesterday, but good for consistency.
                 if (!currentItem.moon.rise) {
                     // If it didn't rise today, maybe it rises tomorrow?

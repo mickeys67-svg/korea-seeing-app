@@ -82,11 +82,8 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
     const windows: ObservationWindow[] = [];
 
     if (!currentDay.sun.sunset) return windows;
-    // If no next day (e.g., end of forecast list), we can't accurately calculate night end. 
-    // Fallback: Use current day sunrise + 24h as rough estimate or just return empty.
-    // Better: Require nextDay. If missing, we skip.
-    if (!nextDay || !nextDay.sun.sunrise) return windows;
 
+    // RESTORED: Define startDateStr
     const startDateStr = currentDay.date;
 
     // 1. Define Night Boundaries
@@ -95,38 +92,47 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
     const obsStart = sunsetMins + 60;
 
     // End: Next Sunrise - 60m
-    const sunriseMins = getMinutesFromStart(nextDay.sun.sunrise, startDateStr)!;
-    // Note: sunriseMins should be > 1440 naturally if nextDay is correct date.
-    // If nextDay is just next in array but date is distinct, getMinutesFromStart handles it.
+    let sunriseMins: number;
+    if (nextDay && nextDay.sun.sunrise) {
+        sunriseMins = getMinutesFromStart(nextDay.sun.sunrise, startDateStr)!;
+    } else {
+        // Fallback for end of data: Sunrise + 24h
+        if (currentDay.sun.sunrise) {
+            const curSunriseMins = getMinutesFromStart(currentDay.sun.sunrise, startDateStr)!;
+            sunriseMins = curSunriseMins + 1440;
+        } else {
+            sunriseMins = 1860;
+        }
+    }
+
     const obsEnd = sunriseMins - 60;
 
-    if (obsEnd <= obsStart) return []; // No dark time (e.g., summer high latitude)
+    if (obsEnd <= obsStart) return [];
 
     // 2. Moon Events relevant to this night
-    // We need to check moon rise/set that happens *during* this night window.
-    // Events could come from `currentDay` (late night rise) or `nextDay` (early morning set).
-
     let moonRise: number | null = null;
     let moonSet: number | null = null;
 
     // Check Current Day Rise/Set
     if (currentDay.moon.rise) {
         const r = getMinutesFromStart(currentDay.moon.rise, startDateStr)!;
-        if (r > sunsetMins - 180) moonRise = r; // Only care if it's near night
+        if (r > sunsetMins - 180) moonRise = r;
     }
     if (currentDay.moon.set) {
         const s = getMinutesFromStart(currentDay.moon.set, startDateStr)!;
         if (s > sunsetMins) moonSet = s;
     }
 
-    // Check Next Day Rise/Set (if not found yet or to overwrite with more relevant one)
-    if (nextDay.moon.rise) {
-        const r = getMinutesFromStart(nextDay.moon.rise, startDateStr)!;
-        if (r < sunriseMins + 180) moonRise = r;
-    }
-    if (nextDay.moon.set) {
-        const s = getMinutesFromStart(nextDay.moon.set, startDateStr)!;
-        if (s < sunriseMins + 180) moonSet = s;
+    // Check Next Day Rise/Set (Safe Access)
+    if (nextDay) {
+        if (nextDay.moon.rise) {
+            const r = getMinutesFromStart(nextDay.moon.rise, startDateStr)!;
+            if (r < sunriseMins + 180) moonRise = r;
+        }
+        if (nextDay.moon.set) {
+            const s = getMinutesFromStart(nextDay.moon.set, startDateStr)!;
+            if (s < sunriseMins + 180) moonSet = s;
+        }
     }
 
     // 3. Logic: Window Slicing based on Moon
