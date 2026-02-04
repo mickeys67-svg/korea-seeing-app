@@ -9,6 +9,8 @@ COPY . .
 # --- Frontend Build ---
 WORKDIR /app/frontend
 RUN npm install
+# Force cache invalidation
+ARG CACHEBUST=1
 RUN npm run build
 
 # --- Backend Setup ---
