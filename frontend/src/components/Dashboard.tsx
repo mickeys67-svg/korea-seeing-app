@@ -84,6 +84,13 @@ const Dashboard: React.FC = () => {
                     Precision Seeing Forecast for Astrophotographers • Steady Skies & Stable Air Analysis
                     • Community Trusted Stargazing Predictor • Built for Cloudy Nights & AstroBin Users
                 </p>
+                <div className="mt-2 text-[8px] text-gray-600 flex flex-wrap justify-center gap-x-4 opacity-50 font-mono italic">
+                    <span>FWHM Estimation</span>
+                    <span>Antoniadi Scale Ref</span>
+                    <span>Pickering Scale Model</span>
+                    <span>Atmospheric Scintillation Analysis</span>
+                    <span>Planetary Imaging Stability</span>
+                </div>
             </div>
 
             {/* Version Footer for Debugging */}
