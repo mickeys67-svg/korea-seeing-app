@@ -31,7 +31,10 @@ const TranslationService = {
         if (targetLang.toLowerCase().startsWith('en')) return text;
 
         try {
-            const prompt = `Translate this to natural ${targetLang}: "${text}". Context: astronomy observation quality description. Return ONLY the translated text.`;
+            const prompt = `Translate this into natural, professional ${targetLang}: "${text}". 
+            Context: High-precision astronomical seeing forecast for astrophotographers. 
+            Maintain the technical nuance of terms like "Steady Skies" (안정적인 시잉) or "Stable Air" (정체된 대기) if applicable. 
+            Return ONLY the translated text.`;
 
             const result = await this.model.generateContent(prompt);
             const response = await result.response;

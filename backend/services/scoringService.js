@@ -78,11 +78,11 @@ const ScoringService = {
     },
 
     getRecommendation: (score) => {
-        if (score >= 85) return 'Excellent conditions! Great for all targets.';
-        if (score >= 70) return 'Very good conditions. Suitable for most observations.';
-        if (score >= 55) return 'Average conditions. Good for bright targets.';
-        if (score >= 40) return 'Poor conditions. Limited to casual observation.';
-        return 'Unsuitable for observation.';
+        if (score >= 85) return 'Steady skies! Excellent conditions, great for all targets.';
+        if (score >= 70) return 'Stable air and very good conditions. Suitable for most observations.';
+        if (score >= 55) return 'Average conditions. Stable enough for bright solar system targets.';
+        if (score >= 40) return 'Poor conditions. Unstable air limiting casual observation.';
+        return 'Atmosphere is too unstable for observation.';
     }
 };
 

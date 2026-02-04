@@ -30,11 +30,11 @@ export const predictSeeing = (input: WeatherInput) => {
     const probability = Math.round((1 - score) * 100);
 
     let comment = "";
-    if (probability >= 90) comment = "Excellent conditions! Perfect for planetary observation.";
-    else if (probability >= 70) comment = "Good conditions. Deep sky objects should be visible.";
-    else if (probability >= 50) comment = "Average. Some turbulence expected.";
-    else if (probability >= 30) comment = "Poor. High clouds or turbulence.";
-    else comment = "Not recommended for observation today.";
+    if (probability >= 90) comment = "Steady skies! Excellent conditions, perfect for planetary imaging.";
+    else if (probability >= 70) comment = "Stable air. Good conditions; Deep sky objects should be clear.";
+    else if (probability >= 50) comment = "Average. Some turbulence expected, not perfectly steady skies.";
+    else if (probability >= 30) comment = "Poor. Stable air is missing due to high clouds or turbulence.";
+    else comment = "Unstable atmosphere. Not recommended for observation today.";
 
     return { probability, comment };
 };

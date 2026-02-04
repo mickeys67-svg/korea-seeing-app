@@ -78,8 +78,16 @@ const Dashboard: React.FC = () => {
 
             <NotificationSetup />
 
+            {/* SEO & Community Keywords Section (Subtle) */}
+            <div className="mt-12 text-center max-w-2xl px-4 animate-fade-in opacity-40 hover:opacity-100 transition-opacity duration-500">
+                <p className="text-[10px] text-gray-500 leading-relaxed uppercase tracking-[0.2em] font-medium">
+                    Precision Seeing Forecast for Astrophotographers • Steady Skies & Stable Air Analysis
+                    • Community Trusted Stargazing Predictor • Built for Cloudy Nights & AstroBin Users
+                </p>
+            </div>
+
             {/* Version Footer for Debugging */}
-            <div className="mt-8 text-center text-xs text-gray-600 font-medium">
+            <div className="mt-8 text-center text-xs text-gray-600 font-medium pb-12">
                 <p>Clearskies ! Forme Observatory Ganghwado Island v2.5 (Live)</p>
             </div>
         </div>
