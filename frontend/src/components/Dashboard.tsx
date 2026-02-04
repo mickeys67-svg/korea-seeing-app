@@ -74,6 +74,11 @@ const Dashboard: React.FC = () => {
             {data.forecast && <ForecastList forecast={data.forecast.slice(0, 48)} />}
 
             <NotificationSetup />
+
+            {/* Version Footer for Debugging */}
+            <div className="mt-8 text-center text-xs text-gray-600">
+                <p>Korea Sky Seeing v2.5 (Live)</p>
+            </div>
         </div>
     );
 };

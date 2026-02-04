@@ -49,6 +49,10 @@ if (process.env.NODE_ENV === 'production') {
     app.use((req, res, next) => {
         // Only serve index.html for GET requests that aren't API calls
         if (req.method === 'GET' && !req.path.startsWith('/api')) {
+            // FORCE NO-CACHE for index.html entry point
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
             res.sendFile(path.join(distPath, 'index.html'));
         } else {
             next();
