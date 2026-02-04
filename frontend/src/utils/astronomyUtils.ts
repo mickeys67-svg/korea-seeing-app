@@ -1,4 +1,4 @@
-import { AstronomyDay } from '../types/weather';
+import type { AstronomyDay } from '../types/weather';
 
 export const getPhaseDef = (phase: number) => {
     if (phase === 0 || phase === 1) return { name: 'New Moon', class: 'moon-phase-new', icon: '🌑' };
