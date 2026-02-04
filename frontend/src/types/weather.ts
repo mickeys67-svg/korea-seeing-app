@@ -37,8 +37,28 @@ export interface MoonData {
     set: string;
 }
 
+// 3-Day Astronomy Forecast
+export interface AstronomyDay {
+    date: string;
+    moon: {
+        phase: number;
+        fraction: number;
+        rise: string | null;
+        set: string | null;
+    };
+    sun: {
+        sunrise: string | null;
+        sunset: string | null;
+        observableHours: number;
+    };
+}
+
 export interface WeatherData {
-    location: { lat: number; lon: number };
-    moon: MoonData;
+    location: {
+        lat: number;
+        lon: number;
+    };
+    weather: ForecastItem[];
     forecast: ForecastItem[];
+    astronomy: AstronomyDay[];
 }

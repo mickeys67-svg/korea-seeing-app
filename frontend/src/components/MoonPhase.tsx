@@ -1,52 +1,229 @@
-import React from 'react';
-import { Moon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import './MoonPhase.css';
+import { type AstronomyDay } from '../types/weather';
 
-interface MoonProps {
-    data: {
-        phase: number; // 0.0 - 1.0
-        phaseName: string;
-        fraction: number;
-        rise: string;
-        set: string;
-    };
+interface MoonPhaseProps {
+    data: AstronomyDay[];
 }
 
-const MoonPhase: React.FC<MoonProps> = ({ data }) => {
-    // Simple visual representation logic (could be replaced by actual moon icons/images)
-    const percentage = Math.round(data.fraction * 100);
+const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
+    const [activeTab, setActiveTab] = useState<'moon' | 'sun' | 'optimal'>('moon');
+    const [moonPhaseClass, setMoonPhaseClass] = useState('moon-phase-full');
+
+    // Use current day data (first element)
+    const today = data && data.length > 0 ? data[0] : null;
+
+    // Helper to map API phase (0-1) to logic and name
+    const getPhaseDef = (phase: number) => {
+        // SunCalc phase: 0=New, 0.25=First Quarter, 0.5=Full, 0.75=Last Quarter
+        if (phase === 0 || phase === 1) return { name: 'New Moon', class: 'moon-phase-new', icon: '🌑' };
+        if (phase < 0.25) return { name: 'Waxing Crescent', class: 'moon-phase-waxing-crescent', icon: '🌒' };
+        if (phase === 0.25) return { name: 'First Quarter', class: 'moon-phase-first-quarter', icon: '🌓' };
+        if (phase < 0.5) return { name: 'Waxing Gibbous', class: 'moon-phase-waxing-gibbous', icon: '🌔' };
+        if (phase === 0.5) return { name: 'Full Moon', class: 'moon-phase-full', icon: '🌕' };
+        if (phase < 0.75) return { name: 'Waning Gibbous', class: 'moon-phase-waning-gibbous', icon: '🌖' };
+        if (phase === 0.75) return { name: 'Last Quarter', class: 'moon-phase-last-quarter', icon: '🌗' };
+        return { name: 'Waning Crescent', class: 'moon-phase-waning-crescent', icon: '🌘' };
+    };
+
+    const currentPhase = today ? getPhaseDef(today.moon.phase) : { name: '', class: '', icon: '' };
+
+    useEffect(() => {
+        if (currentPhase.class) {
+            setMoonPhaseClass(currentPhase.class);
+        }
+    }, [currentPhase.class]);
+
+    // Format Helpers
+    const formatDate = (dateStr: string, index: number) => {
+        const d = new Date(dateStr);
+        const mm = d.getMonth() + 1;
+        const dd = d.getDate();
+        const label = index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : 'Day after';
+        return `${label} (${mm}/${dd})`;
+    };
+
+    const formatTime = (timeStr: string | null) => {
+        if (!timeStr) return '--:--';
+        return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    };
+
+    const calculateDuration = (hrs: number) => {
+        const h = Math.floor(hrs);
+        const m = Math.round((hrs - h) * 60);
+        return `${h}h ${m}m`;
+    };
+
+    // Best Time Logic
+    const getBestTimeData = (day: AstronomyDay) => {
+        if (!day.sun.sunset) return null;
+
+        const sunsetDate = new Date(day.sun.sunset);
+        const start = new Date(sunsetDate);
+        start.setHours(start.getHours() + 1);
+
+        const end = new Date(sunsetDate);
+        let duration = 3;
+
+        if (day.moon.fraction > 0.7) {
+            duration = 1.5;
+        } else if (day.moon.fraction > 0.3) {
+            duration = 2.5;
+        }
+
+        end.setMinutes(end.getMinutes() + (duration * 60));
+
+        // Score logic (0-100)
+        let score = 50;
+        if (day.moon.fraction < 0.1) score = 100;
+        else if (day.moon.fraction < 0.3) score = 80;
+        else if (day.moon.fraction < 0.6) score = 60;
+        else score = 30;
+
+        let quality = 'Fair';
+        let badgeClass = 'fair';
+        if (score >= 80) { quality = 'Excellent'; badgeClass = 'excellent'; }
+        else if (score >= 60) { quality = 'Good'; badgeClass = 'good'; }
+
+        return {
+            start: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            end: end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+            score,
+            quality,
+            badgeClass
+        };
+    };
+
+    if (!today) return null;
 
     return (
-        <div className="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-md text-white">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Moon className="w-6 h-6 text-yellow-200" />
-                Moon Phase
-            </h2>
-
-            <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                    <span className="text-2xl font-bold text-yellow-100">{data.phaseName}</span>
-                    <span className="text-sm text-gray-400">Illumination: {percentage}%</span>
-                </div>
-                {/* Placeholder for Moon visual - could be an SVG that changes path based on phase */}
-                <div className="w-16 h-16 rounded-full bg-gray-600 border-2 border-gray-500 flex items-center justify-center overflow-hidden relative">
-                    {/* eslint-disable-next-line */}
-                    <div
-                        className="absolute bg-yellow-200 rounded-full h-full w-full opacity-80 moon-phase-clip"
-                        style={{ '--moon-clip-percentage': `${100 - percentage}%` } as React.CSSProperties}
-                    />
-                </div>
+        <div className="moon-phase-card-expanded w-full max-w-md shadow-lg">
+            {/* Tab Nav */}
+            <div className="tab-navigation">
+                <button
+                    className={`tab-btn ${activeTab === 'moon' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('moon')}
+                >
+                    🌙 Moon Phase
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'sun' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('sun')}
+                >
+                    🌅 Sun Times
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'optimal' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('optimal')}
+                >
+                    ⭐ Best Time
+                </button>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
-                <div className="flex justify-between border-b border-gray-600 pb-1">
-                    <span className="text-gray-400">Rise</span>
-                    <span>{new Date(data.rise).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-600 pb-1">
-                    <span className="text-gray-400">Set</span>
-                    <span>{new Date(data.set).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
+            <div className="tab-content">
+                {/* Moon Tab */}
+                {activeTab === 'moon' && (
+                    <div className="animate-fade-in">
+                        <div className="moon-header">
+                            <div className="moon-info">
+                                <h3>{currentPhase.name}</h3>
+                                <p className="moon-illumination">Illumination: <span className="text-white font-bold">{Math.round(today.moon.fraction * 100)}</span>%</p>
+                            </div>
+                            <div className="moon-visual">
+                                <div className="moon-glow" style={{ opacity: today.moon.fraction }}></div>
+                                <div className={`moon-sphere ${currentPhase.class}`}>
+                                    <div className="moon-shadow"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="time-table">
+                            {data.map((day, idx) => (
+                                <div key={idx} className="time-row">
+                                    <span className="date-label">{formatDate(day.date, idx)}</span>
+                                    <div className="time-values">
+                                        <span>Rise <strong>{formatTime(day.moon.rise)}</strong></span>
+                                        <span className="divider">│</span>
+                                        <span>Set <strong>{formatTime(day.moon.set)}</strong></span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="info-box">
+                            💡 {today.moon.fraction > 0.7 ? "Bright moon, poor for Deep Sky." : today.moon.fraction < 0.2 ? "Dark moon, excellent for Deep Sky!" : "Moon conditions are moderate."}
+                        </div>
+                    </div>
+                )}
+
+                {/* Sun Tab */}
+                {activeTab === 'sun' && (
+                    <div className="animate-fade-in">
+                        <div className="sun-header">
+                            <div className="sun-visual">
+                                <div className="sun-corona"></div>
+                                <div className="sun-outer-rays">
+                                    {[...Array(12)].map((_, i) => <div key={i} className="sun-outer-ray"></div>)}
+                                </div>
+                                <div className="sun-rays">
+                                    {[...Array(8)].map((_, i) => <div key={i} className="sun-ray"></div>)}
+                                </div>
+                                <div className="sun-sphere"></div>
+                            </div>
+                            <h3>Sunrise & Sunset</h3>
+                        </div>
+
+                        <div className="time-table">
+                            {data.map((day, idx) => (
+                                <div key={idx} className="time-row">
+                                    <span className="date-label">{formatDate(day.date, idx)}</span>
+                                    <div className="time-values">
+                                        <span>Rise <strong>{formatTime(day.sun.sunrise)}</strong></span>
+                                        <span className="divider">│</span>
+                                        <span>Set <strong>{formatTime(day.sun.sunset)}</strong></span>
+                                    </div>
+                                    <p className="observable">Night Duration: {calculateDuration(day.sun.observableHours)}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="info-box">
+                            💡 Best visibility: 1~2 hours after sunset.
+                        </div>
+                    </div>
+                )}
+
+                {/* Best Time Tab */}
+                {activeTab === 'optimal' && (
+                    <div className="animate-fade-in">
+                        <div className="optimal-header text-center">
+                            <h3>Optimal Observation Times</h3>
+                        </div>
+
+                        <div className="optimal-list">
+                            {data.map((day, idx) => {
+                                const best = getBestTimeData(day);
+                                if (!best) return null;
+                                return (
+                                    <div key={idx} className="optimal-row" style={{ borderLeftColor: best.quality === 'Excellent' ? '#27ae60' : best.quality === 'Good' ? '#3498db' : '#f39c12' }}>
+                                        <span className="date-label">{formatDate(day.date, idx)}</span>
+                                        <div className="optimal-info">
+                                            <span className="time-range">⏰ <strong>{best.start} - {best.end}</strong></span>
+                                            <span className={`quality-badge ${best.badgeClass}`}>{best.quality}</span>
+                                        </div>
+                                        <div className="quality-bar">
+                                            <div className="bar-fill" style={{ width: `${best.score}%`, background: best.quality === 'Excellent' ? '#27ae60' : best.quality === 'Good' ? '#3498db' : '#f39c12' }}></div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="info-box">
+                            💡 Calculated based on sunset and moon brightness.
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

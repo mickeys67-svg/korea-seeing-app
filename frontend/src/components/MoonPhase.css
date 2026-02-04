@@ -1,3 +1,550 @@
-.moon-phase-clip {
-    clip-path: inset(0 var(--moon-clip-percentage) 0 0);
+/* ========== Moon Phase Card ========== */
+.moon-phase-card-expanded {
+    background: #1e293b;
+    /* Using Tailwind slate-800 equivalent or keeping transparent if handled by parent */
+    border-radius: 16px;
+    overflow: hidden;
+    color: white;
+}
+
+/* ========== Tab Navigation ========== */
+.tab-navigation {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-btn.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom-color: #3498db;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ========== Tab Content ========== */
+.tab-content {
+    padding: 20px;
+    min-height: 280px;
+}
+
+/* ========== Moon Visual ========== */
+.moon-visual {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    /* margin: 0 auto; Removed auto margin to allow flex layout */
+    flex-shrink: 0;
+}
+
+.moon-sphere {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+    background: linear-gradient(135deg, #f4f4f4 0%, #e0e0e0 100%);
+    box-shadow:
+        inset -8px -8px 15px rgba(0, 0, 0, 0.2),
+        0 0 20px rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.moon-sphere::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(0, 0, 0, 0.1) 3px, transparent 3px),
+        radial-gradient(circle at 70% 40%, rgba(0, 0, 0, 0.08) 5px, transparent 5px),
+        radial-gradient(circle at 50% 70%, rgba(0, 0, 0, 0.12) 4px, transparent 4px),
+        radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.1) 3px, transparent 3px),
+        radial-gradient(circle at 30% 60%, rgba(0, 0, 0, 0.09) 6px, transparent 6px);
+    opacity: 0.6;
+}
+
+.moon-shadow {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(90deg,
+            rgba(30, 30, 40, 0.9) 0%,
+            rgba(30, 30, 40, 0.7) 50%,
+            transparent 50%);
+    transition: transform 0.5s ease;
+}
+
+/* Moon Phases */
+.moon-phase-new .moon-shadow {
+    background: rgba(30, 30, 40, 0.95);
+}
+
+.moon-phase-waxing-crescent .moon-shadow {
+    background: linear-gradient(90deg, rgba(30, 30, 40, 0.9) 0%, rgba(30, 30, 40, 0.9) 70%, transparent 70%);
+}
+
+.moon-phase-first-quarter .moon-shadow {
+    background: linear-gradient(90deg, rgba(30, 30, 40, 0.9) 0%, rgba(30, 30, 40, 0.9) 50%, transparent 50%);
+}
+
+.moon-phase-waxing-gibbous .moon-shadow {
+    background: linear-gradient(90deg, rgba(30, 30, 40, 0.9) 0%, rgba(30, 30, 40, 0.9) 30%, transparent 30%);
+}
+
+.moon-phase-full .moon-shadow {
+    background: transparent;
+}
+
+.moon-phase-waning-gibbous .moon-shadow {
+    background: linear-gradient(270deg, rgba(30, 30, 40, 0.9) 0%, rgba(30, 30, 40, 0.9) 30%, transparent 30%);
+}
+
+.moon-phase-last-quarter .moon-shadow {
+    background: linear-gradient(270deg, rgba(30, 30, 40, 0.9) 0%, rgba(30, 30, 40, 0.9) 50%, transparent 50%);
+}
+
+.moon-phase-waning-crescent .moon-shadow {
+    background: linear-gradient(270deg, rgba(30, 30, 40, 0.9) 0%, rgba(30, 30, 40, 0.9) 70%, transparent 70%);
+}
+
+.moon-glow {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    animation: moonGlow 3s ease-in-out infinite;
+}
+
+@keyframes moonGlow {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+/* ========== Sun Visual ========== */
+.sun-visual {
+    width: 70px;
+    height: 70px;
+    position: relative;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+.sun-sphere {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff9e6 0%, #ffeb3b 20%, #ffa726 50%, #ff9800 100%);
+    box-shadow: 0 0 20px rgba(255, 235, 59, 0.6), 0 0 40px rgba(255, 167, 38, 0.4), inset -5px -5px 10px rgba(255, 152, 0, 0.3);
+    animation: sunPulse 4s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+@keyframes sunPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.sun-rays {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+    animation: sunRotate 20s linear infinite;
+    will-change: transform;
+}
+
+.sun-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3px;
+    height: 25px;
+    background: linear-gradient(to bottom, rgba(255, 235, 59, 0.8), transparent);
+    transform-origin: center 0;
+    opacity: 0.7;
+}
+
+/* Sun Rays Rotation */
+.sun-ray:nth-child(1) {
+    transform: translate(-50%, -100%) rotate(0deg);
+}
+
+.sun-ray:nth-child(2) {
+    transform: translate(-50%, -100%) rotate(45deg);
+}
+
+.sun-ray:nth-child(3) {
+    transform: translate(-50%, -100%) rotate(90deg);
+}
+
+.sun-ray:nth-child(4) {
+    transform: translate(-50%, -100%) rotate(135deg);
+}
+
+.sun-ray:nth-child(5) {
+    transform: translate(-50%, -100%) rotate(180deg);
+}
+
+.sun-ray:nth-child(6) {
+    transform: translate(-50%, -100%) rotate(225deg);
+}
+
+.sun-ray:nth-child(7) {
+    transform: translate(-50%, -100%) rotate(270deg);
+}
+
+.sun-ray:nth-child(8) {
+    transform: translate(-50%, -100%) rotate(315deg);
+}
+
+@keyframes sunRotate {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+.sun-outer-rays {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+    animation: sunRotate 30s linear infinite reverse;
+    will-change: transform;
+}
+
+.sun-outer-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2px;
+    height: 35px;
+    background: linear-gradient(to bottom, rgba(255, 193, 7, 0.6), transparent);
+    transform-origin: center 0;
+    opacity: 0.5;
+}
+
+/* 12 Outer Rays */
+.sun-outer-ray:nth-child(1) {
+    transform: translate(-50%, -100%) rotate(0deg);
+}
+
+.sun-outer-ray:nth-child(2) {
+    transform: translate(-50%, -100%) rotate(30deg);
+}
+
+.sun-outer-ray:nth-child(3) {
+    transform: translate(-50%, -100%) rotate(60deg);
+}
+
+.sun-outer-ray:nth-child(4) {
+    transform: translate(-50%, -100%) rotate(90deg);
+}
+
+.sun-outer-ray:nth-child(5) {
+    transform: translate(-50%, -100%) rotate(120deg);
+}
+
+.sun-outer-ray:nth-child(6) {
+    transform: translate(-50%, -100%) rotate(150deg);
+}
+
+.sun-outer-ray:nth-child(7) {
+    transform: translate(-50%, -100%) rotate(180deg);
+}
+
+.sun-outer-ray:nth-child(8) {
+    transform: translate(-50%, -100%) rotate(210deg);
+}
+
+.sun-outer-ray:nth-child(9) {
+    transform: translate(-50%, -100%) rotate(240deg);
+}
+
+.sun-outer-ray:nth-child(10) {
+    transform: translate(-50%, -100%) rotate(270deg);
+}
+
+.sun-outer-ray:nth-child(11) {
+    transform: translate(-50%, -100%) rotate(300deg);
+}
+
+.sun-outer-ray:nth-child(12) {
+    transform: translate(-50%, -100%) rotate(330deg);
+}
+
+.sun-corona {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120%;
+    height: 120%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 235, 59, 0.3) 0%, rgba(255, 193, 7, 0.2) 40%, transparent 70%);
+    transform: translate(-50%, -50%);
+    animation: coronaPulse 3s ease-in-out infinite;
+}
+
+@keyframes coronaPulse {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.3;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.5;
+    }
+}
+
+/* ========== Headers ========== */
+.moon-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.moon-info {
+    flex: 1;
+}
+
+.moon-info h3 {
+    font-size: 20px;
+    color: #fff;
+    margin: 0 0 8px 0;
+}
+
+.moon-illumination {
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    font-size: 14px;
+}
+
+.sun-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 20px;
+    margin-top: 10px;
+}
+
+.sun-header h3 {
+    font-size: 18px;
+    color: #fff;
+    margin: 15px 0 0 0;
+}
+
+.optimal-header h3 {
+    font-size: 18px;
+    color: #fff;
+    margin: 0 0 16px 0;
+}
+
+/* ========== Time Table ========== */
+.time-table {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.time-row {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid #3498db;
+}
+
+.date-label {
+    display: block;
+    color: #3498db;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.time-values {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}
+
+.time-values strong {
+    color: #fff;
+    margin-left: 5px;
+}
+
+.divider {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.observable {
+    text-align: right;
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+}
+
+/* ========== Optimal Time ========== */
+.optimal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.optimal-row {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid #27ae60;
+}
+
+.optimal-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    margin-bottom: 8px;
+}
+
+.time-range {
+    color: #fff;
+    font-size: 14px;
+}
+
+.quality-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.quality-badge.excellent {
+    background: #27ae60;
+    color: white;
+}
+
+.quality-badge.good {
+    background: #3498db;
+    color: white;
+}
+
+.quality-badge.fair {
+    background: #f39c12;
+    color: white;
+}
+
+.quality-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #27ae60, #3498db);
+    transition: width 0.5s ease;
+}
+
+/* ========== Info Box ========== */
+.info-box {
+    background: rgba(52, 152, 219, 0.15);
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    border-left: 3px solid #3498db;
+}
+
+/* ========== Reduced Motion ========== */
+@media (prefers-reduced-motion: reduce) {
+
+    .moon-glow,
+    .sun-sphere,
+    .sun-rays,
+    .sun-outer-rays,
+    .sun-corona {
+        animation: none;
+    }
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 480px) {
+    .moon-visual {
+        width: 60px;
+        height: 60px;
+    }
+
+    .sun-visual {
+        width: 55px;
+        height: 55px;
+    }
+
+    .sun-ray {
+        height: 18px;
+    }
+
+    .sun-outer-ray {
+        height: 25px;
+    }
+
+    .time-values {
+        /* flex-direction: column; aligns left */
+        /* gap: 4px; */
+    }
 }

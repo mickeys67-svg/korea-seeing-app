@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                 {currentForecast && <SeeingDetails data={currentForecast} />}
-                {data.moon && <MoonPhase data={data.moon} />}
+                {data.astronomy && <MoonPhase data={data.astronomy} />}
             </div>
 
             {currentForecast && <AiPrediction weather={currentForecast} />}

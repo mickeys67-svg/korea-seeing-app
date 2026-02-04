@@ -243,6 +243,7 @@ const WeatherService = {
             });
 
             return {
+                time: targetDate.toISOString(),
                 timepoint: item.timepoint,
                 // Display Values
                 temp2m: finalTemp !== null ? Math.round(finalTemp) : 0,
