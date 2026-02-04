@@ -1,7 +1,6 @@
 /* ========== Moon Phase Card ========== */
 .moon-phase-card-expanded {
     background: #1e293b;
-    /* Using Tailwind slate-800 equivalent or keeping transparent if handled by parent */
     border-radius: 16px;
     overflow: hidden;
     color: white;
@@ -47,7 +46,6 @@
     width: 80px;
     height: 80px;
     position: relative;
-    /* margin: 0 auto; Removed auto margin to allow flex layout */
     flex-shrink: 0;
 }
 
@@ -206,7 +204,7 @@
     opacity: 0.7;
 }
 
-/* Sun Rays Rotation */
+/* Sun Rays Rotation omitted for brevity, keeping existing if possible or regenerating */
 .sun-ray:nth-child(1) {
     transform: translate(-50%, -100%) rotate(0deg);
 }
@@ -354,10 +352,6 @@
     margin-bottom: 20px;
 }
 
-.moon-info {
-    flex: 1;
-}
-
 .moon-info h3 {
     font-size: 20px;
     color: #fff;
@@ -388,7 +382,7 @@
 .optimal-header h3 {
     font-size: 18px;
     color: #fff;
-    margin: 0 0 16px 0;
+    margin: 0 0 4px 0;
 }
 
 /* ========== Time Table ========== */
@@ -438,37 +432,82 @@
     font-size: 12px;
 }
 
-/* ========== Optimal Time ========== */
-.optimal-list {
+/* ========== Optimal Time Tab (New) ========== */
+.optimal-days {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin-bottom: 15px;
+    gap: 20px;
 }
 
-.optimal-row {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 12px;
-    border-radius: 8px;
-    border-left: 3px solid #27ae60;
+.optimal-day {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px;
+    border-radius: 12px;
+    border-left: 4px solid #27ae60;
 }
 
-.optimal-info {
+.day-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.time-range {
-    color: #fff;
+.day-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #3498db;
+}
+
+.total-time {
     font-size: 14px;
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.observation-windows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.obs-window {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 10px;
+    border-left: 3px solid #27ae60;
+    transition: all 0.3s;
+}
+
+.obs-window:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(5px);
+}
+
+.obs-window.excellent {
+    border-left-color: #27ae60;
+}
+
+.obs-window.good {
+    border-left-color: #3498db;
+}
+
+.obs-window.fair {
+    border-left-color: #f39c12;
+}
+
+.window-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
 }
 
 .quality-badge {
-    padding: 3px 10px;
-    border-radius: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
     font-size: 11px;
     font-weight: 600;
 }
@@ -488,17 +527,14 @@
     color: white;
 }
 
-.quality-bar {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #27ae60, #3498db);
-    transition: width 0.5s ease;
+.recommendation {
+    background: rgba(39, 174, 96, 0.15);
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: #2ecc71;
+    font-size: 13px;
+    border-left: 3px solid #27ae60;
+    margin-top: 10px;
 }
 
 /* ========== Info Box ========== */
@@ -511,28 +547,13 @@
     border-left: 3px solid #3498db;
 }
 
-/* ========== Reduced Motion ========== */
-@media (prefers-reduced-motion: reduce) {
-
-    .moon-glow,
-    .sun-sphere,
-    .sun-rays,
-    .sun-outer-rays,
-    .sun-corona {
-        animation: none;
-    }
-}
-
 /* ========== Responsive ========== */
 @media (max-width: 480px) {
-    .moon-visual {
+
+    .moon-visual,
+    .sun-visual {
         width: 60px;
         height: 60px;
-    }
-
-    .sun-visual {
-        width: 55px;
-        height: 55px;
     }
 
     .sun-ray {
@@ -541,10 +562,5 @@
 
     .sun-outer-ray {
         height: 25px;
-    }
-
-    .time-values {
-        /* flex-direction: column; aligns left */
-        /* gap: 4px; */
     }
 }

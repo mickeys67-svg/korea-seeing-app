@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './MoonPhase.css';
 import { type AstronomyDay } from '../types/weather';
-import { getPhaseDef, formatDate, formatTime, calculateDuration, getBestTimeData } from '../utils/astronomyUtils';
+import { getPhaseDef, formatDate, formatTime, calculateDuration, calculateObservationWindows, minutesToTime, formatDurationMins } from '../utils/astronomyUtils';
 
 interface MoonPhaseProps {
     data: AstronomyDay[];
@@ -117,31 +117,77 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
                 {/* Best Time Tab */}
                 {activeTab === 'optimal' && (
                     <div className="animate-fade-in">
-                        <div className="optimal-header text-center">
+                        <div className="optimal-header">
                             <h3>Optimal Observation Times</h3>
+                            <p className="text-gray-400 text-xs text-center mb-4">Calculated based on Moon/Sun cycles</p>
                         </div>
 
-                        <div className="optimal-list">
+                        <div className="optimal-days">
                             {data.map((day, idx) => {
-                                const best = getBestTimeData(day);
-                                if (!best) return null;
+                                const nextDay = data[idx + 1];
+                                const windows = calculateObservationWindows(day, nextDay);
+
+                                // Calculate total duration
+                                const totalMins = windows.reduce((acc, w) => acc + w.duration, 0);
+                                const totalTimeStr = totalMins > 0 ? formatDurationMins(totalMins) : 'No dark time';
+
+                                // Calculate timeline markers relative to sunset -> next sunrise
+                                // Simplified timeline visualization for the card
+
                                 return (
-                                    <div key={idx} className="optimal-row" style={{ borderLeftColor: best.quality === 'Excellent' ? '#27ae60' : best.quality === 'Good' ? '#3498db' : '#f39c12' }}>
-                                        <span className="date-label">{formatDate(day.date, idx)}</span>
-                                        <div className="optimal-info">
-                                            <span className="time-range">⏰ <strong>{best.start} - {best.end}</strong></span>
-                                            <span className={`quality-badge ${best.badgeClass}`}>{best.quality}</span>
+                                    <div key={idx} className="optimal-day">
+                                        <div className="day-header">
+                                            <span className="day-label">{formatDate(day.date, idx)}</span>
+                                            <span className="total-time">{totalMins > 0 ? `Total ${totalTimeStr}` : totalTimeStr}</span>
                                         </div>
-                                        <div className="quality-bar">
-                                            <div className="bar-fill" style={{ width: `${best.score}%`, background: best.quality === 'Excellent' ? '#27ae60' : best.quality === 'Good' ? '#3498db' : '#f39c12' }}></div>
-                                        </div>
+
+                                        {windows.length > 0 ? (
+                                            <div className="observation-windows">
+                                                {windows.map((w, wIdx) => (
+                                                    <div key={wIdx} className={`obs-window ${w.quality}`}>
+                                                        <div className="window-header">
+                                                            <span className="time-icon text-lg mr-2">{w.icon}</span>
+                                                            <span className="time-range flex-1 font-bold text-white">{minutesToTime(w.start)} - {minutesToTime(w.end)}</span>
+                                                            <span className="duration text-xs bg-white/10 px-2 py-1 rounded">{formatDurationMins(w.duration)}</span>
+                                                        </div>
+                                                        <div className="window-info flex justify-between items-center mb-2">
+                                                            <span className="condition text-xs text-gray-400">{w.condition}</span>
+                                                            <span className={`quality-badge ${w.quality}`}>
+                                                                {w.quality === 'excellent' ? '★★★ Excellent' : w.quality === 'good' ? '★★☆ Good' : '★☆☆ Fair'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="window-bar h-1.5 bg-white/10 rounded overflow-hidden mb-2">
+                                                            <div className="bar-fill h-full" style={{ width: `${w.score}%`, backgroundColor: w.quality === 'excellent' ? '#27ae60' : w.quality === 'good' ? '#3498db' : '#f39c12' }}></div>
+                                                        </div>
+                                                        <p className="window-tip text-xs text-gray-400 italic">{w.tip}</p>
+                                                    </div>
+                                                ))}
+
+                                                {/* Recommendation logic */}
+                                                {windows.length > 0 && (
+                                                    <div className="recommendation mt-3 p-3 bg-green-900/20 border-l-2 border-green-500 rounded text-xs text-green-400">
+                                                        🎯 <strong>Recommendation:</strong> Best time is after {minutesToTime(windows.reduce((p, c) => c.score > p.score ? c : p).start)}.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="no-observation text-center py-6 text-gray-400">
+                                                <div className="text-3xl mb-2">🌕</div>
+                                                <h4 className="text-white text-sm font-bold">Unsuitable for Deep Sky</h4>
+                                                <p className="text-xs mt-1">Moon is too bright or always up.<br />Try planetary observation.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <div className="info-box">
-                            💡 Calculated based on sunset and moon brightness.
+                        <div className="info-box mt-4">
+                            <ul className="text-xs list-disc pl-4 space-y-1">
+                                <li>Starts 1h after sunset (stabilization)</li>
+                                <li>Ends 1h before sunrise</li>
+                                <li>Avoids bright moon times</li>
+                            </ul>
                         </div>
                     </div>
                 )}
