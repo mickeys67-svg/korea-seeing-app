@@ -26,7 +26,7 @@ router.get('/cities/search', (req, res) => {
 
     const query = q.toLowerCase();
 
-    // Filter logic
+    // Filter logic with priority (prefix matches first)
     const results = cities
         .filter(city => {
             const nameMatch = city.name.toLowerCase().includes(query) ||
@@ -35,7 +35,14 @@ router.get('/cities/search', (req, res) => {
                 city.countryEn.toLowerCase().includes(query);
             return nameMatch || countryMatch;
         })
-        .slice(0, parseInt(limit))
+        .sort((a, b) => {
+            const aName = a.name.toLowerCase();
+            const bName = b.name.toLowerCase();
+            if (aName.startsWith(query) && !bName.startsWith(query)) return -1;
+            if (!aName.startsWith(query) && bName.startsWith(query)) return 1;
+            return 0;
+        })
+        .slice(0, parseInt(limit, 10))
         .map(city => ({
             id: city.id,
             name: city.name,

@@ -24,6 +24,7 @@
             favorites: [],
             recent: [],
             current: null,
+            isExpanded: false,
 
             init() {
                 this.favorites = JSON.parse(localStorage.getItem(CLEARSKY_LOCATION.Config.storageKeyFavorites) || '[]');
@@ -47,7 +48,10 @@
 
                 // Dispatch event for React bridge
                 document.dispatchEvent(new CustomEvent('cls:location:changed', { detail: item }));
-                CLEARSKY_LOCATION.UI.update();
+
+                // Close after selection
+                this.isExpanded = false;
+                CLEARSKY_LOCATION.UI.render();
             }
         },
 
@@ -68,38 +72,50 @@
             },
 
             render() {
-                const { mode } = CLEARSKY_LOCATION.State;
+                const { mode, isExpanded, current } = CLEARSKY_LOCATION.State;
+                const currentName = current ? current.name : 'Select Location';
+
                 this.container.innerHTML = `
-          <div data-cls-component="location-selector">
-            <div data-cls-element="tab-nav">
-              <button data-cls-element="tab-button" data-cls-tab="gps" data-cls-state="${mode === 'gps' ? 'active' : ''}">📍 GPS Mode</button>
-              <button data-cls-element="tab-button" data-cls-tab="manual" data-cls-state="${mode === 'manual' ? 'active' : ''}">🔍 City Search</button>
-            </div>
-            
-            <div data-cls-content="gps" style="display: ${mode === 'gps' ? 'block' : 'none'}">
-              <button data-cls-element="refresh-btn">🔄 Detect Current Location</button>
-            </div>
-            
-            <div data-cls-content="manual" style="display: ${mode === 'manual' ? 'block' : 'none'}">
-              <div data-cls-element="search-container">
-                <input type="text" data-cls-element="search-input" placeholder="Search cities (e.g. Seoul, Tokyo)...">
-                <div data-cls-component="autocomplete" style="display: none"></div>
+          <div data-cls-component="location-selector" data-cls-expanded="${isExpanded}">
+            <!-- Toggle Header -->
+            <button data-cls-element="ui-toggle">
+              <span data-cls-element="current-loc-display">📍 ${currentName}</span>
+              <span data-cls-element="toggle-icon">${isExpanded ? '▲' : '▼'}</span>
+            </button>
+
+            <!-- Collapsible Body -->
+            <div data-cls-element="collapsible-body" style="display: ${isExpanded ? 'block' : 'none'}">
+              <div data-cls-element="tab-nav">
+                <button data-cls-element="tab-button" data-cls-tab="gps" data-cls-state="${mode === 'gps' ? 'active' : ''}">📍 GPS Mode</button>
+                <button data-cls-element="tab-button" data-cls-tab="manual" data-cls-state="${mode === 'manual' ? 'active' : ''}">🔍 City Search</button>
               </div>
               
-              <div data-cls-element="favorites-section">
-                <div data-cls-element="section-title">⭐ Favorites</div>
-                <div data-cls-element="fav-list"></div>
+              <div data-cls-content="gps" style="display: ${mode === 'gps' ? 'block' : 'none'}">
+                <button data-cls-element="refresh-btn">🔄 Detect Current Location</button>
+                <div data-cls-element="gps-status" style="margin-top: 10px; font-size: 13px; color: rgba(255,255,255,0.5); text-align: center;"></div>
               </div>
+              
+              <div data-cls-content="manual" style="display: ${mode === 'manual' ? 'block' : 'none'}">
+                <div data-cls-element="search-container">
+                  <input type="text" data-cls-element="search-input" placeholder="Search cities (e.g. Seoul, Tokyo)...">
+                  <div data-cls-component="autocomplete" style="display: none"></div>
+                </div>
+                
+                <div data-cls-element="favorites-section">
+                  <div data-cls-element="section-title">⭐ Favorites</div>
+                  <div data-cls-element="fav-list"></div>
+                </div>
 
-              <div data-cls-element="recent-section">
-                <div data-cls-element="section-title">🕒 Recent Searches</div>
-                <div data-cls-element="recent-list"></div>
+                <div data-cls-element="recent-section">
+                  <div data-cls-element="section-title">🕒 Recent Searches</div>
+                  <div data-cls-element="recent-list"></div>
+                </div>
               </div>
             </div>
           </div>
         `;
                 this.bindEvents();
-                this.update();
+                if (isExpanded) this.update();
             },
 
             update() {
@@ -131,7 +147,10 @@
                     if (!t) return;
                     const el = t.dataset.clsElement;
 
-                    if (el === 'tab-button') {
+                    if (el === 'ui-toggle' || el === 'current-loc-display' || el === 'toggle-icon') {
+                        CLEARSKY_LOCATION.State.isExpanded = !CLEARSKY_LOCATION.State.isExpanded;
+                        this.render();
+                    } else if (el === 'tab-button') {
                         CLEARSKY_LOCATION.State.mode = t.dataset.clsTab;
                         this.render();
                     } else if (el === 'refresh-btn') {
@@ -196,7 +215,12 @@
             },
 
             detectGps() {
-                if (!navigator.geolocation) return alert('GPS not supported');
+                if (!navigator.geolocation) return this.setGpsStatus('GPS not supported');
+
+                const btn = this.container.querySelector('[data-cls-element="refresh-btn"]');
+                if (btn) btn.disabled = true;
+                this.setGpsStatus('Detecting...');
+
                 navigator.geolocation.getCurrentPosition(pos => {
                     CLEARSKY_LOCATION.State.setLocation({
                         id: 'gps-current',
@@ -205,7 +229,18 @@
                         lat: pos.coords.latitude,
                         lng: pos.coords.longitude
                     }, 'gps');
-                }, err => alert('GPS failed: ' + err.message));
+                    if (btn) btn.disabled = false;
+                    this.setGpsStatus('Location updated!');
+                    setTimeout(() => this.setGpsStatus(''), 3000);
+                }, err => {
+                    if (btn) btn.disabled = false;
+                    this.setGpsStatus('GPS Error: ' + err.message);
+                });
+            },
+
+            setGpsStatus(msg) {
+                const s = this.container.querySelector('[data-cls-element="gps-status"]');
+                if (s) s.textContent = msg;
             }
         },
 

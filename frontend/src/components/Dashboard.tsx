@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
                         </h1>
                         <div className="flex items-center text-gray-400 text-sm mt-1">
                             <MapPin className="w-3 h-3 mr-1" />
-                            {location.val ? "Current GPS Location" : "Seoul, South Korea (Default)"}
+                            {location.name || (location.val ? "GPS Location" : "Seoul, South Korea (Default)")}
                         </div>
                     </div>
                 </div>

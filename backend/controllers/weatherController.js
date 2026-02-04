@@ -1,5 +1,6 @@
 const WeatherService = require('../services/weatherService');
 const AstronomyService = require('../services/astronomyService');
+const TranslationService = require('../services/translationService');
 
 exports.getWeatherAndSeeing = async (req, res) => {
     try {
@@ -10,18 +11,25 @@ exports.getWeatherAndSeeing = async (req, res) => {
             return res.status(400).json({ error: 'Latitude and Longitude are required' });
         }
 
-        // 1. Get Aggregated Weather Data (7Timer + OpenMeteo + MetNo)
+        // 1. Get Aggregated Weather Data
         console.log('Fetching aggregated forecast for', lat, lon);
-        const processedSeeing = await WeatherService.getAggregatedForecast(lat, lon);
-        console.log('Processed seeing count:', processedSeeing ? processedSeeing.length : 'null');
+        let processedSeeing = await WeatherService.getAggregatedForecast(lat, lon);
 
-        // Astronomy Data (Moon & Sun for 3 days)
-        // Use the first forecast time as start date, or current date
+        // 2. Determine and Apply AI Translation
+        // Heuristic: If in Korea (lat: 33-39, lon: 124-132) or explicitly requested
+        let targetLang = req.query.lang || 'en';
+        if (!req.query.lang && (lat >= 33 && lat <= 39) && (lon >= 124 && lon <= 132)) {
+            targetLang = 'ko';
+        }
+
+        if (targetLang !== 'en' && processedSeeing && processedSeeing.length > 0) {
+            console.log(`[Translation] Applying AI translation to ${targetLang}...`);
+            processedSeeing = await TranslationService.translateForecastBatch(processedSeeing, targetLang);
+        }
+
+        // 3. Astronomy Data (Moon & Sun for 3 days)
         const startDate = (processedSeeing && processedSeeing.length > 0) ? new Date(processedSeeing[0].time) : new Date();
-        console.log('Astronomy start date:', startDate);
-
         const astronomy = AstronomyService.getAstronomyForecast(startDate, 3, lat, lon);
-        console.log('Astronomy data generated');
 
         res.json({
             location: { lat, lon },

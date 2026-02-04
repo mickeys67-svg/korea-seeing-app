@@ -135,8 +135,8 @@ const WeatherService = {
                 temp2m: finalTemp !== null ? Math.round(finalTemp) : 0,
                 rh2m: finalHum !== null ? Math.round(finalHum) : 0,
                 wind10m: {
-                    direction: item.wind10m && item.wind10m.direction ? item.wind10m.direction : 'N/A',
-                    speed: parseFloat(finalWind.toFixed(1))
+                    direction: (item.wind10m && item.wind10m.direction) ? item.wind10m.direction : 'N/A',
+                    speed: typeof finalWind === 'number' ? parseFloat(finalWind.toFixed(1)) : 0
                 },
                 scores: {
                     seeing: parseFloat(seeingScore.toFixed(1)),
