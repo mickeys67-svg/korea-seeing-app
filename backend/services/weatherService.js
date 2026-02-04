@@ -6,18 +6,14 @@ const WeatherService = {
     // Jet Stream Score: Based on 250hPa Wind Speed (knots)
     // Using simplified "overhead" approach since we don't have distance map yet.
     calculateJetStreamScore: (speedMs) => {
-        if (speedMs == null) return 8; // Unknown = assume worst? or neutral? Using worst for safety.
+        if (speedMs == null) return 8; // Unknown = assume worst for safety.
         const speedKt = speedMs * 1.94384; // m/s to knots
 
-        let speedScore = 0;
-        if (speedKt < 50) speedScore = 0;
-        else if (speedKt < 80) speedScore = 2;
-        else if (speedKt < 120) speedScore = 4;
-        else if (speedKt < 150) speedScore = 6;
-        else speedScore = 8;
-
-        // Distance factor currently 1.0 (overhead)
-        return speedScore;
+        if (speedKt < 50) return 0;
+        if (speedKt < 80) return 2;
+        if (speedKt < 120) return 4;
+        if (speedKt < 150) return 6;
+        return 8;
     },
 
     // Convection Score: Based on CAPE and Time of Day
@@ -91,43 +87,33 @@ const WeatherService = {
         return Math.round((percent * 8) / 100);
     },
 
-    // Helper: Find closest OpenMeteo index for a given Date
-    findOpenMeteoIndex: (omData, targetDate) => {
-        if (!omData || !omData.hourly || !omData.hourly.time) return -1;
+    // Helper: Generic closest index/item finder
+    // Returns { index, item } or null
+    findClosestItem: (times, targetDate) => {
+        if (!times || times.length === 0) return null;
+
         const targetTime = targetDate.getTime();
         let minDiff = Infinity;
-        let index = -1;
+        let closestIndex = -1;
 
-        for (let i = 0; i < omData.hourly.time.length; i++) {
-            const t = new Date(omData.hourly.time[i]).getTime();
+        for (let i = 0; i < times.length; i++) {
+            const t = new Date(times[i]).getTime();
             const diff = Math.abs(t - targetTime);
+
+            // Optimization: If diff increases, we passed the closest point (assuming sorted)
+            if (diff > minDiff) break;
+
             if (diff < minDiff) {
                 minDiff = diff;
-                index = i;
-            } else if (diff > minDiff) break;
-        }
-        return index;
-    },
-
-    // Helper: Find closest Met.no data for a given Date
-    findMetNoData: (metData, targetDate) => {
-        if (!metData || !metData.properties || !metData.properties.timeseries) return null;
-        const targetTime = targetDate.getTime();
-        let closest = null;
-        let minDiff = Infinity;
-
-        for (const item of metData.properties.timeseries) {
-            const t = new Date(item.time).getTime();
-            const diff = Math.abs(t - targetTime);
-            if (diff < minDiff) {
-                minDiff = diff;
-                closest = item.data.instant.details;
+                closestIndex = i;
             }
         }
-        return closest;
+
+        return closestIndex !== -1 ? closestIndex : null;
     },
 
     getAggregatedForecast: async (lat, lon) => {
+        // 1. Fetch Parallel
         const [timerData, omData, metData] = await Promise.all([
             ProviderService.fetch7Timer(lat, lon),
             ProviderService.fetchOpenMeteo(lat, lon),
@@ -157,33 +143,54 @@ const WeatherService = {
             if (item.rh2m != null && item.rh2m > 0) humidities.push(item.rh2m); // Assuming %
             // 7Timer Cloud: 1-9. Convert to 0-8. (val-1)
             // If val is 1 (clear), score 0. If val 9 (overcast), score 8.
-            if (item.cloudcover != null) match = clouds.push(Math.max(0, item.cloudcover - 1));
+            // Fix: Removed 'match' variable assignment
+            if (item.cloudcover != null) clouds.push(Math.max(0, item.cloudcover - 1));
 
             // --- 2. Open-Meteo Data ---
-            const omIdx = WeatherService.findOpenMeteoIndex(omData, targetDate);
-            if (omIdx !== -1) {
-                const h = omData.hourly;
-                if (h.temperature_2m[omIdx] != null) temps.push(h.temperature_2m[omIdx]);
-                if (h.relative_humidity_2m[omIdx] != null) humidities.push(h.relative_humidity_2m[omIdx]);
-                if (h.cloud_cover[omIdx] != null) clouds.push(WeatherService.normalizeCloud(h.cloud_cover[omIdx]));
-                if (h.wind_speed_10m[omIdx] != null) winds.push(h.wind_speed_10m[omIdx] / 3.6); // km/h -> m/s
+            if (omData && omData.hourly && omData.hourly.time) {
+                const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
+                if (omIdx !== null) {
+                    const h = omData.hourly;
+                    if (h.temperature_2m[omIdx] != null) temps.push(h.temperature_2m[omIdx]);
+                    if (h.relative_humidity_2m[omIdx] != null) humidities.push(h.relative_humidity_2m[omIdx]);
+                    if (h.cloud_cover[omIdx] != null) clouds.push(WeatherService.normalizeCloud(h.cloud_cover[omIdx]));
+                    if (h.wind_speed_10m[omIdx] != null) winds.push(h.wind_speed_10m[omIdx] / 3.6); // km/h -> m/s
 
-                // New Metrics
-                if (h.wind_speed_250hPa && h.wind_speed_250hPa[omIdx] != null) {
-                    jetStreams.push(h.wind_speed_250hPa[omIdx] / 3.6); // km/h -> m/s
-                }
-                if (h.cape && h.cape[omIdx] != null) {
-                    capes.push(h.cape[omIdx]);
+                    if (h.wind_speed_250hPa && h.wind_speed_250hPa[omIdx] != null) {
+                        jetStreams.push(h.wind_speed_250hPa[omIdx] / 3.6);
+                    }
+                    if (h.cape && h.cape[omIdx] != null) {
+                        capes.push(h.cape[omIdx]);
+                    }
                 }
             }
 
             // --- 3. Met.no Data ---
-            const met = WeatherService.findMetNoData(metData, targetDate);
-            if (met) {
-                if (met.air_temperature != null) temps.push(met.air_temperature);
-                if (met.relative_humidity != null) humidities.push(met.relative_humidity);
-                if (met.cloud_area_fraction != null) clouds.push(WeatherService.normalizeCloud(met.cloud_area_fraction));
-                if (met.wind_speed != null) winds.push(met.wind_speed);
+            if (metData && metData.properties && metData.properties.timeseries) {
+                // Met.no timeseries is an array of objects { time, data }
+                // We'll map to just time strings for the helper, or use a custom check since structure differs
+                // Re-using simplified custom helper logic inline for Met.no structure difference 
+                // OR adapt helper. Let's adapt helper? No, structure is different.
+                // Keeping simplified loop tailored for object array:
+                let closestMet = null;
+                let minDiff = Infinity;
+                const targetTime = targetDate.getTime();
+
+                for (const mItem of metData.properties.timeseries) {
+                    const t = new Date(mItem.time).getTime();
+                    const diff = Math.abs(t - targetTime);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestMet = mItem.data.instant.details;
+                    }
+                }
+
+                if (closestMet) {
+                    if (closestMet.air_temperature != null) temps.push(closestMet.air_temperature);
+                    if (closestMet.relative_humidity != null) humidities.push(closestMet.relative_humidity);
+                    if (closestMet.cloud_area_fraction != null) clouds.push(WeatherService.normalizeCloud(closestMet.cloud_area_fraction));
+                    if (closestMet.wind_speed != null) winds.push(closestMet.wind_speed);
+                }
             }
 
             // --- Averages ---
