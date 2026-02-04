@@ -78,13 +78,13 @@ const Dashboard: React.FC = () => {
 
             <NotificationSetup />
 
-            {/* SEO & Community Keywords Section (Subtle) */}
-            <div className="mt-12 text-center max-w-2xl px-4 animate-fade-in opacity-40 hover:opacity-100 transition-opacity duration-500">
-                <p className="text-[10px] text-gray-500 leading-relaxed uppercase tracking-[0.2em] font-medium">
+            {/* SEO & Community Keywords Section (Hidden but crawlable) */}
+            <div className="sr-only" aria-hidden="true">
+                <p>
                     Precision Seeing Forecast for Astrophotographers • Steady Skies & Stable Air Analysis
                     • Community Trusted Stargazing Predictor • Built for Cloudy Nights & AstroBin Users
                 </p>
-                <div className="mt-2 text-[8px] text-gray-600 flex flex-wrap justify-center gap-x-4 opacity-50 font-mono italic">
+                <div className="font-mono italic">
                     <span>FWHM Estimation</span>
                     <span>Antoniadi Scale Ref</span>
                     <span>Pickering Scale Model</span>
