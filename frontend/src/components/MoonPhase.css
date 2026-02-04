@@ -132,8 +132,7 @@
     border-radius: 50%;
     background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
     animation: moonGlow 3s ease-in-out infinite;
-    opacity: v-bind(fraction);
-    /* Using v-bind if supported or just keep it simple */
+    opacity: var(--glow-opacity, 0.6);
 }
 
 @keyframes moonGlow {
@@ -488,16 +487,22 @@
     transform: translateX(5px);
 }
 
-.obs-window.excellent {
-    border-left-color: #27ae60;
+.bar-fill {
+    height: 100%;
+    background: #3498db;
+    transition: width 0.5s ease;
 }
 
-.obs-window.good {
-    border-left-color: #3498db;
+.quality-fill-excellent {
+    background: #27ae60 !important;
 }
 
-.obs-window.fair {
-    border-left-color: #f39c12;
+.quality-fill-good {
+    background: #3498db !important;
+}
+
+.quality-fill-fair {
+    background: #f39c12 !important;
 }
 
 .window-header {

@@ -1,0 +1,167 @@
+[
+    {
+        "id": "kr-seoul",
+        "name": "서울",
+        "nameEn": "Seoul",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 37.5665,
+        "lng": 126.9780,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-busan",
+        "name": "부산",
+        "nameEn": "Busan",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 35.1796,
+        "lng": 129.0756,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-incheon",
+        "name": "인천",
+        "nameEn": "Incheon",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 37.4563,
+        "lng": 126.7052,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-daegu",
+        "name": "대구",
+        "nameEn": "Daegu",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 35.8714,
+        "lng": 128.6014,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-daejeon",
+        "name": "대전",
+        "nameEn": "Daejeon",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 36.3504,
+        "lng": 127.3845,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-gwangju",
+        "name": "광주",
+        "nameEn": "Gwangju",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 35.1595,
+        "lng": 126.8526,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-ulsan",
+        "name": "울산",
+        "nameEn": "Ulsan",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 35.5384,
+        "lng": 129.3114,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-jeju",
+        "name": "제주시",
+        "nameEn": "Jeju",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 33.4996,
+        "lng": 126.5312,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "kr-sejong",
+        "name": "세종",
+        "nameEn": "Sejong",
+        "country": "대한민국",
+        "countryEn": "South Korea",
+        "countryCode": "KR",
+        "lat": 36.4800,
+        "lng": 127.2890,
+        "timezone": "Asia/Seoul"
+    },
+    {
+        "id": "us-new-york",
+        "name": "뉴욕",
+        "nameEn": "New York",
+        "country": "미국",
+        "countryEn": "USA",
+        "countryCode": "US",
+        "lat": 40.7128,
+        "lng": -74.0060,
+        "timezone": "America/New_York"
+    },
+    {
+        "id": "us-los-angeles",
+        "name": "로스앤젤레스",
+        "nameEn": "Los Angeles",
+        "country": "미국",
+        "countryEn": "USA",
+        "countryCode": "US",
+        "lat": 34.0522,
+        "lng": -118.2437,
+        "timezone": "America/Los_Angeles"
+    },
+    {
+        "id": "jp-tokyo",
+        "name": "도쿄",
+        "nameEn": "Tokyo",
+        "country": "일본",
+        "countryEn": "Japan",
+        "countryCode": "JP",
+        "lat": 35.6762,
+        "lng": 139.6503,
+        "timezone": "Asia/Tokyo"
+    },
+    {
+        "id": "uk-london",
+        "name": "런던",
+        "nameEn": "London",
+        "country": "영국",
+        "countryEn": "UK",
+        "countryCode": "GB",
+        "lat": 51.5074,
+        "lng": -0.1278,
+        "timezone": "Europe/London"
+    },
+    {
+        "id": "fr-paris",
+        "name": "파리",
+        "nameEn": "Paris",
+        "country": "프랑스",
+        "countryEn": "France",
+        "countryCode": "FR",
+        "lat": 48.8566,
+        "lng": 2.3522,
+        "timezone": "Europe/Paris"
+    },
+    {
+        "id": "de-berlin",
+        "name": "베를린",
+        "nameEn": "Berlin",
+        "country": "독일",
+        "countryEn": "Germany",
+        "countryCode": "DE",
+        "lat": 52.5200,
+        "lng": 13.4050,
+        "timezone": "Europe/Berlin"
+    }
+]
