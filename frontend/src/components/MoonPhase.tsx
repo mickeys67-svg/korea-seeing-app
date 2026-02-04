@@ -63,9 +63,33 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
                                 <div key={idx} className="time-row">
                                     <span className="date-label">{formatDate(day.date, idx)}</span>
                                     <div className="time-values">
-                                        <span>Rise <strong>{formatTime(day.moon.rise)}</strong></span>
-                                        <span className="divider">│</span>
-                                        <span>Set <strong>{formatTime(day.moon.set)}</strong></span>
+                                        {/* Helper to check if time is next day relative to card date */}
+                                        {(() => {
+                                            const isNextDay = (timeStr: string | null, baseDateStr: string) => {
+                                                if (!timeStr) return false;
+                                                // If event is > 24h from base, or just explicitly next calendar day?
+                                                // Simple check: getDate() difference.
+                                                const eventDate = new Date(timeStr);
+                                                const baseDate = new Date(baseDateStr);
+                                                return eventDate.getDate() !== baseDate.getDate();
+                                            };
+
+                                            // Handle Always Up/Down
+                                            // Note: We need to cast 'day.moon' to any if TS complains about missing alwaysUp prop, 
+                                            // or better, update the type definition. 
+                                            // For now assuming passed data has it.
+                                            const moonData = day.moon as any;
+                                            if (moonData.alwaysUp) return <span className="text-yellow-300">Always Up</span>;
+                                            if (moonData.alwaysDown) return <span className="text-gray-500">Always Down</span>;
+
+                                            return (
+                                                <>
+                                                    <span>Rise <strong>{formatTime(day.moon.rise)}{isNextDay(day.moon.rise, day.date) ? <small className="text-xs text-gray-400 ml-1">(+1)</small> : ''}</strong></span>
+                                                    <span className="divider">│</span>
+                                                    <span>Set <strong>{formatTime(day.moon.set)}{isNextDay(day.moon.set, day.date) ? <small className="text-xs text-gray-400 ml-1">(+1)</small> : ''}</strong></span>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             ))}

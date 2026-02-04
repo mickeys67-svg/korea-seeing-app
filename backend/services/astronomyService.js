@@ -61,8 +61,10 @@ const AstronomyService = {
                 moon: {
                     phase: moonIllumination.phase,
                     fraction: moonIllumination.fraction,
-                    rise: moonTimes.rise || null, // null if always up/down
-                    set: moonTimes.set || null
+                    rise: moonTimes.rise || null,
+                    set: moonTimes.set || null,
+                    alwaysUp: moonTimes.alwaysUp,
+                    alwaysDown: moonTimes.alwaysDown
                 },
                 sun: {
                     sunrise: uniqueSunrise || null,
@@ -70,6 +72,31 @@ const AstronomyService = {
                     observableHours: observableHours > 0 ? observableHours : 0
                 }
             });
+
+            // Post-processing: If Set is missing (and not always Up/Down), find the next set event from the next day
+            const currentItem = forecast[i];
+            if (!currentItem.moon.alwaysUp && !currentItem.moon.alwaysDown) {
+                if (!currentItem.moon.set) {
+                    const nextDayDate = new Date(noonDate);
+                    nextDayDate.setDate(nextDayDate.getDate() + 1);
+                    const nextMoonTimes = SunCalc.getMoonTimes(nextDayDate, lat, lon);
+                    if (nextMoonTimes.set) {
+                        currentItem.moon.set = nextMoonTimes.set;
+                        // Optional: Add metadata that it is next day? The ISO string contains date.
+                    }
+                }
+                // Logic for missing rise? usually less critical for "tonight" observation if it rose yesterday, but good for consistency.
+                if (!currentItem.moon.rise) {
+                    // If it didn't rise today, maybe it rises tomorrow?
+                    // Or maybe it rose yesterday? Usually users want to know "When does it rise next?"
+                    const nextDayDate = new Date(noonDate);
+                    nextDayDate.setDate(nextDayDate.getDate() + 1);
+                    const nextMoonTimes = SunCalc.getMoonTimes(nextDayDate, lat, lon);
+                    if (nextMoonTimes.rise) {
+                        currentItem.moon.rise = nextMoonTimes.rise;
+                    }
+                }
+            }
         }
         return forecast;
     },
