@@ -131,105 +131,53 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
 
     // 3. Logic: Window Slicing based on Moon
     const moonIllumination = currentDay.moon.fraction * 100;
-    // const isMoonBright = moonIllumination > 30; // Unused
     const isMoonSuperBright = moonIllumination > 70;
 
-    // Scenario A: Moon doesn't rise or is effectively gone for the night
-    if (moonRise === null && moonSet === null) {
-        // Full night clear? Or maybe it rose earlier and sets later?
-        // Need to check if logic implies "Always Up" or "Always Down".
-        // Assumption: if no rise/set found in window, check phase.
-        // If New Moon (fraction < 0.1), assume dark. 
-        // If Full Moon, assume bright all night if 'alwaysUp' (not provided in this simplified struct).
-        // Let's assume 'No Event' + 'Low Illumination' = Dark. 'High' = Bright.
-        if (moonIllumination < 10) {
-            windows.push(createWindow(obsStart, obsEnd, 'Moonless', 'excellent', 100, '🌆', 'Perfect dark skies.'));
-        } else {
-            // Moon is present but didn't rise/set *during* night? 
-            // Likely already up?
-            // Safest to rely on `currentDay.moon.rise` being null meaning "doesn't rise today".
-            // If fraction is high and no events, it might be Always Up (Polar) or just risen before sunset and sets after sunrise.
-            // Let's calculate purely based on events we found.
-            // If we found NO moon rise/set in the night window, and fraction is high, assume BAD.
-            // If fraction low, GOOD.
-        }
-    }
-
-    let windowsList: { start: number, end: number, type: 'dark' | 'moon' }[] = [];
-
-    // Simple Algorithm: Start with full window, subtract moon time.
-    // Case 1: Moon Rise is the splitter. (Dark before Rise)
-    // Case 2: Moon Set is the splitter. (Dark after Set)
-    // Case 3: Moon Set then Moon Rise (Dark between) - Rare in one night unless polar/fast?
-    // Case 4: Moon Rise then Moon Set (Moon in middle) - Dark start, Dark end.
-
-    // Let's Normalize Events to be inside the window or boundary
-    // const effectiveRise = moonRise !== null ? Math.max(obsStart, Math.min(obsEnd, moonRise)) : null;
-    // const effectiveSet = moonSet !== null ? Math.max(obsStart, Math.min(obsEnd, moonSet)) : null;
-
-    // Determine "Moon Up" intervals
-    // If Moon Rise is valid and Set is null -> Up from Rise to End
-    // If Moon Set is valid and Rise is null -> Up from Start to Set
-    // If Both valid -> 
-    // If Set < Rise: Up from Start->Set AND Rise->End (Moon sets early, rises late?)
-    // If Rise < Set: Up from Rise->Set (Moon passes through)
-
-    // We need to know if moon starts 'Up' or 'Down' at obsStart.
-    // Heuristic: If Moon Rise is coming later (and Set is undefined or after Rise), it starts Down.
-    // If Moon Set is coming (and Rise is undefined or after Set), it starts Up.
-
+    // Determine "Moon Up" status at the start of the night (obsStart)
+    // Heuristic: If Moon Set is before Rise, Moon is Up at start.
     let isMoonUpAtStart = false;
-    // Refine start state logic
     if (moonSet !== null && (moonRise === null || moonSet < moonRise)) {
         isMoonUpAtStart = true;
     } else if (moonRise !== null && (moonSet === null || moonRise < moonSet)) {
         isMoonUpAtStart = false;
-    } else {
-        // No events. dependent on phase/illumination?
-        // Rough proxy: Full Moon = Up all night (approx), New Moon = Down.
+    } else if (moonRise === null && moonSet === null) {
+        // No proximity events. Use illumination as a fallback proxy for "Always Up/Down"
+        isMoonUpAtStart = moonIllumination > 50;
     }
 
-    // Construct Intervals
-    let cursor = obsStart;
+    const windowsList: { start: number, end: number, type: 'dark' | 'moon' }[] = [];
 
-    // We want "Dark" intervals.
-    // If moon is Down, we have a window until it Rises or Night Ends.
-
-    // Sort events
+    // Gather and sort events that occur DURING the night window [obsStart, obsEnd]
     const events = [];
-    if (moonRise !== null && moonRise >= obsStart && moonRise <= obsEnd) events.push({ type: 'rise', time: moonRise });
-    if (moonSet !== null && moonSet >= obsStart && moonSet <= obsEnd) events.push({ type: 'set', time: moonSet });
+    if (moonRise !== null && moonRise > obsStart && moonRise < obsEnd) events.push({ type: 'rise', time: moonRise });
+    if (moonSet !== null && moonSet > obsStart && moonSet < obsEnd) events.push({ type: 'set', time: moonSet });
     events.sort((a, b) => a.time - b.time);
 
-    let currentMoonState = isMoonUpAtStart; // True if moon is up
+    let cursor = obsStart;
+    let currentMoonUp = isMoonUpAtStart;
 
-    // Start Loop
+    // Segment the night into Moon-Up and Moon-Down blocks
     for (const event of events) {
-        if (!currentMoonState) {
-            // Moon was Down (Dark) -> Event must be Rise
-            // So [Cursor, Event.time] is a Dark Window
-            if (event.time > cursor + 30) { // Min 30 min window
+        if (!currentMoonUp) {
+            // Dark segment from cursor to this Rise event
+            if (event.time > cursor + 20) {
                 windowsList.push({ start: cursor, end: event.time, type: 'dark' });
             }
-            if (event.type === 'rise') currentMoonState = true;
-        } else {
-            // Moon was Up (Bright) -> Event must be Set
-            // So [Cursor, Event.time] was Bright (Ignore)
-            if (event.type === 'set') currentMoonState = false;
         }
+        currentMoonUp = (event.type === 'rise');
         cursor = event.time;
     }
 
-    // Final Segment
-    if (!currentMoonState && cursor < obsEnd) {
-        if (obsEnd - cursor > 30) {
-            windowsList.push({ start: cursor, end: obsEnd, type: 'dark' });
-        }
+    // Final segment from last event to the end of observation window
+    if (!currentMoonUp && obsEnd > cursor + 20) {
+        windowsList.push({ start: cursor, end: obsEnd, type: 'dark' });
     }
 
-    // If no events and moon was NOT up at start (Low illumination or just not up), add full window
-    if (events.length === 0 && !isMoonUpAtStart && moonIllumination < 10) {
-        windowsList.push({ start: obsStart, end: obsEnd, type: 'dark' });
+    // fallback for completely dark nights with no events detected
+    if (events.length === 0 && !isMoonUpAtStart && windowsList.length === 0 && moonIllumination < 30) {
+        if (obsEnd > obsStart + 20) {
+            windowsList.push({ start: obsStart, end: obsEnd, type: 'dark' });
+        }
     }
 
     // === Score & Format Windows ===
@@ -292,6 +240,4 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
     });
 };
 
-function createWindow(start: number, end: number, condition: string, quality: any, score: number, icon: string, tip: string): ObservationWindow {
-    return { start, end, duration: end - start, condition, quality, score, icon, tip };
-}
+// Helper removed (unused)

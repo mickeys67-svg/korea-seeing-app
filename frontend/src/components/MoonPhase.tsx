@@ -51,7 +51,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
                                 <p className="moon-illumination">Illumination: <span className="text-white font-bold">{Math.round(today.moon.fraction * 100)}</span>%</p>
                             </div>
                             <div className="moon-visual">
-                                <div className="moon-glow" style={{ opacity: today.moon.fraction }}></div>
+                                <div className="moon-glow" style={{ '--glow-opacity': today.moon.fraction } as React.CSSProperties}></div>
                                 <div className={`moon-sphere ${currentPhase.class}`}>
                                     <div className="moon-shadow"></div>
                                 </div>
@@ -157,7 +157,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
                                                             </span>
                                                         </div>
                                                         <div className="window-bar h-1.5 bg-white/10 rounded overflow-hidden mb-2">
-                                                            <div className="bar-fill h-full" style={{ width: `${w.score}%`, backgroundColor: w.quality === 'excellent' ? '#27ae60' : w.quality === 'good' ? '#3498db' : '#f39c12' }}></div>
+                                                            <div className={`bar-fill h-full quality-fill-${w.quality}`} style={{ width: `${w.score}%` }}></div>
                                                         </div>
                                                         <p className="window-tip text-xs text-gray-400 italic">{w.tip}</p>
                                                     </div>
