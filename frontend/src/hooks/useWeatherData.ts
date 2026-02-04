@@ -25,7 +25,7 @@ const useWeatherData = (lat: number | null, lon: number | null): UseWeatherDataR
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+                const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}&_t=${Date.now()}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch weather data');
                 }
