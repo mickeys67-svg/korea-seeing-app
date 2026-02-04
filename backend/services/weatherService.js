@@ -36,7 +36,7 @@ const WeatherService = {
 
         const now = new Date();
 
-        return timerData.dataseries.map(item => {
+        const mappedForecast = timerData.dataseries.map(item => {
             const timepoint = item.timepoint;
             const targetDate = new Date(now.getTime() + timepoint * 60 * 60 * 1000);
             const hour = targetDate.getHours();
@@ -166,6 +166,15 @@ const WeatherService = {
                 recommendation: calculation.recommendation
             };
         });
+
+        // Return both forecast and metadata
+        return {
+            forecast: mappedForecast,
+            meta: {
+                timezone: (omData && omData.timezone) ? omData.timezone : 'UTC',
+                timezoneOffset: (omData && omData.utc_offset_seconds) ? omData.utc_offset_seconds : 0
+            }
+        };
     }
 };
 

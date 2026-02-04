@@ -1,4 +1,5 @@
 export interface ForecastItem {
+    time: string;
     timepoint: number;
 
     // Display Values
@@ -57,6 +58,8 @@ export interface WeatherData {
     location: {
         lat: number;
         lon: number;
+        timezone?: string;
+        timezoneOffset?: number;
     };
     weather: ForecastItem[];
     forecast: ForecastItem[];

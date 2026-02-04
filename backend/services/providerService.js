@@ -16,7 +16,7 @@ const ProviderService = {
     // 2. Open-Meteo
     async fetchOpenMeteo(lat, lon) {
         try {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,wind_speed_250hPa,cape&forecast_days=3`;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,relative_humidity_2m,cloud_cover,wind_speed_10m,wind_speed_250hPa,cape&forecast_days=3&timezone=auto`;
             const response = await axios.get(url, { timeout: 5000 });
             return response.data;
         } catch (error) {

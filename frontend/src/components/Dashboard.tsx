@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
         <div className="flex flex-col items-center p-6 space-y-6 w-full max-w-4xl mx-auto">
             <header className="w-full flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
-                    <img src="/logo.jpg" alt="Logo" className="w-12 h-12 rounded-full border-2 border-blue-400 shadow-md object-cover" />
+                    <img src="/logo.jpg" alt="Logo" className="w-12 h-12 rounded-full border-2 border-blue-400 object-cover animate-logo-glow" />
                     <div>
                         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
                             Clear skies !
@@ -68,7 +68,10 @@ const Dashboard: React.FC = () => {
                 {data.astronomy && <MoonPhase data={data.astronomy} />}
             </div>
 
-            {currentForecast && <AiPrediction weather={currentForecast} />}
+            {/* AI Prediction Module (Time Travel Enabled) */}
+            {data.forecast && data.forecast.length > 0 && (
+                <AiPrediction forecastList={data.forecast} timezone={data.location.timezone} />
+            )}
 
             {/* Use the new ForecastList component - Showing approx 6 days (48 points * 3h = 144h = 6 days) */}
             {data.forecast && <ForecastList forecast={data.forecast.slice(0, 48)} />}

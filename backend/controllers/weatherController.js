@@ -2,7 +2,7 @@ const WeatherService = require('../services/weatherService');
 const AstronomyService = require('../services/astronomyService');
 const TranslationService = require('../services/translationService');
 
-exports.getWeatherAndSeeing = async (req, res) => {
+exports.getWeatherAndSeeing = async (req, res, next) => {
     try {
         const lat = parseFloat(req.query.lat);
         const lon = parseFloat(req.query.lon);
@@ -13,7 +13,8 @@ exports.getWeatherAndSeeing = async (req, res) => {
 
         // 1. Get Aggregated Weather Data
         console.log('Fetching aggregated forecast for', lat, lon);
-        let processedSeeing = await WeatherService.getAggregatedForecast(lat, lon);
+        const { forecast, meta } = await WeatherService.getAggregatedForecast(lat, lon);
+        let processedSeeing = forecast;
 
         // 2. Determine and Apply AI Translation
         // Heuristic: If in Korea (lat: 33-39, lon: 124-132) or explicitly requested
@@ -32,13 +33,17 @@ exports.getWeatherAndSeeing = async (req, res) => {
         const astronomy = AstronomyService.getAstronomyForecast(startDate, 3, lat, lon);
 
         res.json({
-            location: { lat, lon },
+            location: {
+                lat,
+                lon,
+                timezone: meta ? meta.timezone : 'UTC',
+                timezoneOffset: meta ? meta.timezoneOffset : 0
+            },
             forecast: processedSeeing || [],
             astronomy: astronomy
         });
 
     } catch (error) {
-        console.error('API Error Stack:', error.stack);
-        res.status(500).json({ error: 'Failed to fetch weather data: ' + error.message });
+        next(error);
     }
 };

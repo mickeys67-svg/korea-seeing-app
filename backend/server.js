@@ -60,6 +60,15 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
+// --- Global Error Handling Middleware ---
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err.stack);
+    res.status(500).json({
+        error: 'Internal Server Error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
+    });
+});
+
 // Start Server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
