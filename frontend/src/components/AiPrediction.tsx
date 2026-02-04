@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
 import { Sparkles, Bot } from 'lucide-react';
 import { predictSeeing } from '../utils/aiService';
+import type { ForecastItem } from '../types/weather';
 
 interface Props {
-    weather: {
-        seeing: number;
-        transparency: number;
-        cloudCover: number;
-        wind10m: { speed: number };
-        rh2m: number;
-    };
+    weather: ForecastItem;
 }
 
 const AiPrediction: React.FC<Props> = ({ weather }) => {
@@ -21,14 +16,25 @@ const AiPrediction: React.FC<Props> = ({ weather }) => {
         // Simulate AI "Processing" time
         setTimeout(() => {
             const result = predictSeeing({
-                seeing: weather.seeing,
-                transparency: weather.transparency,
-                cloudCover: weather.cloudCover,
+                seeing: weather.scores.seeing,
+                transparency: weather.scores.transparency,
+                cloudCover: weather.scores.cloudCover,
                 windSpeed: weather.wind10m.speed,
                 humidity: weather.rh2m
             });
             setPrediction(result);
+
             setLoading(false);
+
+            // Play "Star Falling" Sound
+            // Tip: Replace '/magic-chime.mp3' with your actual sound file in public/ folder
+            try {
+                const audio = new Audio('/magic-chime.mp3');
+                audio.volume = 0.5;
+                audio.play().catch(e => console.log("Audio play failed (interaction needed):", e));
+            } catch (e) {
+                console.error("Audio error", e);
+            }
         }, 1500);
     };
 

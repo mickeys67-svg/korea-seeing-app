@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Bell, BellOff } from 'lucide-react';
 
 const NotificationSetup: React.FC = () => {
     const [enabled, setEnabled] = useState(false);
@@ -23,12 +22,14 @@ const NotificationSetup: React.FC = () => {
 
     return (
         <div className="fixed bottom-6 right-6">
+            {/* Toggle Switch */}
             <button
                 onClick={toggleNotifications}
-                className={`p-4 rounded-full shadow-lg transition-all transform hover:scale-105 ${enabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'
-                    }`}
+                className="relative inline-flex items-center cursor-pointer p-2 rounded-full hover:bg-gray-700/50 transition-colors"
+                aria-label="Toggle Notifications"
             >
-                {enabled ? <Bell className="text-white w-6 h-6" /> : <BellOff className="text-gray-400 w-6 h-6" />}
+                <div className={`w-14 h-8 rounded-full peer transition-colors duration-300 ${enabled ? 'bg-blue-600' : 'bg-gray-600'}`}></div>
+                <div className={`absolute left-3 top-3 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform duration-300 ${enabled ? 'translate-x-6 border-white' : ''}`}></div>
             </button>
         </div>
     );

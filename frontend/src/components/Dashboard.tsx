@@ -1,77 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import SeeingDetails from './SeeingDetails';
 import MoonPhase from './MoonPhase';
 import NotificationSetup from './NotificationSetup';
 import AiPrediction from './AiPrediction';
+import ForecastList from './ForecastList';
 import { Loader2, MapPin } from 'lucide-react';
-
-// Define types for Weather Service Data
-interface ForecastItem {
-    timepoint: number;
-    seeing: number;
-    transparency: number;
-    cloudCover: number;
-    liftedIndex?: number;
-    rh2m: number;
-    wind10m: { direction: string; speed: number };
-    temp2m: number;
-}
-
-interface MoonData {
-    phase: number;
-    fraction: number;
-    phaseName: string;
-    rise: string;
-    set: string;
-}
-
-interface WeatherData {
-    location: { lat: number; lon: number };
-    moon: MoonData;
-    forecast: ForecastItem[];
-}
-
 import useGeolocation from '../hooks/useGeolocation';
+import useWeatherData from '../hooks/useWeatherData';
 
 const Dashboard: React.FC = () => {
-    const [data, setData] = useState<WeatherData | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // Use Custom Hook for Geolocation
+    // 1. Get Location
     const location = useGeolocation();
-
-    // Default Fallback: Seoul
     const defaultLat = 37.5665;
     const defaultLon = 126.9780;
 
-    useEffect(() => {
-        // Only fetch when location is determined (or failed)
-        if (!location.loaded) return;
+    // Determine effective lat/lon (only if location loaded)
+    const lat = location.loaded
+        ? (location.val ? location.val.lat : defaultLat)
+        : null;
+    const lon = location.loaded
+        ? (location.val ? location.val.lon : defaultLon)
+        : null;
 
-        const lat = location.val ? location.val.lat : defaultLat;
-        const lon = location.val ? location.val.lon : defaultLon;
+    // 2. Fetch Data using Custom Hook
+    const { data, loading, error } = useWeatherData(lat, lon);
 
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch weather data');
-                }
-                const result = await response.json();
-                setData(result);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'An error occurred');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, [location]);
-
-    if (loading) {
+    if (loading || !location.loaded) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
                 <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
@@ -90,19 +44,21 @@ const Dashboard: React.FC = () => {
     if (!data) return null;
 
     // Get current forecast (closest timepoint)
-    // 7Timer returns timepoints in 3h intervals usually.
     const currentForecast = data.forecast && data.forecast.length > 0 ? data.forecast[0] : null;
 
     return (
         <div className="flex flex-col items-center p-6 space-y-6 w-full max-w-4xl mx-auto">
             <header className="w-full flex justify-between items-center mb-4">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-                        Korea Sky Seeing
-                    </h1>
-                    <div className="flex items-center text-gray-400 text-sm mt-1">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {location.val ? "Current GPS Location" : "Seoul, South Korea (Default)"}
+                <div className="flex items-center gap-3">
+                    <img src="/logo.jpg" alt="Logo" className="w-12 h-12 rounded-full border-2 border-blue-400 shadow-md object-cover" />
+                    <div>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                            Clear skies !
+                        </h1>
+                        <div className="flex items-center text-gray-400 text-sm mt-1">
+                            <MapPin className="w-3 h-3 mr-1" />
+                            {location.val ? "Current GPS Location" : "Seoul, South Korea (Default)"}
+                        </div>
                     </div>
                 </div>
             </header>
@@ -114,18 +70,8 @@ const Dashboard: React.FC = () => {
 
             {currentForecast && <AiPrediction weather={currentForecast} />}
 
-            <div className="w-full bg-gray-800 p-6 rounded-2xl mt-6">
-                <h3 className="text-lg font-semibold text-gray-300 mb-2">3-Day Forecast (Simplifed)</h3>
-                <div className="flex overflow-x-auto gap-4 pb-2">
-                    {data.forecast.slice(0, 8).map((point: ForecastItem, idx: number) => (
-                        <div key={idx} className="flex-shrink-0 bg-gray-700 p-3 rounded-lg flex flex-col items-center min-w-[80px]">
-                            <span className="text-xs text-gray-400">+{point.timepoint}h</span>
-                            <span className="font-bold text-blue-300 my-1">{point.seeing}/8</span>
-                            <span className="text-xs text-gray-500">See</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            {/* Use the new ForecastList component - Showing approx 6 days (48 points * 3h = 144h = 6 days) */}
+            {data.forecast && <ForecastList forecast={data.forecast.slice(0, 48)} />}
 
             <NotificationSetup />
         </div>

@@ -3,10 +3,10 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
-// Import Services
-const WeatherService = require('./services/weatherService');
-const AstronomyService = require('./services/astronomyService');
+// Import Controllers
+const weatherController = require('./controllers/weatherController');
 
 // Import Models
 require('./models/User');
@@ -22,52 +22,31 @@ app.use(express.json());
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/korea_sky_seeing';
 
+// Only warn if in production and URI is missing (using fallback localhost might be intended for dev)
+if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
+    console.warn('WARNING: MONGODB_URI is not set in production environment!');
+}
+
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('MongoDB Connected'))
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes
-app.get('/', (req, res) => {
-    res.send('Korea Sky Seeing API is running...');
-});
+// In production, the root route is handled by serving client/dist/index.html via the catch-all below.
+// app.get('/', (req, res) => {
+//     res.send('Korea Sky Seeing API is running...');
+// });
 
-// API Endpoint: Get Weather & Seeing
-app.get('/api/weather', async (req, res) => {
-    try {
-        const { lat, lon } = req.query;
-
-        if (!lat || !lon) {
-            return res.status(400).json({ error: 'Latitude and Longitude are required' });
-        }
-
-        // 1. Get Seeing Data (7Timer)
-        const rawSeeing = await WeatherService.getSeeingData(lat, lon);
-        const processedSeeing = WeatherService.processSeeingData(rawSeeing.dataseries);
-
-        // 2. Get Moon Data
-        const moonData = AstronomyService.getMoonData(new Date(), lat, lon);
-        const moonPhaseName = AstronomyService.getMoonPhaseName(moonData.phase);
-
-        res.json({
-            location: { lat, lon },
-            moon: { ...moonData, phaseName: moonPhaseName },
-            forecast: processedSeeing
-        });
-
-    } catch (error) {
-        console.error('API Error:', error);
-        res.status(500).json({ error: 'Failed to fetch weather data' });
-    }
-});
+// API Endpoint
+app.get('/api/weather', weatherController.getWeatherAndSeeing);
 
 // Serve Static Assets in Production
-const path = require('path');
 if (process.env.NODE_ENV === 'production') {
     // Set static folder
     app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
     // Any other route loads the index.html (for React Router)
-    app.get(/(.*)/, (req, res) => {
+    app.get(/.*/, (req, res) => {
         res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
     });
 }

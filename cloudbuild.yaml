@@ -1,0 +1,9 @@
+steps:
+  # Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "gcr.io/mickey-485213/korea-sky-seeing", "."]
+  # Push the container image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/mickey-485213/korea-sky-seeing"]
+images:
+  - "gcr.io/mickey-485213/korea-sky-seeing"
