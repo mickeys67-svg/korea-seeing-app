@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './MoonPhase.css';
 import { type AstronomyDay } from '../types/weather';
 
@@ -8,7 +8,6 @@ interface MoonPhaseProps {
 
 const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
     const [activeTab, setActiveTab] = useState<'moon' | 'sun' | 'optimal'>('moon');
-    const [moonPhaseClass, setMoonPhaseClass] = useState('moon-phase-full');
 
     // Use current day data (first element)
     const today = data && data.length > 0 ? data[0] : null;
@@ -28,11 +27,6 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
 
     const currentPhase = today ? getPhaseDef(today.moon.phase) : { name: '', class: '', icon: '' };
 
-    useEffect(() => {
-        if (currentPhase.class) {
-            setMoonPhaseClass(currentPhase.class);
-        }
-    }, [currentPhase.class]);
 
     // Format Helpers
     const formatDate = (dateStr: string, index: number) => {
