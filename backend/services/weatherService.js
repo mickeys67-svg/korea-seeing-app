@@ -24,10 +24,11 @@ const WeatherService = {
 
     getAggregatedForecast: async (lat, lon) => {
         // 1. Fetch Data in Parallel
-        const [timerData, omData, metData] = await Promise.all([
+        const [timerData, omData, metData, aqData] = await Promise.all([
             ProviderService.fetch7Timer(lat, lon),
             ProviderService.fetchOpenMeteo(lat, lon),
-            ProviderService.fetchMetNo(lat, lon)
+            ProviderService.fetchMetNo(lat, lon),
+            ProviderService.fetchAirQuality(lat, lon)
         ]);
 
         if (!timerData || !timerData.dataseries) {
@@ -105,9 +106,69 @@ const WeatherService = {
             const finalJetStream = avg(values.jetStreams);
             const finalCape = avg(values.capes);
 
+            // --- USP Model Data Preparation ---
+            const layers = [];
+            if (omData && omData.hourly) {
+                const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
+                if (omIdx !== null) {
+                    const h = omData.hourly;
+                    const pressureLevels = ['1000hPa', '925hPa', '850hPa', '700hPa', '500hPa', '300hPa', '250hPa', '200hPa'];
+
+                    for (let i = 0; i < pressureLevels.length - 1; i++) {
+                        const level1 = pressureLevels[i];
+                        const level2 = pressureLevels[i + 1];
+
+                        const t1 = h[`temperature_${level1}`][omIdx];
+                        const t2 = h[`temperature_${level2}`][omIdx];
+                        const v1 = h[`wind_speed_${level1}`][omIdx] / 3.6; // km/h to m/s
+                        const v2 = h[`wind_speed_${level2}`][omIdx] / 3.6;
+
+                        const z1 = WeatherService.PRESSURE_LEVEL_HEIGHTS[level1];
+                        const z2 = WeatherService.PRESSURE_LEVEL_HEIGHTS[level2];
+                        const dz = z2 - z1;
+
+                        const windShear = (v2 - v1) / dz;
+                        const dT = t2 - t1;
+
+                        // Richardson Number estimate: Ri = (g/T) * (dT/dz) / (dV/dz)^2
+                        // g = 9.8, T in Kelvin
+                        const avgT = (t1 + t2) / 2 + 273.15;
+                        const ri = (9.8 / avgT) * (dT / dz) / Math.pow(windShear || 0.001, 2);
+
+                        layers.push({
+                            tke: 0.5, // Proxy value if not available
+                            windShear: windShear,
+                            ri: ri,
+                            dz: dz
+                        });
+                    }
+                }
+            }
+
+            // Get Air Quality data for the current hour
+            let currentAod = 0.1;
+            let currentPm25 = 10;
+            if (aqData && aqData.hourly) {
+                const aqIdx = WeatherService.findClosestItem(aqData.hourly.time, targetDate);
+                if (aqIdx !== null) {
+                    currentAod = aqData.hourly.aerosol_optical_depth_550nm[aqIdx] || 0.1;
+                    currentPm25 = aqData.hourly.pm2_5[aqIdx] || 10;
+                }
+            }
+
+            const uspResult = USPModel.calculate({
+                layers: layers,
+                surfaceWind: finalWind,
+                jetStreamSpeed: finalJetStream ? finalJetStream * 1.94384 : 40,
+                targetAltitude: 90, // Zenith by default
+                urban: true, // assume urban for now or fetch from location
+                elevation: 50, // default
+                aod: currentAod,
+                pm25: currentPm25
+            });
+
             // --- Scoring ---
             // Fix: Clamp raw values to ensure scores stay in bounds (0-8)
-            // 7Timer Seeing is 1 (Best) to 5 (Worst). If API returns > 5, clamp it.
             let rawSeeing = item.seeing || 5;
             if (rawSeeing > 5) rawSeeing = 5;
             if (rawSeeing < 1) rawSeeing = 1;
@@ -131,7 +192,7 @@ const WeatherService = {
             const jetStepScore = ScoringService.calculateJetStreamScore(finalJetStream);
             const convectionScore = ScoringService.calculateConvectionScore(finalCape, hour);
 
-            const calculation = ScoringService.calculateObservationScore({
+            const observationDetail = ScoringService.calculateObservationScore({
                 seeing: seeingScore,
                 transparency: transparencyScore,
                 cloud: finalCloudScore,
@@ -149,6 +210,7 @@ const WeatherService = {
                     direction: (item.wind10m && item.wind10m.direction) ? item.wind10m.direction : 'N/A',
                     speed: typeof finalWind === 'number' ? parseFloat(finalWind.toFixed(1)) : 0
                 },
+                usp: uspResult, // New USP Model Results
                 scores: {
                     seeing: parseFloat(seeingScore.toFixed(1)),
                     transparency: parseFloat(transparencyScore.toFixed(1)),
@@ -161,9 +223,9 @@ const WeatherService = {
                     jetStreamSpeed: finalJetStream ? Math.round(finalJetStream * 1.94384) : 0,
                     cape: finalCape ? Math.round(finalCape) : 0
                 },
-                score: calculation.score,
-                grade: calculation.grade,
-                recommendation: calculation.recommendation
+                score: observationDetail.score,
+                grade: observationDetail.grade,
+                recommendation: observationDetail.recommendation
             };
         });
 

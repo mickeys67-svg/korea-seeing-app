@@ -22,8 +22,16 @@ export interface ForecastItem {
     grade: string;
     recommendation: string;
 
-    // Legacy support (optional or debugging)
-    liftedIndex?: number;
+    usp?: {
+        seeing: number;
+        score: number;
+        confidence: number;
+        details: {
+            r0: number;
+            stability: string;
+            jetStream: string;
+        };
+    };
     raw?: {
         jetStreamSpeed: number;
         cape: number;

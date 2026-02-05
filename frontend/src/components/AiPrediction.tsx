@@ -34,6 +34,21 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC' }) => {
                 windSpeed: selectedForecast.wind10m.speed,
                 humidity: selectedForecast.rh2m
             });
+
+            // Override with USP model data if available
+            if (selectedForecast.usp) {
+                result.probability = selectedForecast.usp.score * 10;
+
+                // Enhanced comments based on USP insights
+                if (selectedForecast.usp.score >= 8.5) {
+                    result.comment = "Ultra-precision seeing detected! Perfect for high-resolution planetary imaging and close double stars.";
+                } else if (selectedForecast.usp.score >= 7.0) {
+                    result.comment = "Stable air profile. Excellent for most observation; Fried parameter suggests very sharp views.";
+                } else if (selectedForecast.usp.score >= 5.5) {
+                    result.comment = "Moderate turbulence in boundary layers. Good for general observation but may lack fine planetary detail.";
+                }
+            }
+
             setPrediction(result);
             setLoading(false);
 
@@ -95,7 +110,8 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC' }) => {
         seeing: selectedForecast.scores.seeing,
         transparency: selectedForecast.scores.transparency,
         cloudCover: selectedForecast.scores.cloudCover,
-        windSpeed: selectedForecast.wind10m.speed
+        windSpeed: selectedForecast.wind10m.speed,
+        usp: selectedForecast.usp
     } : undefined;
 
     if (!selectedForecast) return null;
