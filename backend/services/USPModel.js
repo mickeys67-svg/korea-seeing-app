@@ -97,51 +97,54 @@ const USPModel = {
     },
 
     /**
-     * Main Engine
+     * Main Engine - Calculates precision seeing metrics
      */
-    calculate: (data) => {
-        const cn2Layers = [];
+    calculate: (data = {}) => {
         let cn2Integral = 0;
 
-        // Process vertical layers
-        if (data.layers && data.layers.length > 0) {
+        // Process vertical layers if profile data is available
+        if (data.layers && Array.isArray(data.layers) && data.layers.length > 0) {
             data.layers.forEach(layer => {
-                const cn2 = USPModel.cn2Proxy(layer.tke, layer.windShear, layer.ri);
-                cn2Layers.push(cn2);
-                // Integration: Cn2(h) * dh
-                // If weight is dz (meters), we get m^(1/3)
-                const dz = layer.dz || (layer.weight * 12000); // weight was dz/12000
+                const cn2 = USPModel.cn2Proxy(
+                    layer.tke || 0.1,
+                    layer.windShear || 0,
+                    layer.ri || 0
+                );
+                const dz = layer.dz || 1500; // Default layer thickness if missing
                 cn2Integral += cn2 * dz;
             });
         } else {
-            // Fallback to surface/simplified data if no profile
-            // Use a base Cn2 integral that leads to ~15cm r0 (seeing ~0.8")
-            cn2Integral = 5e-13 * (1 + data.surfaceWind * 0.1 + (data.jetStreamSpeed || 0) / 100);
+            // Simplified Fallback Engine
+            // Base integral for moderate seeing (~1.0")
+            const baseCn2 = 4e-13;
+            const windImpact = 1 + (data.surfaceWind || 0) * 0.15;
+            const jetImpact = 1 + (data.jetStreamSpeed || 40) / 120;
+            cn2Integral = baseCn2 * windImpact * jetImpact;
         }
 
         const r0 = USPModel.friedParameter(cn2Integral);
         let seeing = USPModel.seeingArcsec(r0);
 
-        // Corrections
+        // Apply environmental and correction factors
         seeing *= USPModel.environmentFactor(data);
         const finalSeeing = USPModel.seeingWithAirmass(seeing, data.targetAltitude || 90);
 
         const score = USPModel.seeingScore(finalSeeing);
 
-        // Confidence Calculation
+        // Dynamic Confidence calculation
         let confidence = 0.95;
-        if (!data.layers) confidence -= 0.3; // No profile data reduces confidence
+        if (!data.layers || data.layers.length === 0) confidence -= 0.35;
         if (data.aod == null) confidence -= 0.05;
-        if (data.variance > 0.5) confidence -= 0.1;
+        if ((data.variance || 0) > 1.0) confidence -= 0.1;
 
         return {
-            seeing: parseFloat(finalSeeing.toFixed(2)),
+            seeing: parseFloat(Math.max(0.4, finalSeeing).toFixed(2)), // Clamp to global best seeing limit
             score: parseFloat(score.toFixed(1)),
-            confidence: Math.round(confidence * 100),
+            confidence: Math.max(10, Math.round(confidence * 100)),
             details: {
                 r0: parseFloat((r0 * 100).toFixed(1)), // cm
-                stability: data.layers ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Unknown',
-                jetStream: data.jetStreamSpeed > 40 ? 'Strong' : 'Weak'
+                stability: data.layers && data.layers.length > 0 ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Unknown',
+                jetStream: (data.jetStreamSpeed || 0) > 60 ? 'Extreme' : (data.jetStreamSpeed > 35 ? 'Strong' : 'Stable')
             }
         };
     }

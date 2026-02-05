@@ -1,7 +1,20 @@
 const ProviderService = require('./providerService');
 const ScoringService = require('./scoringService');
+const USPModel = require('./USPModel');
 
 const WeatherService = {
+    // Standard atmosphere pressure to height (m) mapping
+    PRESSURE_LEVEL_HEIGHTS: {
+        '1000hPa': 110,
+        '925hPa': 760,
+        '850hPa': 1450,
+        '700hPa': 3010,
+        '500hPa': 5570,
+        '300hPa': 9160,
+        '250hPa': 10360,
+        '200hPa': 11780
+    },
+
     // Helper: Generic closest index/item finder
     findClosestItem: (times, targetDate) => {
         if (!times || times.length === 0) return null;
@@ -160,11 +173,12 @@ const WeatherService = {
                 layers: layers,
                 surfaceWind: finalWind,
                 jetStreamSpeed: finalJetStream ? finalJetStream * 1.94384 : 40,
-                targetAltitude: 90, // Zenith by default
-                urban: true, // assume urban for now or fetch from location
-                elevation: 50, // default
+                targetAltitude: 90, // zenith
+                urban: true,        // fallback
+                elevation: 50,      // fallback
                 aod: currentAod,
-                pm25: currentPm25
+                pm25: currentPm25,
+                variance: (values.temps.length > 1) ? Math.max(...values.temps) - Math.min(...values.temps) : 0
             });
 
             // --- Scoring ---

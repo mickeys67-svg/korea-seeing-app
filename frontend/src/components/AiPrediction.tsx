@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, Bot, Clock } from 'lucide-react';
+import { Sparkles, Bot, Clock, Info } from 'lucide-react';
+import ModelInfoModal from './ModelInfoModal';
 import { predictSeeing } from '../utils/aiService';
 import type { ForecastItem } from '../types/weather';
 import TimeSlider from './TimeSlider';
@@ -14,6 +15,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC' }) => {
     const [prediction, setPrediction] = useState<{ probability: number; comment: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [showInfo, setShowInfo] = useState(false);
 
     // Limit to next 24 hours (approx 8 items x 3h)
     const availableForecasts = forecastList.slice(0, 9);
@@ -123,12 +125,27 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC' }) => {
 
             <div className="flex flex-col items-center justify-center mb-8 relative z-10">
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="bg-white/10 p-3 rounded-full backdrop-blur-md shadow-inner border border-white/20">
-                        <Bot className="w-10 h-10 text-cyan-300 drop-shadow-[0_0_10px_rgba(103,232,249,0.5)]" />
-                    </div>
-                    <h3 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-300 tracking-tighter italic animate-warp-glow">
-                        Warp AI
-                    </h3>
+                    <button
+                        onClick={() => setShowInfo(true)}
+                        className="flex items-center gap-4 hover:scale-105 transition-all cursor-help group/title py-2 px-4 rounded-2xl hover:bg-white/5"
+                        title="Click for Model Explanation"
+                    >
+                        <div className="bg-white/10 p-3 rounded-full backdrop-blur-md shadow-inner border border-white/20 group-hover/title:border-cyan-400/50 transition-colors shrink-0">
+                            <Bot className="w-10 h-10 text-cyan-300 drop-shadow-[0_0_10px_rgba(103,232,249,0.5)]" />
+                        </div>
+                        <div className="flex flex-col items-start min-w-0">
+                            <div className="flex items-center gap-2 overflow-visible">
+                                <h3 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-300 italic animate-warp-glow leading-tight pb-1 pr-4">
+                                    Warp AI
+                                </h3>
+                                <Info className="w-5 h-5 text-purple-300/50 group-hover/title:text-cyan-300 transition-colors shrink-0" />
+                            </div>
+                            <div className="flex items-center gap-1.5 -mt-1 ml-1 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-md">
+                                <span className="text-[10px] text-cyan-300 font-black uppercase tracking-widest whitespace-nowrap">USP-Model v1.0</span>
+                                <div className="w-1 h-1 bg-cyan-400 rounded-full animate-pulse"></div>
+                            </div>
+                        </div>
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-purple-500/30 shadow-lg">
@@ -172,6 +189,12 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC' }) => {
                 details={predictionDetails}
                 hasPrev={selectedIndex > 0}
                 hasNext={selectedIndex < availableForecasts.length - 1}
+            />
+
+            {/* Model Info Modal */}
+            <ModelInfoModal
+                isOpen={showInfo}
+                onClose={() => setShowInfo(false)}
             />
         </div>
     );

@@ -5,6 +5,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
+// Database Connection String
+const MONGODB_URI = process.env.MONGODB_URI;
+
 // Import Controllers
 const weatherController = require('./controllers/weatherController');
 
@@ -20,15 +23,17 @@ app.use(cors());
 app.use(express.json());
 
 // Database Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/korea_sky_seeing';
-
-if (!process.env.MONGODB_URI && process.env.NODE_ENV === 'production') {
-    console.warn('WARNING: MONGODB_URI is not set in production environment!');
+if (MONGODB_URI) {
+    mongoose.connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000, // Fail fast for health checks
+        connectTimeoutMS: 10000
+    })
+        .then(() => console.log('MongoDB Connected'))
+        .catch(err => {
+            console.error('MongoDB Connection Error:', err.message);
+            // Don't exit here, still serve static files if possible (or fail health check)
+        });
 }
-
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
 
 // --- API Routes ---
 app.get('/api/weather', weatherController.getWeatherAndSeeing);
@@ -44,19 +49,35 @@ if (process.env.NODE_ENV === 'production') {
     // 1. Serve static files normally
     app.use(express.static(distPath));
 
-    // 2. Middleware Catch-all for SPA (Instead of app.get('*'))
-    // This is the most robust way in Express 5 to avoid PathError
-    app.use((req, res, next) => {
-        // Only serve index.html for GET requests that aren't API calls
-        if (req.method === 'GET' && !req.path.startsWith('/api')) {
+    // 2. Catch-all for SPA - Must be the LAST route
+    // Use regex to avoid string parsing issues in Express 5
+    app.get(/.*/, (req, res) => {
+        // Safe check for URL - Only serve index.html for non-API GET requests
+        const url = req.originalUrl || req.url || '';
+        if (req.method === 'GET' && !url.startsWith('/api')) {
             // FORCE NO-CACHE for index.html entry point
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
             res.setHeader('Pragma', 'no-cache');
             res.setHeader('Expires', '0');
-            res.sendFile(path.join(distPath, 'index.html'));
-        } else {
-            next();
+
+            const indexPath = path.join(distPath, 'index.html');
+            return res.sendFile(indexPath, (err) => {
+                if (err) {
+                    console.error(`Error sending index.html from ${indexPath}:`, err.message);
+                    if (!res.headersSent) {
+                        res.status(500).send('Frontend build not found.');
+                    }
+                }
+            });
         }
+
+        // If not a GET or is an API route that reached here, 404
+        res.status(404).json({ error: 'Route not found' });
+    });
+} else {
+    // Basic fallback for development if someone hits a non-existent route
+    app.get('/', (req, res) => {
+        res.send('Korea Sky Seeing API is running. (Development Mode - Please run frontend separately)');
     });
 }
 
