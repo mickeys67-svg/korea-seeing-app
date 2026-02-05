@@ -10,28 +10,6 @@
   background-color: #1a1a1a;
 }
 
-@keyframes lens-flare {
-  0% {
-    background-position: -150% 0;
-  }
-
-  100% {
-    background-position: 150% 0;
-  }
-}
-
-@keyframes warp-pulse {
-
-  0%,
-  100% {
-    text-shadow: 0 0 10px rgba(167, 139, 250, 0.5), 0 0 20px rgba(167, 139, 250, 0.3);
-  }
-
-  50% {
-    text-shadow: 0 0 20px rgba(167, 139, 250, 0.8), 0 0 40px rgba(103, 232, 249, 0.6);
-  }
-}
-
 @keyframes logo-breathe {
 
   0%,
@@ -42,20 +20,6 @@
   50% {
     box-shadow: 0 0 30px rgba(167, 139, 250, 0.6);
   }
-}
-
-.animate-flare {
-  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.8) 40%, rgba(255, 255, 255, 0.9) 45%, rgba(255, 255, 255, 0.8) 50%, transparent 60%);
-  background-size: 200% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
-  text-fill-color: transparent;
-  -webkit-text-fill-color: transparent;
-  animation: lens-flare 4s infinite linear;
-}
-
-.animate-warp-glow {
-  animation: warp-pulse 2s infinite ease-in-out;
 }
 
 .animate-logo-glow {
