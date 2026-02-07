@@ -50,16 +50,31 @@ const ScoringService = {
             convection: 0.10
         };
 
-        const weightedSum =
-            params.seeing * WEIGHTS.seeing +
-            params.transparency * WEIGHTS.transparency +
-            params.cloud * WEIGHTS.cloud +
-            params.wind * WEIGHTS.wind +
-            params.jetstream * WEIGHTS.jetstream +
-            params.convection * WEIGHTS.convection;
+        // Extract individual scores from params, ensuring they are numbers
+        // and defaulting to 8 (worst) if missing or invalid, as per the original logic's spirit
+        // for components that contribute negatively to the score.
+        // For cloud, if null, it's often treated as 0 (best) in other contexts, but here we'll default to 8 for safety.
+        const seeingScore = typeof params.seeing === 'number' ? params.seeing : 8;
+        const transparencyScore = typeof params.transparency === 'number' ? params.transparency : 8;
+        const cloudScore = typeof params.cloud === 'number' ? params.cloud : 8;
+        const windScore = typeof params.wind === 'number' ? params.wind : 8;
+        const jetstreamScore = typeof params.jetstream === 'number' ? params.jetstream : 8;
+        const convectionScore = typeof params.convection === 'number' ? params.convection : 8;
 
-        // Inverse calculation: 8 (Worst) -> 0, 0 (Best) -> 100
-        const finalScore = 100 - ((weightedSum / 8.0) * 100);
+        // Final score calculation with safety clamping
+        const weightedSum = (seeingScore * 8) + (transparencyScore * 5) + (cloudScore * 10) +
+            (windScore * 3) + (jetstreamScore * 2) + (convectionScore * 2);
+
+        // Max theoretical weighted sum: (8*8 + 8*5 + 8*10 + 8*3 + 8*2 + 8*2) = 64+40+80+24+16+16 = 240
+        // Normalized to 0-100
+        let finalScore = (weightedSum / 240) * 100;
+
+        // Ensure result is a valid number and clamped
+        if (isNaN(finalScore)) finalScore = 0; // Default to 0 if NaN
+        finalScore = Math.max(0, Math.min(100, Math.round(finalScore))); // Clamp to 0-100 and round to nearest integer
+
+        // The original code had a `roundedScore` that rounded to one decimal place.
+        // Let's re-introduce that after the clamping and integer rounding.
         const roundedScore = Math.round(finalScore * 10) / 10;
 
         return {

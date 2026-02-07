@@ -35,6 +35,7 @@ export interface ForecastItem {
     raw?: {
         jetStreamSpeed: number;
         cape: number;
+        confidence?: number;
     };
 }
 
@@ -54,11 +55,15 @@ export interface AstronomyDay {
         fraction: number;
         rise: string | null;
         set: string | null;
+        alwaysUp?: boolean;
+        alwaysDown?: boolean;
     };
     sun: {
         sunrise: string | null;
         sunset: string | null;
         observableHours: number;
+        alwaysUp?: boolean;
+        alwaysDown?: boolean;
     };
 }
 
@@ -72,4 +77,5 @@ export interface WeatherData {
     weather: ForecastItem[];
     forecast: ForecastItem[];
     astronomy: AstronomyDay[];
+    aiSummary?: string | null;
 }

@@ -9,7 +9,6 @@ interface LocationState {
 
 const useGeolocation = () => {
     const [location, setLocation] = useState<LocationState>(() => {
-        // Lazy initialization to handle unsupported browser instantly without effect error
         if (!("geolocation" in navigator)) {
             return {
                 loaded: true,
@@ -49,11 +48,22 @@ const useGeolocation = () => {
         }));
     };
 
+    const refresh = () => {
+        if (!("geolocation" in navigator)) return;
+        setLocation(prev => ({ ...prev, loaded: false, error: null }));
+        navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        });
+    };
+
     useEffect(() => {
         if (!("geolocation" in navigator)) return;
+
+        // Initial fetch
         navigator.geolocation.getCurrentPosition(onSuccess, onError);
 
-        // --- Location Selector Bridge ---
         const handleLocationChange = (e: Event) => {
             const customEvent = e as CustomEvent;
             const loc = customEvent.detail;
@@ -69,10 +79,9 @@ const useGeolocation = () => {
 
         document.addEventListener('cls:location:changed', handleLocationChange);
         return () => document.removeEventListener('cls:location:changed', handleLocationChange);
-        // --------------------------------
     }, []);
 
-    return location;
+    return { ...location, refresh };
 };
 
 export default useGeolocation;

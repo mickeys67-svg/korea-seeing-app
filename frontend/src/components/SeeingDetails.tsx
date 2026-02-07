@@ -12,27 +12,27 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
     const scores = data.scores;
 
     // --- Helpers ---
-    const getComponentColor = (value: number) => {
+    const getComponentColor = React.useCallback((value: number) => {
         if (value <= 2) return 'text-green-400';
         if (value <= 4) return 'text-green-200';
         if (value <= 6) return 'text-yellow-400';
         return 'text-red-400';
-    };
+    }, []);
 
-    const getFinalScoreColor = (score: number) => {
+    const getFinalScoreColor = React.useCallback((score: number) => {
         if (score >= 85) return 'text-green-400';
         if (score >= 70) return 'text-blue-400';
         if (score >= 55) return 'text-yellow-400';
         if (score >= 40) return 'text-orange-400';
         return 'text-red-500';
-    };
+    }, []);
 
     // --- Config ---
-    const metricsConfig = [
+    const metricsConfig = React.useMemo(() => [
         {
             key: 'seeing',
             label: 'Seeing',
-            icon: null, // Text only for this one? Or maybe Eye
+            icon: null,
             value: scores.seeing,
             unit: '/8',
             subtext: null,
@@ -126,7 +126,7 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                 ]
             }
         }
-    ];
+    ], [scores]);
 
     return (
         <>

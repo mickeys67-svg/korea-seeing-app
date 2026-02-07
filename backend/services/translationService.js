@@ -26,7 +26,7 @@ const TranslationService = {
     /**
      * Translates a single recommendation string into the target language.
      */
-    async translateRecommendation(text, targetLang = 'ko') {
+    async translateRecommendation(text, targetLang = 'ko', isFallback = false) {
         if (!this.model || !text) return text;
         if (targetLang.toLowerCase().startsWith('en')) return text;
 
@@ -36,23 +36,31 @@ const TranslationService = {
             Maintain the technical nuance of terms like "Steady Skies" (안정적인 시잉) or "Stable Air" (정체된 대기) if applicable. 
             Return ONLY the translated text.`;
 
+            // Simple cooldown to avoid hitting free-tier quotas too fast during batch processing
+            await new Promise(resolve => setTimeout(resolve, isFallback ? 500 : 100));
+
             const result = await this.model.generateContent(prompt);
             const response = await result.response;
             const translatedText = response.text().trim();
 
-            console.log(`[Translation] SUCCESS: ${text} -> ${translatedText}`);
-            return translatedText || text;
+            if (translatedText) {
+                console.log(`[Translation] SUCCESS: ${text} -> ${translatedText}`);
+                return translatedText;
+            }
+            return text;
         } catch (error) {
             console.error("[Translation] AI Error:", error.message);
 
-            // Attempt dynamic model fallback if gemini-pro fails with specific 404
-            if (error.message.includes("not found") && this.model.model === "gemini-pro") {
-                console.log("[Translation] Trying fallback to gemini-1.5-pro-latest");
+            // Attempt dynamic model fallback if gemini-pro fails with specific 404/503
+            if (!isFallback && (error.message.includes("not found") || error.message.includes("overloaded"))) {
+                console.log("[Translation] Trying fallback to gemini-1.5-flash");
                 try {
                     const genAI = new GoogleGenerativeAI(this.apiKey);
-                    this.model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
-                    return this.translateRecommendation(text, targetLang);
-                } catch (e) { }
+                    this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                    return this.translateRecommendation(text, targetLang, true);
+                } catch (e) {
+                    console.error("[Translation] Fallback failed:", e.message);
+                }
             }
 
             return text;

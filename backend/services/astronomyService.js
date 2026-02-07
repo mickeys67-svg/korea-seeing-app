@@ -73,34 +73,27 @@ const AstronomyService = {
                 }
             });
 
-            // Post-processing: If Set is missing OR occurs before Rise (historic), find next Set
+            // Post-processing: Handle missing or "crossed" rise/set times
             const currentItem = forecast[i];
             if (!currentItem.moon.alwaysUp && !currentItem.moon.alwaysDown) {
-                let shouldFetchNextSet = !currentItem.moon.set;
-
-                // If both exist, but Set is before Rise, implies Set belongs to previous night's arc
-                if (currentItem.moon.set && currentItem.moon.rise && currentItem.moon.set < currentItem.moon.rise) {
-                    shouldFetchNextSet = true;
-                }
-
-                if (shouldFetchNextSet) {
-                    const nextDayDate = new Date(noonDate);
-                    nextDayDate.setDate(nextDayDate.getDate() + 1);
-                    const nextMoonTimes = SunCalc.getMoonTimes(nextDayDate, lat, lon);
-                    if (nextMoonTimes.set) {
-                        currentItem.moon.set = nextMoonTimes.set;
+                // If Set is missing OR occurs before Rise (implies set belongs to previous cycle), check neighbors
+                if (!currentItem.moon.set || (currentItem.moon.rise && currentItem.moon.set < currentItem.moon.rise)) {
+                    // Look ahead 24h
+                    const tomorrow = new Date(noonDate);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const nextMoodTimes = SunCalc.getMoonTimes(tomorrow, lat, lon);
+                    if (nextMoodTimes.set && (!currentItem.moon.set || nextMoodTimes.set > currentItem.moon.rise)) {
+                        currentItem.moon.set = nextMoodTimes.set;
                     }
                 }
 
-                // Logic for missing rise? usually less critical for "tonight" observation if it rose yesterday, but good for consistency.
-                if (!currentItem.moon.rise) {
-                    // If it didn't rise today, maybe it rises tomorrow?
-                    // Or maybe it rose yesterday? Usually users want to know "When does it rise next?"
-                    const nextDayDate = new Date(noonDate);
-                    nextDayDate.setDate(nextDayDate.getDate() + 1);
-                    const nextMoonTimes = SunCalc.getMoonTimes(nextDayDate, lat, lon);
-                    if (nextMoonTimes.rise) {
-                        currentItem.moon.rise = nextMoonTimes.rise;
+                // If Rise is missing OR occurs far after Set, look backwards 24h
+                if (!currentItem.moon.rise || (currentItem.moon.set && currentItem.moon.rise > currentItem.moon.set)) {
+                    const yesterday = new Date(noonDate);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const prevMoonTimes = SunCalc.getMoonTimes(yesterday, lat, lon);
+                    if (prevMoonTimes.rise && (!currentItem.moon.rise || prevMoonTimes.rise < currentItem.moon.set)) {
+                        currentItem.moon.rise = prevMoonTimes.rise;
                     }
                 }
             }

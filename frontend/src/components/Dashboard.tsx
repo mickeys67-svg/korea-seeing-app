@@ -70,7 +70,11 @@ const Dashboard: React.FC = () => {
 
             {/* AI Prediction Module (Time Travel Enabled) */}
             {data.forecast && data.forecast.length > 0 && (
-                <AiPrediction forecastList={data.forecast} timezone={data.location.timezone} />
+                <AiPrediction
+                    forecastList={data.forecast}
+                    timezone={data.location.timezone}
+                    aiSummary={data.aiSummary}
+                />
             )}
 
             {/* Use the new ForecastList component - Showing approx 6 days (48 points * 3h = 144h = 6 days) */}

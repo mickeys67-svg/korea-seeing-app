@@ -75,10 +75,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data }) => {
                                             };
 
                                             // Handle Always Up/Down
-                                            // Note: We need to cast 'day.moon' to any if TS complains about missing alwaysUp prop, 
-                                            // or better, update the type definition. 
-                                            // For now assuming passed data has it.
-                                            const moonData = day.moon as any;
+                                            const moonData = day.moon;
                                             if (moonData.alwaysUp) return <span className="text-yellow-300">Always Up</span>;
                                             if (moonData.alwaysDown) return <span className="text-gray-500">Always Down</span>;
 

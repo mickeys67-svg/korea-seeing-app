@@ -3,15 +3,20 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 
-// Load city data
+// Load city data asynchronously
 const citiesPath = path.join(__dirname, '../data/cities.json');
 let cities = [];
-try {
-    const data = fs.readFileSync(citiesPath, 'utf8');
-    cities = JSON.parse(data);
-} catch (err) {
-    console.error('[CLS] Error loading cities.json:', err);
-}
+
+const loadCities = async () => {
+    try {
+        const data = await fs.promises.readFile(citiesPath, 'utf8');
+        cities = JSON.parse(data);
+        console.log('[CLS] Cities data loaded successfully');
+    } catch (err) {
+        console.error('[CLS] Error loading cities.json:', err);
+    }
+};
+loadCities();
 
 /**
  * GET /api/cls/cities/search?q=query&limit=num

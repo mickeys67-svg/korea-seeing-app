@@ -1,9 +1,10 @@
 const ProviderService = require('./providerService');
 const ScoringService = require('./scoringService');
 const USPModel = require('./USPModel');
+const AnalysisService = require('./analysisService');
 
 const WeatherService = {
-    // Standard atmosphere pressure to height (m) mapping
+    // ... [Rest of the constants and helpers remain unchanged] ...
     PRESSURE_LEVEL_HEIGHTS: {
         '1000hPa': 110,
         '925hPa': 760,
@@ -15,18 +16,14 @@ const WeatherService = {
         '200hPa': 11780
     },
 
-    // Helper: Generic closest index/item finder
     findClosestItem: (times, targetDate) => {
         if (!times || times.length === 0) return null;
-
         const targetTime = targetDate.getTime();
         let minDiff = Infinity;
         let closestIndex = -1;
-
         for (let i = 0; i < times.length; i++) {
             const t = new Date(times[i]).getTime();
             const diff = Math.abs(t - targetTime);
-            if (diff > minDiff) break;
             if (diff < minDiff) {
                 minDiff = diff;
                 closestIndex = i;
@@ -35,11 +32,79 @@ const WeatherService = {
         return closestIndex !== -1 ? closestIndex : null;
     },
 
+    mapSourceData: (targetDate, item, omData, metData, aqData) => {
+        const values = { temps: [], humidities: [], clouds: [], winds: [], jetStreams: [], capes: [] };
+        const isValid = (val) => val != null && val > -9000;
+        if (isValid(item.temp2m)) values.temps.push(item.temp2m);
+        if (isValid(item.rh2m)) values.humidities.push(item.rh2m);
+        if (isValid(item.cloudcover)) values.clouds.push(Math.max(0, item.cloudcover - 1));
+        if (omData && omData.hourly && omData.hourly.time) {
+            const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
+            if (omIdx !== null) {
+                const h = omData.hourly;
+                if (h.temperature_2m[omIdx] != null) values.temps.push(h.temperature_2m[omIdx]);
+                if (h.relative_humidity_2m[omIdx] != null) values.humidities.push(h.relative_humidity_2m[omIdx]);
+                if (h.cloud_cover[omIdx] != null) values.clouds.push(ScoringService.normalizeCloud(h.cloud_cover[omIdx]));
+                if (h.wind_speed_10m[omIdx] != null) values.winds.push(h.wind_speed_10m[omIdx] / 3.6);
+                if (h.wind_speed_250hPa && h.wind_speed_250hPa[omIdx] != null) values.jetStreams.push(h.wind_speed_250hPa[omIdx] / 3.6);
+                if (h.cape && h.cape[omIdx] != null) values.capes.push(h.cape[omIdx]);
+            }
+        }
+        if (metData && metData.properties && metData.properties.timeseries) {
+            let closestMet = null;
+            let minDiff = Infinity;
+            const targetTime = targetDate.getTime();
+            for (const mItem of metData.properties.timeseries) {
+                const t = new Date(mItem.time).getTime();
+                const diff = Math.abs(t - targetTime);
+                if (diff < minDiff) { minDiff = diff; closestMet = mItem.data.instant.details; }
+            }
+            if (closestMet) {
+                if (closestMet.air_temperature != null) values.temps.push(closestMet.air_temperature);
+                if (closestMet.relative_humidity != null) values.humidities.push(closestMet.relative_humidity);
+                if (closestMet.cloud_area_fraction != null) values.clouds.push(ScoringService.normalizeCloud(closestMet.cloud_area_fraction));
+                if (closestMet.wind_speed != null) values.winds.push(closestMet.wind_speed);
+            }
+        }
+        const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+        return {
+            temp: avg(values.temps), humidity: avg(values.humidities), cloudScore: avg(values.clouds) ?? 0,
+            wind: avg(values.winds) ?? 0, jetStream: avg(values.jetStreams), cape: avg(values.capes),
+            tempMin: values.temps.length ? Math.min(...values.temps) : 0, tempMax: values.temps.length ? Math.max(...values.temps) : 0
+        };
+    },
+
+    prepareUSPData: (targetDate, omData) => {
+        const layers = [];
+        if (!omData || !omData.hourly) return layers;
+        const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
+        if (omIdx === null) return layers;
+        const h = omData.hourly;
+        const pressureLevels = ['1000hPa', '925hPa', '850hPa', '700hPa', '500hPa', '300hPa', '250hPa', '200hPa'];
+        for (let i = 0; i < pressureLevels.length - 1; i++) {
+            const level1 = pressureLevels[i]; const level2 = pressureLevels[i + 1];
+            const t1 = h[`temperature_${level1}`] ? h[`temperature_${level1}`][omIdx] : null;
+            const t2 = h[`temperature_${level2}`] ? h[`temperature_${level2}`][omIdx] : null;
+            const v1 = h[`wind_speed_${level1}`] ? h[`wind_speed_${level1}`][omIdx] / 3.6 : null;
+            const v2 = h[`wind_speed_${level2}`] ? h[`wind_speed_${level2}`][omIdx] / 3.6 : null;
+            if (t1 === null || t2 === null || v1 === null || v2 === null) continue;
+            const z1 = WeatherService.PRESSURE_LEVEL_HEIGHTS[level1];
+            const z2 = WeatherService.PRESSURE_LEVEL_HEIGHTS[level2];
+            const dz = z2 - z1;
+            const windShear = (v2 - v1) / dz;
+            const dT = t2 - t1;
+            const avgT = (t1 + t2) / 2 + 273.15;
+            const ri = (9.8 / avgT) * (dT / dz) / Math.pow(windShear || 0.001, 2);
+            layers.push({ tke: 0.5, windShear, ri, dz });
+        }
+        return layers;
+    },
+
     getAggregatedForecast: async (lat, lon) => {
-        // 1. Fetch Data in Parallel
+        // Fetch Ensemble Data for full 7 days
         const [timerData, omData, metData, aqData] = await Promise.all([
             ProviderService.fetch7Timer(lat, lon),
-            ProviderService.fetchOpenMeteo(lat, lon),
+            ProviderService.fetchOpenMeteo(lat, lon, ['best_match', 'gfs_seamless', 'ecmwf_ifs']),
             ProviderService.fetchMetNo(lat, lon),
             ProviderService.fetchAirQuality(lat, lon)
         ]);
@@ -48,194 +113,102 @@ const WeatherService = {
             throw new Error('Primary data source (7Timer) failed');
         }
 
-        const now = new Date();
+        // Helper to extract model-specific data from consolidated Open-Meteo response
+        const getModelData = (om, suffix) => {
+            if (!om || !om.hourly) return null;
+            const res = { hourly: { time: om.hourly.time }, timezone: om.timezone, utc_offset_seconds: om.utc_offset_seconds };
+            Object.keys(om.hourly).forEach(key => {
+                if (suffix === 'best_match' && !key.includes('_gfs') && !key.includes('_ecmwf')) {
+                    res.hourly[key] = om.hourly[key];
+                } else if (key.endsWith(`_${suffix}`)) {
+                    const baseKey = key.replace(`_${suffix}`, '');
+                    res.hourly[baseKey] = om.hourly[key];
+                }
+            });
+            return res;
+        };
 
+        const omBest = getModelData(omData, 'best_match');
+        const omGfs = getModelData(omData, 'gfs_seamless');
+        const omEcmwf = getModelData(omData, 'ecmwf_ifs');
+        const now = new Date();
+        const ensembleModels = [omBest, omGfs, omEcmwf].filter(m => m !== null);
         const mappedForecast = timerData.dataseries.map(item => {
-            const timepoint = item.timepoint;
-            const targetDate = new Date(now.getTime() + timepoint * 60 * 60 * 1000);
+            const targetDate = new Date(now.getTime() + item.timepoint * 60 * 60 * 1000);
             const hour = targetDate.getHours();
 
-            const values = {
-                temps: [],
-                humidities: [],
-                clouds: [],
-                winds: [],
-                jetStreams: [],
-                capes: []
-            };
+            // 1. Data Blending (Baseline from 7Timer + Best Match + Met.no + AQ)
+            const mapped = WeatherService.mapSourceData(targetDate, item, omBest, metData, aqData);
 
-            // --- 1. 7Timer Data (Defensive Checks) ---
-            const isValid = (val) => val != null && val > -9000; // Filter sentinels like -9999 or -20000
-
-            if (isValid(item.temp2m)) values.temps.push(item.temp2m);
-            if (isValid(item.rh2m)) values.humidities.push(item.rh2m);
-            // 7Timer Cloud: 1-9 -> 0-8
-            if (isValid(item.cloudcover)) values.clouds.push(Math.max(0, item.cloudcover - 1));
-
-            // --- 2. Open-Meteo Data ---
-            if (omData && omData.hourly && omData.hourly.time) {
-                const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
-                if (omIdx !== null) {
-                    const h = omData.hourly;
-                    if (h.temperature_2m[omIdx] != null) values.temps.push(h.temperature_2m[omIdx]);
-                    if (h.relative_humidity_2m[omIdx] != null) values.humidities.push(h.relative_humidity_2m[omIdx]);
-                    if (h.cloud_cover[omIdx] != null) values.clouds.push(ScoringService.normalizeCloud(h.cloud_cover[omIdx]));
-                    if (h.wind_speed_10m[omIdx] != null) values.winds.push(h.wind_speed_10m[omIdx] / 3.6); // km/h -> m/s
-                    if (h.wind_speed_250hPa && h.wind_speed_250hPa[omIdx] != null) values.jetStreams.push(h.wind_speed_250hPa[omIdx] / 3.6);
-                    if (h.cape && h.cape[omIdx] != null) values.capes.push(h.cape[omIdx]);
-                }
-            }
-
-            // --- 3. Met.no Data ---
-            if (metData && metData.properties && metData.properties.timeseries) {
-                let closestMet = null;
-                let minDiff = Infinity;
-                const targetTime = targetDate.getTime();
-
-                for (const mItem of metData.properties.timeseries) {
-                    const t = new Date(mItem.time).getTime();
-                    const diff = Math.abs(t - targetTime);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closestMet = mItem.data.instant.details;
-                    }
-                }
-
-                if (closestMet) {
-                    if (closestMet.air_temperature != null) values.temps.push(closestMet.air_temperature);
-                    if (closestMet.relative_humidity != null) values.humidities.push(closestMet.relative_humidity);
-                    if (closestMet.cloud_area_fraction != null) values.clouds.push(ScoringService.normalizeCloud(closestMet.cloud_area_fraction));
-                    if (closestMet.wind_speed != null) values.winds.push(closestMet.wind_speed);
-                }
-            }
-
-            // --- Averages ---
-            const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-
-            const finalTemp = avg(values.temps);
-            const finalHum = avg(values.humidities);
-            const finalCloudScore = avg(values.clouds) ?? 0;
-            const finalWind = avg(values.winds) ?? 0;
-            const finalJetStream = avg(values.jetStreams);
-            const finalCape = avg(values.capes);
-
-            // --- USP Model Data Preparation ---
-            const layers = [];
-            if (omData && omData.hourly) {
-                const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
-                if (omIdx !== null) {
-                    const h = omData.hourly;
-                    const pressureLevels = ['1000hPa', '925hPa', '850hPa', '700hPa', '500hPa', '300hPa', '250hPa', '200hPa'];
-
-                    for (let i = 0; i < pressureLevels.length - 1; i++) {
-                        const level1 = pressureLevels[i];
-                        const level2 = pressureLevels[i + 1];
-
-                        const t1 = h[`temperature_${level1}`][omIdx];
-                        const t2 = h[`temperature_${level2}`][omIdx];
-                        const v1 = h[`wind_speed_${level1}`][omIdx] / 3.6; // km/h to m/s
-                        const v2 = h[`wind_speed_${level2}`][omIdx] / 3.6;
-
-                        const z1 = WeatherService.PRESSURE_LEVEL_HEIGHTS[level1];
-                        const z2 = WeatherService.PRESSURE_LEVEL_HEIGHTS[level2];
-                        const dz = z2 - z1;
-
-                        const windShear = (v2 - v1) / dz;
-                        const dT = t2 - t1;
-
-                        // Richardson Number estimate: Ri = (g/T) * (dT/dz) / (dV/dz)^2
-                        // g = 9.8, T in Kelvin
-                        const avgT = (t1 + t2) / 2 + 273.15;
-                        const ri = (9.8 / avgT) * (dT / dz) / Math.pow(windShear || 0.001, 2);
-
-                        layers.push({
-                            tke: 0.5, // Proxy value if not available
-                            windShear: windShear,
-                            ri: ri,
-                            dz: dz
-                        });
-                    }
-                }
-            }
-
-            // Get Air Quality data for the current hour
-            let currentAod = 0.1;
-            let currentPm25 = 10;
-            if (aqData && aqData.hourly) {
-                const aqIdx = WeatherService.findClosestItem(aqData.hourly.time, targetDate);
-                if (aqIdx !== null) {
-                    currentAod = aqData.hourly.aerosol_optical_depth_550nm[aqIdx] || 0.1;
-                    currentPm25 = aqData.hourly.pm2_5[aqIdx] || 10;
-                }
-            }
-
-            const uspResult = USPModel.calculate({
-                layers: layers,
-                surfaceWind: finalWind,
-                jetStreamSpeed: finalJetStream ? finalJetStream * 1.94384 : 40,
-                targetAltitude: 90, // zenith
-                urban: true,        // fallback
-                elevation: 50,      // fallback
-                aod: currentAod,
-                pm25: currentPm25,
-                variance: (values.temps.length > 1) ? Math.max(...values.temps) - Math.min(...values.temps) : 0
+            // 2. Ensemble USP Model Processing
+            let uspResults = ensembleModels.map(m => {
+                const layers = WeatherService.prepareUSPData(targetDate, m);
+                return USPModel.calculate({
+                    layers,
+                    surfaceWind: mapped.wind,
+                    jetStreamSpeed: mapped.jetStream ? mapped.jetStream * 1.94384 : 40,
+                    targetAltitude: 90, urban: true, elevation: 50,
+                    aod: mapped.aod || 0.15, pm25: mapped.pm25 || 12,
+                    variance: mapped.tempMax - mapped.tempMin,
+                    humidity: mapped.humidity
+                });
             });
 
-            // --- Scoring ---
-            // Fix: Clamp raw values to ensure scores stay in bounds (0-8)
-            let rawSeeing = item.seeing || 5;
-            if (rawSeeing > 5) rawSeeing = 5;
-            if (rawSeeing < 1) rawSeeing = 1;
+            // Fallback if ensemble failed
+            if (uspResults.length === 0) {
+                uspResults = [USPModel.calculate({
+                    layers: [],
+                    surfaceWind: mapped.wind,
+                    jetStreamSpeed: mapped.jetStream ? mapped.jetStream * 1.94384 : 40,
+                    targetAltitude: 90, urban: true, elevation: 50,
+                    humidity: mapped.humidity
+                })];
+            }
 
-            const seeingScore = (rawSeeing - 1) * 2; // Result: 0, 2, 4, 6, 8
+            // 3. Weighted Average calculation
+            const avgSeeing = uspResults.reduce((sum, r) => sum + r.seeing, 0) / uspResults.length;
+            const avgScore = uspResults.reduce((sum, r) => sum + r.score, 0) / uspResults.length;
+            const combinedConfidence = uspResults.reduce((sum, r) => sum + r.confidence, 0) / uspResults.length;
 
-            // 7Timer Transparency is 1 (Best) to 8 (Worst)
-            let rawTransparency = item.transparency || 8;
-            if (rawTransparency > 8) rawTransparency = 8;
-            if (rawTransparency < 1) rawTransparency = 1;
+            const finalUsp = {
+                ...uspResults[0], // Details from primary model
+                seeing: parseFloat(avgSeeing.toFixed(2)),
+                score: parseFloat(avgScore.toFixed(1)),
+                confidence: Math.round(combinedConfidence)
+            };
 
-            const transparencyScore = Math.max(0, rawTransparency - 1); // Result: 0-7
-
-            let windScore = 0;
-            if (finalWind < 2) windScore = 0;
-            else if (finalWind < 5) windScore = 2;
-            else if (finalWind < 8) windScore = 4;
-            else if (finalWind < 12) windScore = 6;
-            else windScore = 8;
-
-            const jetStepScore = ScoringService.calculateJetStreamScore(finalJetStream);
-            const convectionScore = ScoringService.calculateConvectionScore(finalCape, hour);
-
+            // 4. Scoring & Observation Detail
             const observationDetail = ScoringService.calculateObservationScore({
-                seeing: seeingScore,
-                transparency: transparencyScore,
-                cloud: finalCloudScore,
-                wind: windScore,
-                jetstream: jetStepScore,
-                convection: convectionScore
+                seeing: (finalUsp.seeing - 0.4) * 2,
+                transparency: Math.max(0, (item.transparency || 8) - 1),
+                cloud: mapped.cloudScore,
+                wind: mapped.wind < 2 ? 0 : (mapped.wind < 5 ? 2 : (mapped.wind < 8 ? 4 : 8)),
+                jetstream: ScoringService.calculateJetStreamScore(mapped.jetStream),
+                convection: ScoringService.calculateConvectionScore(mapped.cape, hour)
             });
 
             return {
                 time: targetDate.toISOString(),
                 timepoint: item.timepoint,
-                temp2m: finalTemp !== null ? Math.round(finalTemp) : 0,
-                rh2m: finalHum !== null ? Math.round(finalHum) : 0,
+                temp2m: Math.round(mapped.temp || 0),
+                rh2m: Math.round(mapped.humidity || 0),
                 wind10m: {
-                    direction: (item.wind10m && item.wind10m.direction) ? item.wind10m.direction : 'N/A',
-                    speed: typeof finalWind === 'number' ? parseFloat(finalWind.toFixed(1)) : 0
+                    direction: item.wind10m?.direction || 'N/A',
+                    speed: parseFloat(mapped.wind.toFixed(1))
                 },
-                usp: uspResult, // New USP Model Results
+                usp: finalUsp,
                 scores: {
-                    seeing: parseFloat(seeingScore.toFixed(1)),
-                    transparency: parseFloat(transparencyScore.toFixed(1)),
-                    cloudCover: parseFloat(finalCloudScore.toFixed(1)),
-                    wind: parseFloat(windScore.toFixed(1)),
-                    jetStream: parseFloat(jetStepScore.toFixed(1)),
-                    convection: parseFloat(convectionScore.toFixed(1))
+                    seeing: parseFloat(((finalUsp.seeing - 0.4) * 2).toFixed(1)),
+                    transparency: parseFloat(Math.max(0, (item.transparency || 8) - 1).toFixed(1)),
+                    cloudCover: parseFloat(mapped.cloudScore.toFixed(1)),
+                    wind: parseFloat((mapped.wind < 2 ? 0 : (mapped.wind < 5 ? 2 : (mapped.wind < 8 ? 4 : 8))).toFixed(1)),
+                    jetStream: parseFloat(ScoringService.calculateJetStreamScore(mapped.jetStream).toFixed(1)),
+                    convection: parseFloat(ScoringService.calculateConvectionScore(mapped.cape, hour).toFixed(1))
                 },
                 raw: {
-                    jetStreamSpeed: finalJetStream ? Math.round(finalJetStream * 1.94384) : 0,
-                    cape: finalCape ? Math.round(finalCape) : 0
+                    jetStreamSpeed: Math.round(mapped.jetStream * 1.94384 || 0),
+                    cape: Math.round(mapped.cape || 0),
+                    confidence: finalUsp.confidence
                 },
                 score: observationDetail.score,
                 grade: observationDetail.grade,
@@ -243,12 +216,21 @@ const WeatherService = {
             };
         });
 
-        // Return both forecast and metadata
+        // 5. Active AI Insight
+        let aiInsight = null;
+        const bestBlock = [...mappedForecast].sort((a, b) => b.score - a.score)[0];
+        if (bestBlock) {
+            aiInsight = await AnalysisService.getActiveInsight(bestBlock);
+        }
+
         return {
             forecast: mappedForecast,
+            aiSummary: aiInsight,
             meta: {
-                timezone: (omData && omData.timezone) ? omData.timezone : 'UTC',
-                timezoneOffset: (omData && omData.utc_offset_seconds) ? omData.utc_offset_seconds : 0
+                timezone: omBest?.timezone || 'UTC',
+                timezoneOffset: omBest?.utc_offset_seconds || 0,
+                ensemble: ensembleModels.length,
+                sources: ['7Timer', 'Open-Meteo (Ensemble)', 'Met.no']
             }
         };
     }

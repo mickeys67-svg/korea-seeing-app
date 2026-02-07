@@ -7,8 +7,12 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
         const lat = parseFloat(req.query.lat);
         const lon = parseFloat(req.query.lon);
 
-        if (!lat || !lon) {
-            return res.status(400).json({ error: 'Latitude and Longitude are required' });
+        if (isNaN(lat) || isNaN(lon)) {
+            return res.status(400).json({ error: 'Valid Latitude and Longitude are required' });
+        }
+
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            return res.status(400).json({ error: 'Latitude must be between -90 and 90, Longitude between -180 and 180' });
         }
 
         // 1. Get Aggregated Weather Data

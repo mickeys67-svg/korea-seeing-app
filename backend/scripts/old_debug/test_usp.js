@@ -1,4 +1,4 @@
-const USPModel = require('./USPModel');
+const USPModel = require('../../services/USPModel');
 
 const testData = {
     layers: [

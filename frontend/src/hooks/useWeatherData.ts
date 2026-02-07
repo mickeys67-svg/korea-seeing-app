@@ -13,25 +13,28 @@ const useWeatherData = (lat: number | null, lon: number | null): UseWeatherDataR
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // If lat/lon are not yet available (e.g., initial load), don't fetch yet
-        // But if they are null because geolocation failed, we might want to use default inside here?
-        // Actually, the component handles default values. So if passed, we fetch.
         if (lat === null || lon === null) {
-            // Keep loading true or set to false? 
-            // If we expect them to be populated, we wait.
             return;
         }
+
+        const controller = new AbortController();
+        const signal = controller.signal;
 
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}&_t=${Date.now()}`);
+                setError(null);
+                const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}&_t=${Date.now()}`, { signal });
                 if (!response.ok) {
                     throw new Error('Failed to fetch weather data');
                 }
                 const result: WeatherData = await response.json();
                 setData(result);
             } catch (err) {
+                if (err instanceof Error && err.name === 'AbortError') {
+                    // Do nothing for aborted requests
+                    return;
+                }
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
                 setLoading(false);
@@ -39,6 +42,10 @@ const useWeatherData = (lat: number | null, lon: number | null): UseWeatherDataR
         };
 
         fetchData();
+
+        return () => {
+            controller.abort();
+        };
     }, [lat, lon]);
 
     return { data, loading, error };

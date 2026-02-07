@@ -4,7 +4,7 @@ interface TimeSliderProps {
     selectedIndex: number;
     maxIndex: number;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    currentTimeLabel: string;
+    startLabel?: string;
     targetTimeLabel: string;
     midTimeLabel?: string;
     endTimeLabel?: string;
@@ -14,7 +14,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
     selectedIndex,
     maxIndex,
     onChange,
-    currentTimeLabel,
+    startLabel = "Now",
     targetTimeLabel,
     midTimeLabel = '+12h',
     endTimeLabel = '+24h'
@@ -22,7 +22,7 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
     return (
         <div className="mb-8 px-2">
             <div className="flex justify-between text-xs text-purple-300 mb-2 font-medium">
-                <span>{currentTimeLabel}</span>
+                <span>{startLabel}</span>
                 <span>{midTimeLabel}</span>
                 <span>{endTimeLabel}</span>
             </div>
