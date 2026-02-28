@@ -69,8 +69,8 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
             try {
                 const audio = new Audio('/magic-chime.mp3');
                 audio.volume = 0.4;
-                audio.play().catch(() => { });
-            } catch { }
+                audio.play().catch(() => { /* autoplay blocked by browser policy */ });
+            } catch (e) { console.warn('[Warp] Audio init failed:', e); }
         }, 1200);
     };
 
