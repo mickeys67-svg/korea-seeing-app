@@ -1,55 +1,218 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 /**
- * AnalysisService
- * Performs "Active" deep analysis of weather/seeing data using Gemini AI.
- * Goes beyond simple scoring to provide human-like astronomical judgment.
+ * AnalysisService — Warp AI Rule-based Engine v2.0
+ * Advanced astronomical observation analysis using pure computation.
+ * Features: 24h trend analysis, multi-factor insights, optimal window detection.
+ * Cost: $0 | Latency: 0ms | Dependencies: none
  */
 const AnalysisService = {
-    apiKey: process.env.GEMINI_API_KEY || null,
-    model: null,
-
     init() {
-        if (this.apiKey) {
-            try {
-                const genAI = new GoogleGenerativeAI(this.apiKey);
-                this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                console.log("[Analysis] AI Analysis Engine initialized (Gemini 1.5 Flash)");
-            } catch (e) {
-                console.error("[Analysis] Init failed:", e.message);
-            }
-        }
+        console.log("[Analysis] Rule-based analysis engine initialized (no API key needed)");
     },
 
     /**
-     * Performs a deep analysis of a specific forecast point.
+     * All limiting factors sorted by severity (returns array, not just top 1).
      */
-    async getActiveInsight(data, targetLang = 'ko') {
-        if (!this.model) return null;
+    _getLimitingFactors(data) {
+        const factors = [];
+        const scores = data.scores || {};
+        const raw = data.raw || {};
+
+        if ((scores.cloudCover ?? 0) >= 5) factors.push({ key: 'cloud', severity: scores.cloudCover, ko: '구름', en: 'cloud cover' });
+        if ((scores.jetStream ?? 0) >= 5) factors.push({ key: 'jet', severity: scores.jetStream, ko: '제트기류', en: 'jet stream' });
+        if ((scores.seeing ?? 0) >= 4) factors.push({ key: 'seeing', severity: scores.seeing, ko: '시잉 불안정', en: 'poor seeing' });
+        if ((scores.transparency ?? 0) >= 5) factors.push({ key: 'transparency', severity: scores.transparency, ko: '투명도 저하', en: 'low transparency' });
+        if ((scores.wind ?? 0) >= 4) factors.push({ key: 'wind', severity: scores.wind, ko: '강풍', en: 'strong winds' });
+        if ((data.rh2m ?? 0) >= 85) factors.push({ key: 'humidity', severity: 7, ko: '높은 습도', en: 'high humidity' });
+        if ((raw.jetStreamSpeed ?? 0) >= 120) factors.push({ key: 'jetSpeed', severity: 8, ko: '극심한 제트기류', en: 'extreme jet stream' });
+        if ((scores.convection ?? 0) >= 5) factors.push({ key: 'convection', severity: scores.convection, ko: '대류 불안정', en: 'convective instability' });
+
+        factors.sort((a, b) => b.severity - a.severity);
+        return factors;
+    },
+
+    /**
+     * Equipment/target recommendation based on seeing + score.
+     */
+    _getEquipment(data) {
+        const seeing = data.usp?.seeing ?? 2.0;
+        const score = data.score ?? 50;
+
+        if (seeing < 1.0 && score >= 80) return { ko: '행성/딥스카이 모두 최적', en: 'ideal for planetary & deep sky' };
+        if (seeing < 1.2 && score >= 70) return { ko: '행성 고배율 촬영 최적', en: 'excellent for high-mag planetary' };
+        if (seeing < 1.5 && score >= 65) return { ko: '행성 촬영 적합', en: 'good for planetary imaging' };
+        if (seeing < 2.0 && score >= 50) return { ko: '딥스카이 광시야 추천', en: 'deep sky wide-field recommended' };
+        if (score >= 40) return { ko: '안시 관측 가능', en: 'naked-eye/binocular viewing possible' };
+        return { ko: '관측 비추천', en: 'observation not recommended' };
+    },
+
+    /**
+     * Format hour as Korean-friendly time string.
+     */
+    _formatHourKo(date) {
+        const h = date.getHours();
+        if (h === 0) return '자정';
+        if (h < 6) return `새벽 ${h}시`;
+        if (h < 12) return `오전 ${h}시`;
+        if (h === 12) return '정오';
+        if (h < 18) return `오후 ${h - 12}시`;
+        if (h < 21) return `저녁 ${h - 12}시`;
+        return `밤 ${h - 12}시`;
+    },
+
+    _formatHourEn(date) {
+        const h = date.getHours();
+        const suffix = h >= 12 ? 'PM' : 'AM';
+        const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+        return `${h12}${suffix}`;
+    },
+
+    /**
+     * Analyze 24h forecast trend — find optimal window & detect improvements.
+     */
+    _analyzeTrend(currentData, forecastList) {
+        if (!forecastList || forecastList.length < 2) return null;
+
+        const now = new Date(currentData.time);
+        const cutoff = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        // Filter to 24h window
+        const upcoming = forecastList.filter(f => {
+            const t = new Date(f.time);
+            return t >= now && t <= cutoff;
+        });
+
+        if (upcoming.length < 2) return null;
+
+        // Find best block in 24h
+        let bestBlock = upcoming[0];
+        for (const block of upcoming) {
+            if (block.score > bestBlock.score) bestBlock = block;
+        }
+
+        // Find worst block in 24h
+        let worstBlock = upcoming[0];
+        for (const block of upcoming) {
+            if (block.score < worstBlock.score) worstBlock = block;
+        }
+
+        // Current block index
+        const currentIdx = upcoming.findIndex(f => f.time === currentData.time);
+
+        // Next block (3h later)
+        const nextBlock = currentIdx >= 0 && currentIdx + 1 < upcoming.length
+            ? upcoming[currentIdx + 1] : null;
+
+        // Detect improving or worsening trend (current → next 2 blocks)
+        let trend = 'stable';
+        if (currentIdx >= 0) {
+            const futureBlocks = upcoming.slice(currentIdx + 1, currentIdx + 3);
+            if (futureBlocks.length > 0) {
+                const avgFutureScore = futureBlocks.reduce((s, b) => s + b.score, 0) / futureBlocks.length;
+                const diff = avgFutureScore - currentData.score;
+                if (diff >= 10) trend = 'improving';
+                else if (diff <= -10) trend = 'worsening';
+            }
+        }
+
+        // Score range across 24h
+        const scoreRange = bestBlock.score - worstBlock.score;
+
+        return {
+            bestBlock,
+            worstBlock,
+            bestTime: new Date(bestBlock.time),
+            nextBlock,
+            trend,
+            scoreRange,
+            blockCount: upcoming.length,
+            isBestNow: bestBlock.time === currentData.time
+        };
+    },
+
+    /**
+     * Main insight generator — enhanced with 24h trend.
+     * @param {object} data - Current best forecast block
+     * @param {array} forecastList - Full forecast array
+     * @param {string} targetLang - 'ko' or 'en'
+     * @returns {string} Insight text (1-2 sentences)
+     */
+    getActiveInsight(data, forecastList = [], targetLang = 'ko') {
+        if (!data || data.score == null) return null;
 
         try {
-            const prompt = `Analyze this astronomical seeing data and provide a professional, active observation guide.
-            
-            Data Summary:
-            - Final Score: ${data.score}/100 (Grade ${data.grade})
-            - Predicted Seeing: ${data.usp.seeing}"
-            - Transparency (0-8): ${data.scores.transparency}
-            - Cloud Cover (0-8): ${data.scores.cloudCover}
-            - Jet Stream Speed: ${data.raw.jetStreamSpeed} knots
-            - Humidity: ${data.rh2m}%
-            - Ground Winds: ${data.wind10m.speed} m/s
-            
-            Instruction:
-            1. Act as an expert astronomer.
-            2. Mention best equipment (Planetary, Deep sky, or Gaze).
-            3. Note the primary limiting factor.
-            4. Keep it under 200 characters.
-            5. Return ONLY the analysis text in ${targetLang === 'ko' ? 'natural Korean' : 'English'}.
-            Do NOT use generic templates. Be specific to the numbers above.`;
+            const isKo = targetLang === 'ko';
+            const score = data.score;
+            const grade = data.grade;
+            const seeing = data.usp?.seeing ?? 'N/A';
+            const equipment = this._getEquipment(data);
+            const factors = this._getLimitingFactors(data);
+            const trend = this._analyzeTrend(data, forecastList);
 
-            const result = await this.model.generateContent(prompt);
-            const response = await result.response;
-            return response.text().trim();
+            // Part 1: Current status summary
+            let status;
+            if (isKo) {
+                status = `${grade}등급(${score}점), 시잉 ${seeing}". ${equipment.ko}.`;
+            } else {
+                status = `Grade ${grade}(${score}), seeing ${seeing}". ${equipment.en}.`;
+            }
+
+            // Part 2: Dynamic context (trend OR limiting factors)
+            let context = '';
+
+            if (trend) {
+                // Case A: Conditions are great now and it's the best time
+                if (score >= 70 && trend.isBestNow) {
+                    context = isKo
+                        ? ' 지금이 24시간 내 최적 관측 시간입니다!'
+                        : ' Now is the best observation window in 24h!';
+                }
+                // Case B: Conditions will improve
+                else if (trend.trend === 'improving' && score < 70) {
+                    const betterTime = trend.nextBlock ? new Date(trend.nextBlock.time) : null;
+                    if (betterTime) {
+                        context = isKo
+                            ? ` ${this._formatHourKo(betterTime)} 이후 조건 개선 예상.`
+                            : ` Conditions improving after ${this._formatHourEn(betterTime)}.`;
+                    }
+                }
+                // Case C: Better time available later
+                else if (!trend.isBestNow && trend.bestBlock.score >= score + 8) {
+                    const bestTime = trend.bestTime;
+                    const bestGrade = trend.bestBlock.grade;
+                    context = isKo
+                        ? ` ${this._formatHourKo(bestTime)}경 ${bestGrade}등급(${trend.bestBlock.score}점) 예상.`
+                        : ` ${bestGrade}-grade(${trend.bestBlock.score}) expected around ${this._formatHourEn(bestTime)}.`;
+                }
+                // Case D: Conditions worsening
+                else if (trend.trend === 'worsening' && score >= 50) {
+                    context = isKo
+                        ? ' 조건 악화 예상, 빠른 관측을 권장합니다.'
+                        : ' Conditions worsening, observe soon.';
+                }
+            }
+
+            // If no trend context, fall back to limiting factors
+            if (!context && factors.length > 0) {
+                if (score >= 70) {
+                    const top = factors[0];
+                    context = isKo
+                        ? ` 제한요인: ${top.ko}.`
+                        : ` Limiting: ${top.en}.`;
+                } else if (score >= 40) {
+                    const topTwo = factors.slice(0, 2);
+                    const names = topTwo.map(f => isKo ? f.ko : f.en).join(', ');
+                    context = isKo
+                        ? ` 주의: ${names}.`
+                        : ` Watch: ${names}.`;
+                } else {
+                    const top = factors[0];
+                    context = isKo
+                        ? ` 주요 원인: ${top.ko}.`
+                        : ` Main cause: ${top.en}.`;
+                }
+            }
+
+            return status + context;
         } catch (error) {
             console.error("[Analysis] Engine error:", error.message);
             return null;

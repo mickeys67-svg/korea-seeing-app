@@ -6,7 +6,10 @@
 (function () {
     'use strict';
 
+    // Prevent re-initialization: check both initialized flag and loading guard
     if (window.CLEARSKY_LOCATION && window.CLEARSKY_LOCATION.__initialized) return;
+    if (window.__CLS_LOADING) return;
+    window.__CLS_LOADING = true;
 
     const CLEARSKY_LOCATION = {
         version: '1.0.0',
@@ -245,6 +248,7 @@
         },
 
         init() {
+            if (this.__initialized) return;
             this.State.init();
             this.UI.init();
             this.__initialized = true;
@@ -253,6 +257,9 @@
     };
 
     window.CLEARSKY_LOCATION = CLEARSKY_LOCATION;
-    if (document.readyState === 'complete') CLEARSKY_LOCATION.init();
-    else window.addEventListener('load', () => CLEARSKY_LOCATION.init());
+    if (document.readyState === 'complete') {
+        CLEARSKY_LOCATION.init();
+    } else {
+        window.addEventListener('load', () => CLEARSKY_LOCATION.init(), { once: true });
+    }
 })();

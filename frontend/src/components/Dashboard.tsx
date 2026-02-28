@@ -4,17 +4,15 @@ import MoonPhase from './MoonPhase';
 import NotificationSetup from './NotificationSetup';
 import AiPrediction from './AiPrediction';
 import ForecastList from './ForecastList';
-import { Loader2, MapPin } from 'lucide-react';
+import { Loader2, MapPin, Radio } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useWeatherData from '../hooks/useWeatherData';
 
 const Dashboard: React.FC = () => {
-    // 1. Get Location
     const location = useGeolocation();
     const defaultLat = 37.5665;
     const defaultLon = 126.9780;
 
-    // Determine effective lat/lon (only if location loaded)
     const lat = location.loaded
         ? (location.val ? location.val.lat : defaultLat)
         : null;
@@ -22,53 +20,85 @@ const Dashboard: React.FC = () => {
         ? (location.val ? location.val.lon : defaultLon)
         : null;
 
-    // 2. Fetch Data using Custom Hook
     const { data, loading, error } = useWeatherData(lat, lon);
 
     if (loading || !location.loaded) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+            <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+                <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-2 border-indigo-500/20 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+                    </div>
+                    <div className="absolute inset-0 rounded-full animate-pulse-ring" />
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] font-mono tracking-wider">ACQUIRING DATA</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-900 text-red-400">
-                Error: {error}
+            <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                    <span className="text-red-400 text-xl">!</span>
+                </div>
+                <p className="text-red-400/80 text-sm text-center max-w-sm">{error}</p>
             </div>
         );
     }
 
     if (!data) return null;
 
-    // Get current forecast (closest timepoint)
     const currentForecast = data.forecast && data.forecast.length > 0 ? data.forecast[0] : null;
 
+    const getGradeBgClass = (grade: string) => {
+        switch (grade) {
+            case 'S': return 'grade-bg-s';
+            case 'A': return 'grade-bg-a';
+            case 'B': return 'grade-bg-b';
+            case 'C': return 'grade-bg-c';
+            default: return 'grade-bg-d';
+        }
+    };
+
     return (
-        <div className="flex flex-col items-center p-6 space-y-6 w-full max-w-4xl mx-auto">
-            <header className="w-full flex justify-between items-center mb-4">
+        <div className={`flex flex-col items-center w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 bg-dot-pattern min-h-screen ${currentForecast ? getGradeBgClass(currentForecast.grade) : ''}`}>
+
+            {/* ===== Header ===== */}
+            <header className="w-full flex justify-between items-center mb-8 animate-fade-in-up">
                 <div className="flex items-center gap-3">
-                    <img src="/logo.jpg" alt="Logo" className="w-12 h-12 rounded-full border-2 border-blue-400 object-cover animate-logo-glow" />
+                    <div className="relative">
+                        <img src="/logo.jpg" alt="Clear Skies" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[var(--bg-void)]" />
+                    </div>
                     <div>
-                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-                            Clear skies !
+                        <h1 className="text-xl font-bold text-[var(--text-bright)] tracking-tight">
+                            Clear Skies <span className="text-[var(--accent)]">!</span>
                         </h1>
-                        <div className="flex items-center text-gray-400 text-sm mt-1">
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {location.name || (location.val ? "GPS Location" : "Seoul, South Korea (Default)")}
+                        <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs">
+                            <MapPin className="w-3 h-3" />
+                            <span className="truncate max-w-[200px]">
+                                {location.name || (location.val ? "GPS Location" : "Seoul, Korea")}
+                            </span>
                         </div>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-1.5 bg-[var(--bg-surface)] px-3 py-1.5 rounded-full border border-[var(--glass-border)]">
+                    <Radio className="w-3 h-3 text-emerald-400" />
+                    <span className="text-[11px] font-mono text-emerald-400 tracking-wider font-medium">LIVE</span>
+                </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                {currentForecast && <SeeingDetails data={currentForecast} />}
-                {data.astronomy && <MoonPhase data={data.astronomy} />}
-            </div>
+            {/* ===== Hero: Observation Score ===== */}
+            {currentForecast && (
+                <SeeingDetails data={currentForecast} />
+            )}
 
-            {/* AI Prediction Module (Time Travel Enabled) */}
+            {/* ===== Forecast Timeline ===== */}
+            {data.forecast && <ForecastList forecast={data.forecast.slice(0, 48)} timezone={data.location.timezone} />}
+
+            {/* ===== AI Prediction ===== */}
             {data.forecast && data.forecast.length > 0 && (
                 <AiPrediction
                     forecastList={data.forecast}
@@ -77,30 +107,32 @@ const Dashboard: React.FC = () => {
                 />
             )}
 
-            {/* Use the new ForecastList component - Showing approx 6 days (48 points * 3h = 144h = 6 days) */}
-            {data.forecast && <ForecastList forecast={data.forecast.slice(0, 48)} />}
+            {/* ===== Astronomy ===== */}
+            {data.astronomy && <MoonPhase data={data.astronomy} timezone={data.location.timezone} />}
 
             <NotificationSetup />
 
-            {/* SEO & Community Keywords Section (Hidden but crawlable) */}
+            {/* SEO */}
             <div className="sr-only" aria-hidden="true">
-                <p>
-                    Precision Seeing Forecast for Astrophotographers • Steady Skies & Stable Air Analysis
-                    • Community Trusted Stargazing Predictor • Built for Cloudy Nights & AstroBin Users
-                </p>
+                <p>Precision Seeing Forecast for Astrophotographers</p>
                 <div className="font-mono italic">
                     <span>FWHM Estimation</span>
                     <span>Antoniadi Scale Ref</span>
                     <span>Pickering Scale Model</span>
                     <span>Atmospheric Scintillation Analysis</span>
-                    <span>Planetary Imaging Stability</span>
                 </div>
             </div>
 
-            {/* Version Footer for Debugging */}
-            <div className="mt-8 text-center text-xs text-gray-600 font-medium pb-12">
-                <p>Clearskies ! Forme Observatory Ganghwado Island v2.5 (Live)</p>
-            </div>
+            {/* Footer */}
+            <footer className="mt-12 mb-8 text-center animate-fade-in">
+                <p className="text-xs font-mono text-[var(--text-tertiary)] tracking-widest uppercase">
+                    Clear Skies v3.0 &middot; Forme Observatory &middot; Ganghwado
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-2">
+                    Feedback or bugs? Send them to{' '}
+                    <a href="mailto:mickeys67@gmail.com" className="text-[var(--accent)] hover:underline">mickeys67@gmail.com</a>
+                </p>
+            </footer>
         </div>
     );
 };

@@ -3,6 +3,33 @@ const ScoringService = require('./scoringService');
 const USPModel = require('./USPModel');
 const AnalysisService = require('./analysisService');
 
+// Simple timezone lookup from coordinates (covers major observatory regions)
+function getTimezoneFromCoords(lat, lon) {
+    // Korea (33-39N, 124-132E)
+    if (lat >= 33 && lat <= 39 && lon >= 124 && lon <= 132) return { tz: 'Asia/Seoul', offset: 32400 };
+    // Japan (24-46N, 127-146E)
+    if (lat >= 24 && lat <= 46 && lon >= 127 && lon <= 146) return { tz: 'Asia/Tokyo', offset: 32400 };
+    // Eastern China (18-54N, 73-135E)
+    if (lat >= 18 && lat <= 54 && lon >= 73 && lon <= 135) return { tz: 'Asia/Shanghai', offset: 28800 };
+    // US Eastern (-5)
+    if (lat >= 24 && lat <= 50 && lon >= -85 && lon <= -65) return { tz: 'America/New_York', offset: -18000 };
+    // US Central (-6)
+    if (lat >= 24 && lat <= 50 && lon >= -105 && lon <= -85) return { tz: 'America/Chicago', offset: -21600 };
+    // US Mountain (-7)
+    if (lat >= 24 && lat <= 50 && lon >= -115 && lon <= -105) return { tz: 'America/Denver', offset: -25200 };
+    // US Pacific (-8)
+    if (lat >= 24 && lat <= 50 && lon >= -130 && lon <= -115) return { tz: 'America/Los_Angeles', offset: -28800 };
+    // Western Europe (0)
+    if (lat >= 36 && lat <= 60 && lon >= -10 && lon <= 2) return { tz: 'Europe/London', offset: 0 };
+    // Central Europe (+1)
+    if (lat >= 36 && lat <= 60 && lon >= 2 && lon <= 20) return { tz: 'Europe/Berlin', offset: 3600 };
+    // Eastern Europe (+2)
+    if (lat >= 36 && lat <= 60 && lon >= 20 && lon <= 40) return { tz: 'Europe/Helsinki', offset: 7200 };
+    // Australia Eastern (+10)
+    if (lat >= -45 && lat <= -10 && lon >= 140 && lon <= 155) return { tz: 'Australia/Sydney', offset: 36000 };
+    return null;
+}
+
 const WeatherService = {
     // ... [Rest of the constants and helpers remain unchanged] ...
     PRESSURE_LEVEL_HEIGHTS: {
@@ -100,7 +127,7 @@ const WeatherService = {
         return layers;
     },
 
-    getAggregatedForecast: async (lat, lon) => {
+    getAggregatedForecast: async (lat, lon, targetLang = 'en') => {
         // Fetch Ensemble Data for full 7 days
         const [timerData, omData, metData, aqData] = await Promise.all([
             ProviderService.fetch7Timer(lat, lon),
@@ -206,7 +233,7 @@ const WeatherService = {
                     convection: parseFloat(ScoringService.calculateConvectionScore(mapped.cape, hour).toFixed(1))
                 },
                 raw: {
-                    jetStreamSpeed: Math.round(mapped.jetStream * 1.94384 || 0),
+                    jetStreamSpeed: mapped.jetStream != null ? Math.round(mapped.jetStream * 1.94384) : 0,
                     cape: Math.round(mapped.cape || 0),
                     confidence: finalUsp.confidence
                 },
@@ -216,19 +243,32 @@ const WeatherService = {
             };
         });
 
-        // 5. Active AI Insight
+        // 5. Active Insight (rule-based)
         let aiInsight = null;
         const bestBlock = [...mappedForecast].sort((a, b) => b.score - a.score)[0];
         if (bestBlock) {
-            aiInsight = await AnalysisService.getActiveInsight(bestBlock);
+            aiInsight = AnalysisService.getActiveInsight(bestBlock, mappedForecast, targetLang);
+        }
+
+        // Timezone resolution: Open-Meteo > coordinate lookup > UTC
+        let resolvedTz = omBest?.timezone || null;
+        let resolvedOffset = omBest?.utc_offset_seconds || 0;
+        if (!resolvedTz || resolvedTz === 'UTC' || resolvedTz === 'GMT') {
+            const coordTz = getTimezoneFromCoords(lat, lon);
+            if (coordTz) {
+                resolvedTz = coordTz.tz;
+                resolvedOffset = coordTz.offset;
+            } else {
+                resolvedTz = resolvedTz || 'UTC';
+            }
         }
 
         return {
             forecast: mappedForecast,
             aiSummary: aiInsight,
             meta: {
-                timezone: omBest?.timezone || 'UTC',
-                timezoneOffset: omBest?.utc_offset_seconds || 0,
+                timezone: resolvedTz,
+                timezoneOffset: resolvedOffset,
                 ensemble: ensembleModels.length,
                 sources: ['7Timer', 'Open-Meteo (Ensemble)', 'Met.no']
             }

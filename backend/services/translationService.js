@@ -1,95 +1,68 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 /**
  * TranslationService
- * Handles natural language translation for astronomical recommendations using Gemini AI.
+ * Handles translation for astronomical recommendations using static translation maps.
+ * No external API needed - all recommendation strings are predefined.
  */
 const TranslationService = {
-    apiKey: process.env.GEMINI_API_KEY || null,
-    model: null,
-
-    init() {
-        if (this.apiKey) {
-            try {
-                const genAI = new GoogleGenerativeAI(this.apiKey);
-                // Using "gemini-pro" as it's the most stable/supported identifier across SDK versions
-                this.model = genAI.getGenerativeModel({ model: "gemini-pro" });
-                console.log(`[Translation] AI Model Initialized: gemini-pro (Key: ${this.apiKey.substring(0, 8)}...)`);
-            } catch (e) {
-                console.error("[Translation] Init failed:", e.message);
-            }
-        } else {
-            console.warn("[Translation] No GEMINI_API_KEY found. Falling back to original labels.");
+    // Static translation maps for each supported language
+    translations: {
+        ko: {
+            'Steady skies! Excellent conditions, great for all targets.':
+                '안정적인 하늘! 모든 관측 대상에 탁월한 조건입니다.',
+            'Stable air and very good conditions. Suitable for most observations.':
+                '안정된 대기와 매우 좋은 조건. 대부분의 관측에 적합합니다.',
+            'Average conditions. Stable enough for bright solar system targets.':
+                '보통 조건. 밝은 태양계 대상 관측은 가능합니다.',
+            'Poor conditions. Unstable air limiting casual observation.':
+                '불량한 조건. 불안정한 대기로 일반 관측이 제한됩니다.',
+            'Atmosphere is too unstable for observation.':
+                '대기가 너무 불안정하여 관측이 어렵습니다.'
+        },
+        ja: {
+            'Steady skies! Excellent conditions, great for all targets.':
+                '安定した空！全ての観測対象に最適な条件です。',
+            'Stable air and very good conditions. Suitable for most observations.':
+                '安定した大気と非常に良い条件。ほとんどの観測に適しています。',
+            'Average conditions. Stable enough for bright solar system targets.':
+                '平均的な条件。明るい太陽系天体の観測は可能です。',
+            'Poor conditions. Unstable air limiting casual observation.':
+                '不良な条件。不安定な大気により一般観測が制限されます。',
+            'Atmosphere is too unstable for observation.':
+                '大気が不安定すぎて観測が困難です。'
         }
     },
 
+    init() {
+        console.log("[Translation] Static translation engine initialized (no API key needed)");
+    },
+
     /**
-     * Translates a single recommendation string into the target language.
+     * Translates a single recommendation string using static map.
      */
-    async translateRecommendation(text, targetLang = 'ko', isFallback = false) {
-        if (!this.model || !text) return text;
+    translateRecommendation(text, targetLang = 'ko') {
+        if (!text) return text;
         if (targetLang.toLowerCase().startsWith('en')) return text;
 
-        try {
-            const prompt = `Translate this into natural, professional ${targetLang}: "${text}". 
-            Context: High-precision astronomical seeing forecast for astrophotographers. 
-            Maintain the technical nuance of terms like "Steady Skies" (안정적인 시잉) or "Stable Air" (정체된 대기) if applicable. 
-            Return ONLY the translated text.`;
-
-            // Simple cooldown to avoid hitting free-tier quotas too fast during batch processing
-            await new Promise(resolve => setTimeout(resolve, isFallback ? 500 : 100));
-
-            const result = await this.model.generateContent(prompt);
-            const response = await result.response;
-            const translatedText = response.text().trim();
-
-            if (translatedText) {
-                console.log(`[Translation] SUCCESS: ${text} -> ${translatedText}`);
-                return translatedText;
-            }
-            return text;
-        } catch (error) {
-            console.error("[Translation] AI Error:", error.message);
-
-            // Attempt dynamic model fallback if gemini-pro fails with specific 404/503
-            if (!isFallback && (error.message.includes("not found") || error.message.includes("overloaded"))) {
-                console.log("[Translation] Trying fallback to gemini-1.5-flash");
-                try {
-                    const genAI = new GoogleGenerativeAI(this.apiKey);
-                    this.model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                    return this.translateRecommendation(text, targetLang, true);
-                } catch (e) {
-                    console.error("[Translation] Fallback failed:", e.message);
-                }
-            }
-
-            return text;
+        const langMap = this.translations[targetLang];
+        if (langMap && langMap[text]) {
+            return langMap[text];
         }
+
+        // Fallback: return original text if no translation found
+        return text;
     },
 
     /**
      * Bulk translates an array of forecast items.
      */
-    async translateForecastBatch(items, targetLang = 'ko') {
-        if (!this.model || !items || items.length === 0) return items;
+    translateForecastBatch(items, targetLang = 'ko') {
+        if (!items || items.length === 0) return items;
         if (targetLang.toLowerCase().startsWith('en')) return items;
 
-        const uniqueRecs = [...new Set(items.map(i => i.recommendation))];
-        const translationMap = {};
-
-        try {
-            await Promise.all(uniqueRecs.map(async (rec) => {
-                translationMap[rec] = await this.translateRecommendation(rec, targetLang);
-            }));
-
-            return items.map(item => ({
-                ...item,
-                recommendation: translationMap[item.recommendation] || item.recommendation
-            }));
-        } catch (e) {
-            console.error("[Translation] Batch failed:", e.message);
-            return items;
-        }
+        return items.map(item => ({
+            ...item,
+            recommendation: this.translateRecommendation(item.recommendation, targetLang)
+        }));
     }
 };
 

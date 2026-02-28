@@ -20,8 +20,8 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
     endTimeLabel = '+24h'
 }) => {
     return (
-        <div className="mb-8 px-2">
-            <div className="flex justify-between text-xs text-purple-300 mb-2 font-medium">
+        <div className="mb-6 px-1">
+            <div className="flex justify-between text-xs font-data text-[var(--text-tertiary)] mb-2 uppercase tracking-wider font-medium">
                 <span>{startLabel}</span>
                 <span>{midTimeLabel}</span>
                 <span>{endTimeLabel}</span>
@@ -32,10 +32,11 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
                 max={maxIndex}
                 value={selectedIndex}
                 onChange={onChange}
-                className="w-full h-2 bg-purple-900 rounded-lg appearance-none cursor-pointer accent-purple-400 hover:accent-purple-300 transition-all"
+                className="w-full"
             />
-            <div className="mt-2 text-center text-white font-bold text-sm">
-                Target: <span className="text-purple-300">{targetTimeLabel}</span>
+            <div className="mt-2 text-center">
+                <span className="text-xs text-[var(--text-secondary)]">Target: </span>
+                <span className="text-sm font-data font-semibold text-[var(--accent)]">{targetTimeLabel}</span>
             </div>
         </div>
     );

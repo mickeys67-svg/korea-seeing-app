@@ -7,10 +7,12 @@ const fs = require('fs');
 const citiesPath = path.join(__dirname, '../data/cities.json');
 let cities = [];
 
+let citiesLoaded = false;
 const loadCities = async () => {
     try {
         const data = await fs.promises.readFile(citiesPath, 'utf8');
         cities = JSON.parse(data);
+        citiesLoaded = true;
         console.log('[CLS] Cities data loaded successfully');
     } catch (err) {
         console.error('[CLS] Error loading cities.json:', err);
@@ -23,6 +25,10 @@ loadCities();
  * Search cities by name (KR/EN) or country (KR/EN)
  */
 router.get('/cities/search', (req, res) => {
+    if (!citiesLoaded) {
+        return res.status(503).json({ error: 'City data is still loading. Please try again.' });
+    }
+
     const { q, limit = 10, lang = 'ko' } = req.query;
 
     if (!q || q.length < 2) {
@@ -71,11 +77,17 @@ router.get('/geocoding/reverse', async (req, res) => {
         return res.status(400).json({ error: 'Lat and Lng are required' });
     }
 
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+    if (isNaN(parsedLat) || isNaN(parsedLng) || parsedLat < -90 || parsedLat > 90 || parsedLng < -180 || parsedLng > 180) {
+        return res.status(400).json({ error: 'Invalid coordinates' });
+    }
+
     try {
         // Note: In real production, use an API key or respect Nominatim's usage policy.
         // Here we use it as a simple proxy.
         const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`,
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${parsedLat}&lon=${parsedLng}&accept-language=ko`,
             {
                 headers: {
                     'User-Agent': 'ClearSky-App/1.0'
@@ -90,8 +102,8 @@ router.get('/geocoding/reverse', async (req, res) => {
         res.json({
             name: data.display_name.split(',')[0],
             address: data.display_name,
-            lat: parseFloat(lat),
-            lng: parseFloat(lng),
+            lat: parsedLat,
+            lng: parsedLng,
             source: 'gps'
         });
     } catch (err) {

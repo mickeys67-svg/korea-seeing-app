@@ -3,78 +3,114 @@ import type { ForecastItem } from '../types/weather';
 
 interface ForecastListProps {
     forecast: ForecastItem[];
+    timezone?: string;
 }
 
-const ForecastList: React.FC<ForecastListProps> = ({ forecast }) => {
-    // Improved time formatting using backend ISO strings
+const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone }) => {
     const formatTime = (isoString: string) => {
         const date = new Date(isoString);
+        const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const hour = parseInt(date.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
         return {
-            day: date.toLocaleDateString('ko-KR', { weekday: 'short' }),
-            time: date.getHours().toString().padStart(2, '0') + ':00',
-            isNight: date.getHours() < 6 || date.getHours() > 18
+            day: date.toLocaleDateString('ko-KR', { timeZone: tz, weekday: 'short' }),
+            time: hour.toString().padStart(2, '0') + ':00',
+            isNight: hour < 6 || hour > 18
         };
     };
 
+    const getScoreColor = (score: number): string => {
+        if (score >= 85) return 'var(--seeing-exceptional)';
+        if (score >= 70) return 'var(--seeing-excellent)';
+        if (score >= 55) return 'var(--seeing-good)';
+        if (score >= 40) return 'var(--seeing-fair)';
+        if (score >= 25) return 'var(--seeing-poor)';
+        return 'var(--seeing-very-poor)';
+    };
+
+    const getSeeingColor = (s: number): string => {
+        if (s <= 2) return 'var(--seeing-exceptional)';
+        if (s <= 4) return 'var(--seeing-good)';
+        if (s <= 6) return 'var(--seeing-fair)';
+        return 'var(--seeing-very-poor)';
+    };
+
     return (
-        <div className="w-full bg-black/20 backdrop-blur-md p-6 rounded-3xl mt-8 border border-white/5 shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-200 to-cyan-400 bg-clip-text text-transparent">
-                    6-Day High-Res Forecast
-                </h3>
-                <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    Ensemble Active
+        <div className="glass-card w-full p-5 sm:p-6 mt-6 animate-fade-in-up delay-2" style={{ animationFillMode: 'backwards' }}>
+            <div className="flex justify-between items-center mb-5">
+                <div>
+                    <h3 className="text-xl font-bold text-[var(--text-bright)]">
+                        Forecast Timeline
+                    </h3>
+                    <p className="text-xs font-data text-[var(--text-tertiary)] uppercase tracking-wider mt-0.5">
+                        3-hour intervals &middot; {forecast.length} datapoints
+                    </p>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-surface)] border border-[var(--glass-border)]">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[11px] font-data text-emerald-400 uppercase tracking-wider font-medium">Live</span>
                 </div>
             </div>
 
-            <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x snap-mandatory">
+            <div className="flex overflow-x-auto gap-2.5 pb-3 no-scrollbar snap-x snap-mandatory -mx-1 px-1">
                 {forecast.map((point: ForecastItem, idx: number) => {
                     const { day, time, isNight } = formatTime(point.time);
                     const s = point.scores.seeing;
+                    const seeingColor = getSeeingColor(s);
+                    const scoreColor = getScoreColor(point.score);
                     const confidence = point.raw?.confidence || 70;
-
-                    // Colors based on score
-                    const colorClass = s <= 2 ? 'text-green-400' : s <= 4 ? 'text-cyan-400' : s <= 6 ? 'text-yellow-400' : 'text-red-400';
-                    const glowClass = s <= 2 ? 'shadow-[0_0_15px_rgba(74,222,128,0.2)]' : '';
 
                     return (
                         <div
                             key={idx}
-                            className={`flex-shrink-0 snap-start group relative bg-white/5 hover:bg-white/10 p-4 rounded-2xl flex flex-col items-center min-w-[100px] border border-white/5 transition-all duration-300 ${glowClass}`}
+                            className="flex-shrink-0 snap-start group relative glass-card-inner p-3.5 flex flex-col items-center min-w-[96px] transition-all duration-200 hover:bg-[rgba(255,255,255,0.06)]"
                         >
-                            {/* Night Indicator Dot */}
+                            {/* Night indicator */}
                             {isNight && (
-                                <div className="absolute top-2 right-2 w-1 h-1 bg-cyan-400 rounded-full blur-[1px]"></div>
+                                <div className="absolute top-2 right-2 w-2 h-2 bg-indigo-400/60 rounded-full" />
                             )}
 
-                            <span className="text-xs text-blue-200 font-bold mb-0.5">{day}</span>
-                            <span className="text-[10px] text-gray-500 font-mono mb-4">{time}</span>
+                            {/* Time */}
+                            <span className="text-xs text-[var(--text-secondary)] font-medium">{day}</span>
+                            <span className="text-[11px] font-data text-[var(--text-tertiary)] mb-3">{time}</span>
 
-                            <div className="flex flex-col items-center gap-0.5 relative">
-                                <span className={`font-black text-2xl tracking-tight transition-transform group-hover:scale-110 ${colorClass}`}>
-                                    {s.toFixed(1)}
-                                </span>
-                                <span className="text-[8px] uppercase tracking-widest text-gray-500 font-bold">Seeing</span>
+                            {/* Score */}
+                            <span
+                                className="font-data text-2xl font-bold tracking-tight transition-transform group-hover:scale-105"
+                                style={{ color: scoreColor }}
+                            >
+                                {point.score}
+                            </span>
+                            <span className="text-[10px] font-data uppercase tracking-widest text-[var(--text-tertiary)] mb-1">{point.grade}</span>
+
+                            {/* Seeing micro-bar */}
+                            <div className="w-full mt-2 space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] text-[var(--text-tertiary)] uppercase font-medium">See</span>
+                                    <span className="text-[11px] font-data font-bold" style={{ color: seeingColor }}>{s.toFixed(1)}</span>
+                                </div>
+                                <div className="w-full h-[3px] bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full transition-all duration-500"
+                                        style={{
+                                            width: `${Math.max(5, 100 - (s / 8) * 100)}%`,
+                                            background: seeingColor
+                                        }}
+                                    />
+                                </div>
                             </div>
 
-                            {/* Confidence Bar */}
-                            <div className="mt-4 w-full h-[3px] bg-gray-800 rounded-full overflow-hidden">
+                            {/* Confidence */}
+                            <div className="mt-2 w-full h-[3px] bg-white/5 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 opacity-60"
-                                    style={{ width: `${confidence}%` }}
-                                ></div>
+                                    className="h-full rounded-full opacity-40"
+                                    style={{ width: `${confidence}%`, background: 'var(--accent)' }}
+                                />
                             </div>
-                            <span className="text-[7px] text-gray-600 mt-1 uppercase">Reliability {confidence}%</span>
+                            <span className="text-[10px] font-data text-[var(--text-tertiary)] mt-1">{confidence}%</span>
                         </div>
                     );
                 })}
             </div>
-
-            <style>{`
-                .no-scrollbar::-webkit-scrollbar { display: none; }
-                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
         </div>
     );
 };

@@ -61,21 +61,21 @@ const ScoringService = {
         const jetstreamScore = typeof params.jetstream === 'number' ? params.jetstream : 8;
         const convectionScore = typeof params.convection === 'number' ? params.convection : 8;
 
-        // Final score calculation with safety clamping
-        const weightedSum = (seeingScore * 8) + (transparencyScore * 5) + (cloudScore * 10) +
-            (windScore * 3) + (jetstreamScore * 2) + (convectionScore * 2);
+        // Weighted average of sub-scores (0=best, 8=worst)
+        const weightedBadness =
+            seeingScore * WEIGHTS.seeing +
+            transparencyScore * WEIGHTS.transparency +
+            cloudScore * WEIGHTS.cloud +
+            windScore * WEIGHTS.wind +
+            jetstreamScore * WEIGHTS.jetstream +
+            convectionScore * WEIGHTS.convection;
 
-        // Max theoretical weighted sum: (8*8 + 8*5 + 8*10 + 8*3 + 8*2 + 8*2) = 64+40+80+24+16+16 = 240
-        // Normalized to 0-100
-        let finalScore = (weightedSum / 240) * 100;
+        // Invert: 0 badness → 100 score (perfect), 8 badness → 0 score (worst)
+        let finalScore = (1 - weightedBadness / 8) * 100;
 
         // Ensure result is a valid number and clamped
-        if (isNaN(finalScore)) finalScore = 0; // Default to 0 if NaN
-        finalScore = Math.max(0, Math.min(100, Math.round(finalScore))); // Clamp to 0-100 and round to nearest integer
-
-        // The original code had a `roundedScore` that rounded to one decimal place.
-        // Let's re-introduce that after the clamping and integer rounding.
-        const roundedScore = Math.round(finalScore * 10) / 10;
+        if (isNaN(finalScore)) finalScore = 0;
+        const roundedScore = Math.max(0, Math.min(100, Math.round(finalScore * 10) / 10));
 
         return {
             score: roundedScore,

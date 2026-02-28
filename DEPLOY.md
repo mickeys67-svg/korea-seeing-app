@@ -38,7 +38,7 @@ gcloud services enable run.googleapis.com
 (예: `korea-sky-app-12345`)
 
 ```bash
-gcloud config set project [YOUR_PROJECT_ID]
+gcloud config set project [koreaseeing_koreaseeing]
 ```
 
 ### 4. 컨테이너 빌드 및 업로드 (Build)
@@ -64,6 +64,7 @@ gcloud run deploy korea-sky-seeing \
 *   **Region**: `asia-northeast3`는 서울 리전입니다.
 *   **MONGODB_URI**: 실제 몽고DB 접속 주소(비밀번호 포함)를 입력해야 합니다. 따옴표(`"`)로 감싸주는 것이 좋습니다.
     * 예: `MONGODB_URI="mongodb+srv://user:pass@cluster..."`
+*   현재 AI 분석과 번역은 **내장 규칙 기반**으로 작동하므로, 외부 API 키가 필요하지 않습니다.
 
 ### 6. 배포 확인
 배포가 완료되면 터미널에 **Service URL**이 출력됩니다 (예: `https://korea-sky-seeing-xyz.a.run.app`).

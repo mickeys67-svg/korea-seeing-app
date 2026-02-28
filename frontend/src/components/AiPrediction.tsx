@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Bot, Info } from 'lucide-react';
+import { Sparkles, Rocket, Info, Zap } from 'lucide-react';
 import ModelInfoModal from './ModelInfoModal';
 import { predictSeeing } from '../utils/aiService';
 import type { ForecastItem } from '../types/weather';
@@ -13,13 +13,25 @@ interface Props {
     aiSummary?: string | null;
 }
 
-const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSummary }) => {
+const WARP_MESSAGES = [
+    "Warping through atmospheric layers...",
+    "Bending spacetime for better seeing...",
+    "Scanning turbulence at light speed...",
+    "Charging flux capacitor...",
+    "Engaging hyperdrive analysis...",
+    "Quantum-tunneling through cloud data...",
+];
+
+const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) => {
+    const resolvedTz = (timezone && timezone !== 'UTC' && timezone !== 'GMT')
+        ? timezone
+        : Intl.DateTimeFormat().resolvedOptions().timeZone;
     const [prediction, setPrediction] = useState<{ probability: number; comment: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showInfo, setShowInfo] = useState(false);
+    const [loadingMsg, setLoadingMsg] = useState(WARP_MESSAGES[0]);
 
-    // Limit to next 24 hours
     const availableForecasts = forecastList.slice(0, 9);
     const selectedForecast = availableForecasts[selectedIndex] || availableForecasts[0];
 
@@ -28,6 +40,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSumma
 
         setLoading(true);
         setPrediction(null);
+        setLoadingMsg(WARP_MESSAGES[Math.floor(Math.random() * WARP_MESSAGES.length)]);
 
         setTimeout(() => {
             const result = predictSeeing({
@@ -41,7 +54,6 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSumma
             if (selectedForecast.usp) {
                 result.probability = selectedForecast.usp.score * 10;
 
-                // Active Logic based on multiple factors
                 if (selectedForecast.usp.score >= 8.0) {
                     result.comment = "Exceptional atmospheric stability. Perfect for high-resolution planetary imaging.";
                 } else if (selectedForecast.usp.score >= 6.5) {
@@ -58,7 +70,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSumma
                 const audio = new Audio('/magic-chime.mp3');
                 audio.volume = 0.4;
                 audio.play().catch(() => { });
-            } catch (e) { }
+            } catch { }
         }, 1200);
     };
 
@@ -70,7 +82,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSumma
     const formatTargetTime = (dateStr: string) => {
         const date = new Date(dateStr);
         return date.toLocaleTimeString('en-US', {
-            timeZone: timezone,
+            timeZone: resolvedTz,
             hour: 'numeric',
             minute: '2-digit',
             hour12: true
@@ -90,58 +102,75 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSumma
     if (!selectedForecast) return null;
 
     return (
-        <div className="w-full bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900 p-6 rounded-3xl mt-6 shadow-2xl border border-purple-400/50 transition-all duration-300 relative overflow-hidden group">
-            {/* Background Decor */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+        <div className="glass-card w-full p-6 sm:p-8 mt-6 animate-fade-in-up delay-3 relative overflow-hidden" style={{ animationFillMode: 'backwards' }}>
+            {/* Warp glow effects */}
+            <div className="absolute top-0 right-0 w-48 h-48 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none opacity-30"
+                style={{ background: 'radial-gradient(circle, var(--warp-purple), transparent)' }} />
+            <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none opacity-20"
+                style={{ background: 'radial-gradient(circle, var(--warp-pink), transparent)' }} />
 
-            {/* AI Summary Header (Global Insight) */}
+            {/* Speed lines decoration */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {[...Array(3)].map((_, i) => (
+                    <div
+                        key={i}
+                        className="absolute h-[1px] opacity-0"
+                        style={{
+                            top: `${20 + i * 30}%`,
+                            left: 0,
+                            right: 0,
+                            background: `linear-gradient(90deg, transparent, var(--warp-purple), transparent)`,
+                            animation: `warpSpeedLines ${3 + i}s ease-in-out ${i * 2}s infinite`,
+                        }}
+                    />
+                ))}
+            </div>
+
+            {/* AI Summary */}
             {aiSummary && (
-                <div className="mb-6 animate-fade-in">
-                    <div className="bg-black/30 backdrop-blur-md p-4 rounded-2xl border border-cyan-500/30 flex gap-4 items-start">
-                        <div className="bg-cyan-500/20 p-2 rounded-xl border border-cyan-400/30 shrink-0">
-                            <Sparkles className="w-5 h-5 text-cyan-300 animate-pulse" />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest mb-1">Ensemble AI Insight</span>
-                            <p className="text-sm text-gray-200 indent-0 italic leading-relaxed">
-                                "{aiSummary}"
+                <div className="mb-6 relative z-10">
+                    <div className="glass-card-inner p-5 flex gap-3 items-start border-l-2 border-[var(--warp-purple)]">
+                        <Zap className="w-5 h-5 text-[var(--warp-purple)] shrink-0 mt-0.5" />
+                        <div>
+                            <span className="text-sm font-data uppercase tracking-[0.15em] text-[var(--warp-purple)] block mb-1.5 font-bold">Warp Insight</span>
+                            <p className="text-[15px] text-[var(--text-secondary)] leading-relaxed">
+                                {aiSummary}
                             </p>
                         </div>
                     </div>
                 </div>
             )}
 
-            <div className="flex flex-col items-center justify-center mb-8 relative z-10">
-                <div className="flex items-center gap-3 mb-3">
-                    <button
-                        onClick={() => setShowInfo(true)}
-                        className="flex items-center gap-4 hover:scale-105 transition-all cursor-help group/title py-2 px-4 rounded-2xl hover:bg-white/5"
-                        title="Click for Model Explanation"
-                    >
-                        <div className="bg-white/10 p-3 rounded-full backdrop-blur-md shadow-inner border border-white/20 group-hover/title:border-cyan-400/50 transition-colors shrink-0">
-                            <Bot className="w-10 h-10 text-cyan-300 drop-shadow-[0_0_10px_rgba(103,232,249,0.5)]" />
+            {/* Header */}
+            <div className="flex flex-col items-center mb-6 relative z-10">
+                <button
+                    onClick={() => setShowInfo(true)}
+                    className="flex items-center gap-3 mb-3 group px-5 py-2.5 rounded-2xl hover:bg-[var(--bg-surface)] transition-colors"
+                    title="Model details"
+                >
+                    <div className="p-2.5 rounded-xl border border-[var(--glass-border)] group-hover:border-[var(--warp-purple)] transition-all animate-warp-pulse"
+                        style={{ background: 'color-mix(in srgb, var(--warp-purple) 12%, transparent)' }}>
+                        <Rocket className="w-6 h-6 text-[var(--warp-purple)]" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                        <div className="flex items-center gap-1.5">
+                            <h3 className="text-xl font-bold text-gradient-warp">
+                                WARP AI
+                            </h3>
+                            <Info className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--warp-purple)] transition-colors" />
                         </div>
-                        <div className="flex flex-col items-start min-w-0">
-                            <div className="flex items-center gap-2 overflow-visible">
-                                <h3 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-300 italic animate-warp-glow leading-tight pb-1 pr-4">
-                                    Warp AI
-                                </h3>
-                                <Info className="w-5 h-5 text-purple-300/50 group-hover/title:text-cyan-300 transition-colors shrink-0" />
-                            </div>
-                            <div className="flex items-center gap-1.5 -mt-1 ml-1 px-2 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded-md">
-                                <span className="text-[10px] text-cyan-300 font-black uppercase tracking-widest whitespace-nowrap">USP Ensemble v2.0</span>
-                                <div className="w-1 h-1 bg-cyan-400 rounded-full animate-pulse"></div>
-                            </div>
-                        </div>
-                    </button>
-                </div>
+                        <span className="text-xs font-data text-[var(--text-tertiary)] uppercase tracking-[0.15em]">
+                            Ensemble v2.0
+                        </span>
+                    </div>
+                </button>
 
                 <div className="flex flex-col items-center gap-2">
-                    <LiveClock timezone={timezone} />
+                    <LiveClock timezone={resolvedTz} />
                     {selectedForecast.usp && (
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-purple-300/70 uppercase tracking-tighter">
-                            <span>Relay Confidence:</span>
-                            <span className={selectedForecast.usp.confidence > 80 ? 'text-green-400' : 'text-yellow-400'}>
+                        <div className="flex items-center gap-1.5 text-xs font-data text-[var(--text-tertiary)]">
+                            <span>Confidence:</span>
+                            <span className="font-bold" style={{ color: selectedForecast.usp.confidence > 80 ? 'var(--seeing-exceptional)' : 'var(--seeing-fair)' }}>
                                 {selectedForecast.usp.confidence}%
                             </span>
                         </div>
@@ -149,7 +178,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSumma
                 </div>
             </div>
 
-            {/* Extracted Slider Component */}
+            {/* Time Slider */}
             <TimeSlider
                 selectedIndex={selectedIndex}
                 maxIndex={availableForecasts.length - 1}
@@ -158,33 +187,59 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone = 'UTC', aiSumma
                 targetTimeLabel={targetTimeLabel}
             />
 
-            {/* Action Area */}
+            {/* Warp Scan Button */}
             {!prediction && !loading && (
-                <div className="text-center py-2 animate-fade-in group/btn">
+                <div className="text-center py-3 animate-fade-in relative z-10">
                     <button
                         onClick={handlePredict}
-                        className="bg-white text-purple-900 hover:bg-cyan-50 hover:scale-105 active:scale-95 px-8 py-3 rounded-full font-bold flex items-center gap-2 mx-auto transition-all shadow-lg shadow-purple-900/50 border-b-4 border-purple-200"
+                        className="relative text-white px-8 py-3.5 rounded-full font-semibold text-sm flex items-center gap-2.5 mx-auto transition-all hover:scale-105 active:scale-95 overflow-hidden group"
+                        style={{
+                            background: 'linear-gradient(135deg, var(--warp-purple), var(--accent-dim), var(--warp-pink))',
+                            boxShadow: '0 4px 24px var(--warp-glow), 0 0 0 1px rgba(167, 139, 250, 0.2)',
+                        }}
                     >
-                        <Sparkles className="w-5 h-5 text-purple-600 group-hover/btn:animate-spin" />
-                        Active Scan
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ background: 'linear-gradient(135deg, var(--warp-pink), var(--accent-dim), var(--warp-purple))' }} />
+                        <Rocket className="w-5 h-5 relative z-10" />
+                        <span className="relative z-10">Warp Scan</span>
+                        <Sparkles className="w-4 h-4 relative z-10 opacity-70" />
                     </button>
-                    <p className="text-[10px] text-center text-purple-300 mt-3 opacity-70 font-mono tracking-widest">
-                        INTEGRATING GFS / ECMWF / 7TIMER DATASTREAM
+                    <p className="text-xs text-[var(--text-tertiary)] mt-3 font-data uppercase tracking-[0.12em]">
+                        GFS / ECMWF / 7Timer Ensemble
                     </p>
                 </div>
             )}
 
-            {/* Extracted Card Component */}
-            <PredictionCard
-                prediction={prediction}
-                loading={loading}
-                onClose={() => setPrediction(null)}
-                details={predictionDetails}
-                hasPrev={selectedIndex > 0}
-                hasNext={selectedIndex < availableForecasts.length - 1}
-            />
+            {/* Loading State */}
+            {loading && (
+                <div className="text-center py-8 relative z-10">
+                    <div className="relative w-16 h-16 mx-auto mb-4">
+                        <div className="absolute inset-0 rounded-full border-2 border-[var(--warp-purple)]/30 animate-spin"
+                            style={{ animationDuration: '3s' }} />
+                        <div className="absolute inset-1 rounded-full border-2 border-transparent border-t-[var(--warp-pink)] animate-spin"
+                            style={{ animationDuration: '1.5s', animationDirection: 'reverse' }} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Rocket className="w-6 h-6 text-[var(--warp-purple)] animate-pulse" />
+                        </div>
+                    </div>
+                    <p className="text-sm text-[var(--warp-purple)] font-data animate-pulse font-medium">
+                        {loadingMsg}
+                    </p>
+                </div>
+            )}
 
-            {/* Model Info Modal */}
+            {/* Prediction Result */}
+            {!loading && (
+                <PredictionCard
+                    prediction={prediction}
+                    loading={false}
+                    onClose={() => setPrediction(null)}
+                    details={predictionDetails}
+                    hasPrev={selectedIndex > 0}
+                    hasNext={selectedIndex < availableForecasts.length - 1}
+                />
+            )}
+
             <ModelInfoModal
                 isOpen={showInfo}
                 onClose={() => setShowInfo(false)}

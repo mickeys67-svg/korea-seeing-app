@@ -19,9 +19,11 @@ export const formatDate = (dateStr: string, index: number) => {
     return `${label} (${mm}/${dd})`;
 };
 
-export const formatTime = (timeStr: string | null) => {
+export const formatTime = (timeStr: string | null, timezone?: string) => {
     if (!timeStr) return '--:--';
-    return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    const opts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+    if (timezone) opts.timeZone = timezone;
+    return new Date(timeStr).toLocaleTimeString([], opts);
 };
 
 export const calculateDuration = (hrs: number) => {

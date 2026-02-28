@@ -15,21 +15,22 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
             return res.status(400).json({ error: 'Latitude must be between -90 and 90, Longitude between -180 and 180' });
         }
 
-        // 1. Get Aggregated Weather Data
-        console.log('Fetching aggregated forecast for', lat, lon);
-        const { forecast, meta } = await WeatherService.getAggregatedForecast(lat, lon);
-        let processedSeeing = forecast;
-
-        // 2. Determine and Apply AI Translation
-        // Heuristic: If in Korea (lat: 33-39, lon: 124-132) or explicitly requested
+        // 1. Determine language BEFORE fetching data (needed by analysisService)
         let targetLang = req.query.lang || 'en';
         if (!req.query.lang && (lat >= 33 && lat <= 39) && (lon >= 124 && lon <= 132)) {
             targetLang = 'ko';
+        } else if (!req.query.lang && (lat >= 24 && lat <= 46) && (lon >= 127 && lon <= 146) && targetLang === 'en') {
+            targetLang = 'ja';
         }
 
+        // 2. Get Aggregated Weather Data (pass targetLang for aiSummary language)
+        console.log('Fetching aggregated forecast for', lat, lon, 'lang:', targetLang);
+        const { forecast, aiSummary, meta } = await WeatherService.getAggregatedForecast(lat, lon, targetLang);
+        let processedSeeing = forecast;
+
+        // 3. Apply Translation to forecast recommendations
         if (targetLang !== 'en' && processedSeeing && processedSeeing.length > 0) {
-            console.log(`[Translation] Applying AI translation to ${targetLang}...`);
-            processedSeeing = await TranslationService.translateForecastBatch(processedSeeing, targetLang);
+            processedSeeing = TranslationService.translateForecastBatch(processedSeeing, targetLang);
         }
 
         // 3. Astronomy Data (Moon & Sun for 3 days)
@@ -44,6 +45,7 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
                 timezoneOffset: meta ? meta.timezoneOffset : 0
             },
             forecast: processedSeeing || [],
+            aiSummary: aiSummary || null,
             astronomy: astronomy
         });
 

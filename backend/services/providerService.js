@@ -4,7 +4,7 @@ const ProviderService = {
     // 1. 7Timer! (Astro) - Naturally covers ~8 days
     async fetch7Timer(lat, lon) {
         try {
-            const url = `http://www.7timer.info/bin/api.pl?lon=${lon}&lat=${lat}&product=astro&output=json`;
+            const url = `https://www.7timer.info/bin/api.pl?lon=${lon}&lat=${lat}&product=astro&output=json`;
             const response = await axios.get(url, { timeout: 10000 });
             return response.data;
         } catch (error) {
@@ -42,7 +42,7 @@ const ProviderService = {
             const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
             const response = await axios.get(url, {
                 headers: {
-                    'User-Agent': 'KoreaSkySeeing/1.0 (mickey@example.com)'
+                    'User-Agent': `ClearSky-App/2.0 (${process.env.CONTACT_EMAIL || 'support@clearsky.kr'})`
                 },
                 timeout: 5000
             });
