@@ -69,10 +69,10 @@ const WeatherService = {
             const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
             if (omIdx !== null) {
                 const h = omData.hourly;
-                if (h.temperature_2m[omIdx] != null) values.temps.push(h.temperature_2m[omIdx]);
-                if (h.relative_humidity_2m[omIdx] != null) values.humidities.push(h.relative_humidity_2m[omIdx]);
-                if (h.cloud_cover[omIdx] != null) values.clouds.push(ScoringService.normalizeCloud(h.cloud_cover[omIdx]));
-                if (h.wind_speed_10m[omIdx] != null) values.winds.push(h.wind_speed_10m[omIdx] / 3.6);
+                if (h.temperature_2m && h.temperature_2m[omIdx] != null) values.temps.push(h.temperature_2m[omIdx]);
+                if (h.relative_humidity_2m && h.relative_humidity_2m[omIdx] != null) values.humidities.push(h.relative_humidity_2m[omIdx]);
+                if (h.cloud_cover && h.cloud_cover[omIdx] != null) values.clouds.push(ScoringService.normalizeCloud(h.cloud_cover[omIdx]));
+                if (h.wind_speed_10m && h.wind_speed_10m[omIdx] != null) values.winds.push(h.wind_speed_10m[omIdx] / 3.6);
                 if (h.wind_speed_250hPa && h.wind_speed_250hPa[omIdx] != null) values.jetStreams.push(h.wind_speed_250hPa[omIdx] / 3.6);
                 if (h.cape && h.cape[omIdx] != null) values.capes.push(h.cape[omIdx]);
             }
