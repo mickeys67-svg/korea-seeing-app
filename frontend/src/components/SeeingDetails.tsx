@@ -186,62 +186,62 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                 {/* Divider */}
                 <div className="w-full h-px bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent mb-6" />
 
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+                {/* Metrics Grid — 2col mobile, 3col desktop */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4 mb-6">
                     {metrics.map((metric, idx) => {
                         const color = getComponentColor(metric.value);
                         return (
                             <button
                                 key={idx}
                                 onClick={() => setSelectedMetric(metric.modal)}
-                                className="glass-card-inner p-4 sm:p-5 flex flex-col items-center gap-2.5 cursor-pointer group active:scale-95 transition-transform"
+                                className="glass-card-inner p-3 sm:p-5 flex flex-col items-center gap-2 sm:gap-2.5 cursor-pointer group active:scale-95 transition-transform min-w-0"
                             >
                                 <div
-                                    className="p-2 rounded-lg transition-colors"
+                                    className="p-1.5 sm:p-2 rounded-lg transition-colors"
                                     style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
                                 >
                                     {metric.icon}
                                 </div>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl font-data font-bold" style={{ color }}>
+                                    <span className="text-xl sm:text-2xl font-data font-bold" style={{ color }}>
                                         {metric.value}
                                     </span>
                                     <span className="text-xs font-data text-[var(--text-tertiary)]">/8</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold">
+                                <div className="flex items-center gap-1 min-w-0">
+                                    <span className="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold truncate">
                                         {metric.label}
                                     </span>
-                                    <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                                 </div>
                             </button>
                         );
                     })}
                 </div>
 
-                {/* Environment Bar */}
-                <div className="flex items-center justify-around glass-card-inner p-4 rounded-xl">
-                    <div className="flex items-center gap-2.5">
-                        <Droplets className="w-4 h-4 text-blue-400/80" />
+                {/* Environment Bar — responsive spacing */}
+                <div className="flex items-center justify-around glass-card-inner p-3 sm:p-4 rounded-xl">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5">
+                        <Droplets className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-blue-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Humidity</span>
-                            <span className="font-data text-base font-semibold text-blue-300">{data.rh2m}%</span>
+                            <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Humidity</span>
+                            <span className="font-data text-sm sm:text-base font-semibold text-blue-300">{data.rh2m}%</span>
                         </div>
                     </div>
-                    <div className="w-px h-10 bg-[var(--glass-border)]" />
-                    <div className="flex items-center gap-2.5">
-                        <ThermometerSun className="w-4 h-4 text-amber-400/80" />
+                    <div className="w-px h-8 sm:h-10 bg-[var(--glass-border)]" />
+                    <div className="flex items-center gap-1.5 sm:gap-2.5">
+                        <ThermometerSun className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-amber-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Temp</span>
-                            <span className="font-data text-base font-semibold text-amber-300">{data.temp2m}°C</span>
+                            <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Temp</span>
+                            <span className="font-data text-sm sm:text-base font-semibold text-amber-300">{data.temp2m}°C</span>
                         </div>
                     </div>
-                    <div className="w-px h-10 bg-[var(--glass-border)]" />
-                    <div className="flex items-center gap-2.5">
-                        <Wind className="w-4 h-4 text-cyan-400/80" />
+                    <div className="w-px h-8 sm:h-10 bg-[var(--glass-border)]" />
+                    <div className="flex items-center gap-1.5 sm:gap-2.5">
+                        <Wind className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Wind</span>
-                            <span className="font-data text-base font-semibold text-cyan-300">{data.wind10m.speed}<span className="text-[11px] text-[var(--text-tertiary)]"> m/s</span></span>
+                            <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Wind</span>
+                            <span className="font-data text-sm sm:text-base font-semibold text-cyan-300">{data.wind10m.speed}<span className="text-[10px] sm:text-[11px] text-[var(--text-tertiary)]"> m/s</span></span>
                         </div>
                     </div>
                 </div>

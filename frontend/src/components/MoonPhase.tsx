@@ -61,27 +61,29 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone }) => {
 
                         <div className="space-y-2 mb-4">
                             {data.map((day, idx) => (
-                                <div key={idx} className="glass-card-inner p-3.5 flex items-center justify-between">
-                                    <span className="text-sm font-medium text-[var(--accent)]">{formatDate(day.date, idx)}</span>
-                                    <div className="text-sm text-[var(--text-secondary)] font-data">
-                                        {(() => {
-                                            const isNextDay = (timeStr: string | null, baseDateStr: string) => {
-                                                if (!timeStr) return false;
-                                                const eventDate = new Date(timeStr);
-                                                const baseDate = new Date(baseDateStr);
-                                                return eventDate.getDate() !== baseDate.getDate();
-                                            };
-                                            const moonData = day.moon;
-                                            if (moonData.alwaysUp) return <span className="text-amber-400">Always Up</span>;
-                                            if (moonData.alwaysDown) return <span className="text-[var(--text-tertiary)]">Always Down</span>;
-                                            return (
-                                                <span className="flex items-center gap-3">
-                                                    <span>Rise <strong className="text-[var(--text-primary)]">{formatTime(day.moon.rise, timezone)}</strong>{isNextDay(day.moon.rise, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
-                                                    <span className="text-[var(--glass-border)]">|</span>
-                                                    <span>Set <strong className="text-[var(--text-primary)]">{formatTime(day.moon.set, timezone)}</strong>{isNextDay(day.moon.set, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
-                                                </span>
-                                            );
-                                        })()}
+                                <div key={idx} className="glass-card-inner p-3 sm:p-3.5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3">
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx)}</span>
+                                        <div className="text-xs sm:text-sm text-[var(--text-secondary)] font-data">
+                                            {(() => {
+                                                const isNextDay = (timeStr: string | null, baseDateStr: string) => {
+                                                    if (!timeStr) return false;
+                                                    const eventDate = new Date(timeStr);
+                                                    const baseDate = new Date(baseDateStr);
+                                                    return eventDate.getDate() !== baseDate.getDate();
+                                                };
+                                                const moonData = day.moon;
+                                                if (moonData.alwaysUp) return <span className="text-amber-400">Always Up</span>;
+                                                if (moonData.alwaysDown) return <span className="text-[var(--text-tertiary)]">Always Down</span>;
+                                                return (
+                                                    <span className="flex items-center gap-2 sm:gap-3">
+                                                        <span>Rise <strong className="text-[var(--text-primary)]">{formatTime(day.moon.rise, timezone)}</strong>{isNextDay(day.moon.rise, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
+                                                        <span className="text-[var(--glass-border)]">|</span>
+                                                        <span>Set <strong className="text-[var(--text-primary)]">{formatTime(day.moon.set, timezone)}</strong>{isNextDay(day.moon.set, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
+                                                    </span>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -116,10 +118,10 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone }) => {
 
                         <div className="space-y-2 mb-4">
                             {data.map((day, idx) => (
-                                <div key={idx} className="glass-card-inner p-3.5">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm font-medium text-[var(--accent)]">{formatDate(day.date, idx)}</span>
-                                        <div className="text-sm text-[var(--text-secondary)] font-data flex items-center gap-3">
+                                <div key={idx} className="glass-card-inner p-3 sm:p-3.5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-1">
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx)}</span>
+                                        <div className="text-xs sm:text-sm text-[var(--text-secondary)] font-data flex items-center gap-2 sm:gap-3">
                                             <span>Rise <strong className="text-[var(--text-primary)]">{formatTime(day.sun.sunrise, timezone)}</strong></span>
                                             <span className="text-[var(--glass-border)]">|</span>
                                             <span>Set <strong className="text-[var(--text-primary)]">{formatTime(day.sun.sunset, timezone)}</strong></span>
