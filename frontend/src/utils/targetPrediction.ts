@@ -1,7 +1,7 @@
 import type { ForecastItem } from '../types/weather';
 
 export type TargetId = 'planet' | 'milkyway' | 'nebula' | 'cluster' | 'galaxy';
-export type TargetGrade = 'S' | 'A' | 'B' | 'C' | 'F';
+export type TargetGrade = 'S' | 'A' | 'B' | 'C' | 'D';
 export type LimitingFactor =
     | 'seeing' | 'transparency' | 'cloudCover'
     | 'wind' | 'jetStream' | 'convection' | 'moon';
@@ -289,7 +289,7 @@ function getGrade(score: number): TargetGrade {
     if (score >= 70) return 'A';
     if (score >= 55) return 'B';
     if (score >= 40) return 'C';
-    return 'F';
+    return 'D';
 }
 
 /**
@@ -345,7 +345,15 @@ export function predictTargets(forecast: ForecastItem, moonFraction: number): Ta
         const moonMult = getMoonMultiplier(moonFraction, model.moonSensitivity);
 
         // ── Step 4: Final score (atmospheric × moon gate) ────────────────────
-        const score = Math.min(100, Math.max(0, Math.round(atmosphericScore * moonMult * 100)));
+        let score = Math.min(100, Math.max(0, Math.round(atmosphericScore * moonMult * 100)));
+
+        // ── Step 4.5: Cloud gate — 구름이 하늘을 가리면 점수 상한 제한 ───────
+        const cloudVal = (scores as Record<string, number>).cloudCover ?? 0;
+        if (cloudVal >= 7) {
+            score = Math.min(score, 5);
+        } else if (cloudVal >= 5) {
+            score = Math.round(score * 0.3);
+        }
 
         // ── Step 5: Primary limiting factor ──────────────────────────────────
         // Metric: (1 – quality) × weight  =  weighted quality loss per factor
