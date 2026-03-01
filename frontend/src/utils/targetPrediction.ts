@@ -43,12 +43,30 @@ interface TargetModel {
  * ─────────────────────────────────────────────────────────────────────
  *  Five physics-calibrated target models.
  *
+ *  Data source scales (from backend scoringService.js):
+ *   • seeing / transparency: 0-8 continuous (0 = perfect)
+ *   • cloudCover: 0-8 linear (0 % → 0, 100 % → 8)
+ *   • wind: 0-8 based on surface wind speed
+ *   • jetStream: DISCRETE {0,2,4,6,8} based on 250 hPa wind speed
+ *       0 = <50 kt (<25.7 m/s)   excellent planetary seeing
+ *       2 = 50-80 kt             borderline for high magnification
+ *       4 = 80-120 kt            poor planetary, routine for DSO
+ *       6 = 120-150 kt           very poor
+ *       8 = >150 kt              extreme (rare)
+ *   • convection: DISCRETE {0,2,4,6,8} from CAPE (J/kg) + time factor
+ *       0 = CAPE <100            excellent stability
+ *       2 = 100-500 J/kg         mild (×0.7 at night → often stays low)
+ *       4 = 500-1000 J/kg        moderate evening convection
+ *       6 = 1000-2000 J/kg       strong (thunderstorm risk)
+ *       8 = >2000 J/kg           severe
+ *
  *  Calibrated against:
- *   • Sky & Telescope observing conditions guides
- *   • Astronomical League / IDA dark-sky standards
+ *   • Sky & Telescope observing conditions and planetary imaging guides
+ *   • Astronomical League / IDA dark-sky standards (Bortle scale)
  *   • Cloudy Nights forum (planetary imaging expert consensus)
- *   • Damian Peach / Christopher Go planetary seeing requirements
+ *   • Damian Peach / Christopher Go planetary jet-stream sensitivity studies
  *   • IDA Milky Way photography and dark-sky measurement standards
+ *   • Optolong, IDAS, Antlia narrowband filter specs (nebula moon tolerance)
  * ─────────────────────────────────────────────────────────────────────
  */
 const TARGETS: TargetModel[] = [
@@ -103,24 +121,32 @@ const TARGETS: TargetModel[] = [
     {
         // ── 💫 NEBULAE ───────────────────────────────────────────────────
         // Emission / reflection / planetary nebulae mix.
-        // Typical imaging: 500-1500mm focal length, moderate exposure stacking.
-        // Seeing: matters more than wide-field (affects resolution of fine structure).
-        // Transparency: dark sky critical for low surface-brightness features.
-        // Moon: emission nebulae can tolerate with narrowband filters, but reflections
-        //   and visual observation suffer significantly. moonSensitivity 0.75.
+        // Typical imaging: 500-1500mm focal length, moderate exposure stacking (5-20 min/frame).
+        // Seeing: matters at these focal lengths — fine nebula filaments (e.g., Veil, Crab)
+        //   require steady air to resolve at 1000mm+ FL.
+        // Transparency: critical for reflection nebulae and faint emission wings.
+        //
+        // Jet stream: HIGHER weight than wide-field targets.
+        //   At 500-1500mm, jet stream turbulence at 250 hPa (< 80 kt = score 2) can
+        //   cause measurable blur during 10-min sub-exposures. This is fundamentally
+        //   different from Milky Way imaging at 24mm where jet stream is irrelevant.
+        //
+        // Moon sensitivity calibrated for ~70% broadband / 30% dual-narrowband users:
+        //   Broadband (DSLR/color OSC): moonSens ≈ 0.85  (full moon → 15% quality)
+        //   Dual-narrowband (Optolong L-eNhance, IDAS NBZT, Antlia ALP-T): moonSens ≈ 0.10
+        //   Weighted average: 0.70×0.85 + 0.30×0.15 = 0.64 → rounded to 0.70
+        //   (Narrowband passes only Hα+OIII/SII; moonlight is ~continuum → mostly blocked)
         id: 'nebula',
         emoji: '💫',
-        moonSensitivity: 0.75,  // full moon → 25% remaining (grade F); half moon → 62.5%
-        weights:     { seeing: 0.20, transparency: 0.32, cloudCover: 0.30, wind: 0.08, jetStream: 0.07, convection: 0.03 },
+        moonSensitivity: 0.70,  // full moon → 30% remaining; half moon → 65%
+        weights:     { seeing: 0.20, transparency: 0.32, cloudCover: 0.28, wind: 0.08, jetStream: 0.09, convection: 0.03 },
         sensitivity: { seeing: 0.30, transparency: 0.50, cloudCover: 0.55, wind: 0.20, jetStream: 0.25, convection: 0.20 },
-        //            sum = 0.20+0.32+0.30+0.08+0.07+0.03 = 1.00 ✓
+        //            sum = 0.20+0.32+0.28+0.08+0.09+0.03 = 1.00 ✓
         //
-        //  Changes from v1:
-        //   seeing        0.15→0.20  (500-1500mm FL: seeing affects resolution)
-        //   transparency  0.30→0.32  (dark sky critical for faint features)
-        //   cloudCover    0.35→0.30  (reduced to accommodate seeing/transparency gains)
-        //   wind          0.10→0.08  (moderate focal length, less wind sensitivity)
-        //   moonSens      0.70→0.75  (reflection nebulae and visual more moon-sensitive)
+        //  Changes from v2:
+        //   moonSens      0.75→0.70  (narrowband filter adoption; 30% users can image in moonlight)
+        //   jetStream     0.07→0.09  (longer FL vs MW: upper atmosphere affects resolution)
+        //   cloudCover    0.30→0.28  (reduced to accommodate jetStream increase)
     },
     {
         // ── ✨ STAR CLUSTERS ──────────────────────────────────────────────
