@@ -1,0 +1,88 @@
+import type { Translations } from './en';
+
+const zh: Translations = {
+    common: {
+        live: '实时',
+        loading: '数据获取中',
+        gpsLocation: 'GPS当前位置',
+        defaultCity: '首尔，韩国',
+        humidity: '湿度',
+        temp: '气温',
+        wind: '风速',
+        confidence: '置信度',
+    },
+    gpsBanner: {
+        title: '无法获取位置',
+        message: '— 正在显示首尔默认数据。选择位置以获取准确的本地预报。',
+    },
+    seeingDetails: {
+        title: '观测质量',
+        grades: { S: '极佳', A: '优秀', B: '良好', C: '一般', D: '较差' },
+        metrics: {
+            SEEING: '视宁度',
+            TRANSPARENCY: '透明度',
+            CLOUD: '云量',
+            WIND: '风',
+            JET_STREAM: '急流',
+            CONVECTION: '大气对流',
+        },
+        modalTitles: {
+            seeing: '天文视宁度',
+            transparency: '天空透明度',
+            cloud: '云量',
+            wind: '地面风速',
+            jetStream: '急流 (250hPa)',
+            convection: '大气对流',
+        },
+        modalDescs: {
+            seeing: '大气湍流测量值。越低大气越稳定，图像越清晰。0（完美）～ 8（严重湍流）。',
+            transparency: '深空天体观测的大气透明度。越低天空越晴朗，对比度越高。0（晴朗）～ 8（浑浊）。',
+            cloud: '云层遮蔽程度。越低观测窗口越多。0（无云）～ 8（全阴）。',
+            wind: '影响望远镜稳定性的地面风速。越低越平静。0（无风）～ 8（强风）。',
+            jetStream: '引起高空大气湍流的高空气流。越低高空畸变越小。测量高度约10km。',
+            convection: '垂直大气不稳定度（CAPE）。越低大气越稳定，热畸变越小。',
+        },
+    },
+    forecastList: {
+        title: '预报时间线',
+        subtitle: '3小时间隔',
+        datapoints: '数据点',
+        live: '实时',
+        see: '视宁',
+    },
+    aiPrediction: {
+        warpInsight: '翘曲洞察',
+        ensembleVersion: '集成 v2.0',
+        warpScan: '翘曲扫描',
+        warpMessages: [
+            '正在翘曲穿越大气层...',
+            '为更好的视宁度弯曲时空...',
+            '以光速扫描湍流...',
+            '正在充能流量电容...',
+            '启动超驱动分析...',
+            '量子隧穿云层数据分析中...',
+        ],
+        uspComments: {
+            exceptional: '大气稳定度极佳，非常适合高分辨率行星成像。',
+            good: '检测到稳定气流，适合深空观测和大多数成像目标。',
+            poor: '检测到边界层湍流，建议使用低倍率广角观测。',
+        },
+    },
+    moonPhase: {
+        tabs: { moon: '月相', sun: '日出/日落', optimal: '最佳时间' },
+        illumination: '照明率',
+        rise: '升',
+        set: '落',
+        alwaysUp: '始终在地平线以上',
+        alwaysDown: '始终在地平线以下',
+        duration: '持续时间',
+        observationWindow: '观测窗口',
+        darkWindow: '黑暗时段',
+        noWindow: '今晚没有合适的黑暗时段',
+    },
+    footer: {
+        feedback: '反馈或错误报告请发送至',
+    },
+};
+
+export default zh;
