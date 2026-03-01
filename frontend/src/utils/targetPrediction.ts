@@ -379,6 +379,11 @@ export function predictTargets(forecast: ForecastItem, moonFraction: number): Ta
             }
         }
 
+        // ── Cloud override: 하늘 자체가 안 보이면 제한요인은 무조건 구름 ───
+        if (cloudVal >= 7) {
+            limitingFactor = 'cloudCover';
+        }
+
         return {
             id: model.id,
             emoji: model.emoji,
