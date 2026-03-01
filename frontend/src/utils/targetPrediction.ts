@@ -347,15 +347,26 @@ export function predictTargets(forecast: ForecastItem, moonFraction: number): Ta
         // ── Step 4: Final score (atmospheric × moon gate) ────────────────────
         let score = Math.min(100, Math.max(0, Math.round(atmosphericScore * moonMult * 100)));
 
-        // ── Step 4.5: Cloud gate — 구름이 하늘을 가리면 점수 상한 제한 ───────
+        // ── Step 4.5: Cloud gate — 하늘이 가리면 별이 안 보임 ────────────────
         const cloudVal = (scores as Record<string, number>).cloudCover ?? 0;
+
         if (cloudVal >= 7) {
-            score = Math.min(score, 5);
-        } else if (cloudVal >= 5) {
-            score = Math.round(score * 0.3);
+            // 구름 ≥7: 하늘 완전 차단 → 0점, 분석 무의미
+            return {
+                id: model.id,
+                emoji: model.emoji,
+                score: 0,
+                grade: 'D' as TargetGrade,
+                limitingFactor: 'cloudCover' as LimitingFactor,
+            };
         }
 
-        // ── Step 5: Primary limiting factor ──────────────────────────────────
+        if (cloudVal >= 5) {
+            // 구름 5-6: 간헐적 관측 → 감소된 점수, 제한요인 = 구름
+            score = Math.round(score * 0.5);
+        }
+
+        // ── Step 5: Primary limiting factor (하늘이 열렸을 때만) ────────────
         // Metric: (1 – quality) × weight  =  weighted quality loss per factor
         let limitingFactor: LimitingFactor = 'cloudCover';
         let maxDrop = 0;
@@ -379,8 +390,8 @@ export function predictTargets(forecast: ForecastItem, moonFraction: number): Ta
             }
         }
 
-        // ── Cloud override: 하늘 자체가 안 보이면 제한요인은 무조건 구름 ───
-        if (cloudVal >= 7) {
+        // 구름 5-6: 간헐적이므로 제한요인은 무조건 구름
+        if (cloudVal >= 5) {
             limitingFactor = 'cloudCover';
         }
 

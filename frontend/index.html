@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8" />
@@ -9,12 +9,12 @@
   <link rel="icon" type="image/jpeg" href="/logo.jpg" />
   <link rel="apple-touch-icon" href="/logo.jpg" />
 
-  <!-- Primary Meta -->
-  <title>Clear Skies ! | 천문관측 시잉 예보 · 대상별 관측 적합도</title>
+  <!-- Primary Meta (English-first for global SEO) -->
+  <title>Clear Skies ! | Astronomical Seeing Forecast · Target Suitability</title>
   <meta name="description"
-    content="천체사진가를 위한 정밀 시잉 예보 앱. 행성·은하수·성운·성단·은하 대상별 관측 적합도를 실시간으로 예측합니다. GPS 자동 위치 인식, 무료 사용." />
+    content="Free precision seeing forecast for astrophotographers. Real-time target suitability for planets, Milky Way, nebulae, clusters & galaxies. FWHM, jet stream, transparency & cloud analysis with GPS auto-location." />
   <meta name="keywords"
-    content="시잉예보, 천문관측, 천체사진, 별보기, 관측적합도, 은하수, 행성관측, 성운, 성단, 은하, 대기안정도, 제트기류, Bortle, FWHM, Pickering, Antoniadi, astrophotography, seeing forecast, clear sky, stargazing, Korea" />
+    content="seeing forecast, astronomical seeing, astrophotography, stargazing, clear sky, target suitability, planets, Milky Way, nebula, galaxy, cluster, atmospheric stability, jet stream, FWHM, Pickering, Antoniadi, Bortle, deep sky, telescope, observation quality, night sky, astronomy weather, 시잉예보, 천문관측, 천체사진" />
   <meta name="author" content="Forme Observatory" />
   <meta name="robots" content="index, follow" />
   <meta name="theme-color" content="#0a0a1a" />
@@ -22,24 +22,34 @@
   <!-- Canonical -->
   <link rel="canonical" href="https://www.clearsky.kr/" />
 
+  <!-- Hreflang: multi-language support -->
+  <link rel="alternate" hreflang="en" href="https://www.clearsky.kr/" />
+  <link rel="alternate" hreflang="ko" href="https://www.clearsky.kr/" />
+  <link rel="alternate" hreflang="ja" href="https://www.clearsky.kr/" />
+  <link rel="alternate" hreflang="zh" href="https://www.clearsky.kr/" />
+  <link rel="alternate" hreflang="x-default" href="https://www.clearsky.kr/" />
+
   <!-- Open Graph (Facebook / KakaoTalk / etc.) -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.clearsky.kr/" />
   <meta property="og:site_name" content="Clear Skies !" />
-  <meta property="og:locale" content="ko_KR" />
-  <meta property="og:title" content="Clear Skies ! | 천문관측 시잉 예보" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:locale:alternate" content="ko_KR" />
+  <meta property="og:locale:alternate" content="ja_JP" />
+  <meta property="og:locale:alternate" content="zh_CN" />
+  <meta property="og:title" content="Clear Skies ! | Astronomical Seeing Forecast" />
   <meta property="og:description"
-    content="행성·은하수·성운·성단·은하 — 대상별 관측 적합도를 실시간 예측. GPS 자동 위치 인식, 무료 사용." />
+    content="Free precision seeing forecast for astrophotographers. Real-time target suitability for planets, Milky Way, nebulae, clusters & galaxies." />
   <meta property="og:image" content="https://www.clearsky.kr/logo.jpg" />
   <meta property="og:image:width" content="1024" />
   <meta property="og:image:height" content="1024" />
-  <meta property="og:image:alt" content="Clear Skies 시잉 예보 앱" />
+  <meta property="og:image:alt" content="Clear Skies — Astronomical Seeing Forecast App" />
 
   <!-- Twitter / X Card -->
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Clear Skies ! | 천문관측 시잉 예보" />
+  <meta name="twitter:title" content="Clear Skies ! | Seeing Forecast for Astrophotographers" />
   <meta name="twitter:description"
-    content="행성·은하수·성운·성단·은하 대상별 관측 적합도 실시간 예측. GPS 자동 위치, 무료." />
+    content="Real-time seeing forecast & target suitability — planets, Milky Way, nebulae, clusters, galaxies. Free, GPS auto-location." />
   <meta name="twitter:image" content="https://www.clearsky.kr/logo.jpg" />
 
   <!-- JSON-LD Structured Data -->
@@ -49,27 +59,30 @@
     "@type": "WebApplication",
     "name": "Clear Skies !",
     "url": "https://www.clearsky.kr/",
-    "description": "천체사진가를 위한 정밀 시잉 예보 앱. 행성·은하수·성운·성단·은하 대상별 관측 적합도를 실시간으로 예측합니다.",
+    "description": "Free precision astronomical seeing forecast for astrophotographers and observers. Provides real-time target suitability scores for planets, Milky Way, nebulae, clusters, and galaxies using multi-source atmospheric data.",
     "applicationCategory": "UtilitiesApplication",
     "operatingSystem": "Web, iOS, Android",
-    "inLanguage": ["ko", "en", "ja", "zh"],
+    "inLanguage": ["en", "ko", "ja", "zh"],
     "isAccessibleForFree": true,
     "offers": {
       "@type": "Offer",
       "price": "0",
-      "priceCurrency": "KRW"
+      "priceCurrency": "USD"
     },
     "featureList": [
-      "실시간 천문 시잉 예보",
-      "대상별 관측 적합도 (행성·은하수·성운·성단·은하)",
-      "GPS 자동 위치 인식",
-      "낮/밤 자동 구분",
-      "Warp AI 대기 안정도 분석",
-      "제트기류·CAPE·투명도 데이터 통합"
+      "Real-time astronomical seeing forecast (FWHM-based)",
+      "Target suitability scoring for planets, Milky Way, nebulae, clusters, galaxies",
+      "GPS auto-location with timezone detection",
+      "Day/night auto-detection with astronomical twilight",
+      "Warp AI atmospheric stability analysis",
+      "Jet stream (250hPa), CAPE convection & sky transparency data",
+      "Moon phase forecast with optimal observation windows",
+      "Multi-source data: GFS, ECMWF, 7Timer, Open-Meteo, Met.no"
     ],
     "author": {
       "@type": "Organization",
       "name": "Forme Observatory",
+      "url": "https://www.clearsky.kr",
       "email": "mickeys67@gmail.com"
     }
   }

@@ -143,6 +143,22 @@ const en = {
             jetStream: 'Jet Stream',
             convection: 'Convection',
         },
+        descriptions: {
+            planet: 'Most sensitive to atmospheric stability (seeing & jet stream). Moonlight has little effect.',
+            milkyway: 'Requires the darkest skies (transparency). Extremely sensitive to moonlight.',
+            nebula: 'Needs both good seeing and transparency. Narrowband filters can reduce moonlight impact.',
+            cluster: 'Most forgiving target. Observable even under bright moonlight.',
+            galaxy: 'Lowest surface brightness — demands the darkest skies. Very sensitive to moonlight.',
+        },
+        factorDescs: {
+            seeing: 'Atmospheric turbulence is blurring the image.',
+            moon: 'Bright moonlight is washing out faint detail.',
+            transparency: 'Hazy atmosphere is reducing contrast.',
+            cloudCover: 'Clouds are blocking the sky.',
+            wind: 'Strong wind is causing telescope vibration.',
+            jetStream: 'Upper atmosphere turbulence from jet stream.',
+            convection: 'Thermal convection is distorting the air.',
+        },
     },
     footer: {
         feedback: 'Feedback or bugs? Send them to',

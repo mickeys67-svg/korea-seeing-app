@@ -145,6 +145,22 @@ const ko: Translations = {
             jetStream: '제트기류',
             convection: '대기대류',
         },
+        descriptions: {
+            planet: '대기 안정도(시잉·제트기류)에 가장 민감. 달빛 영향 적음.',
+            milkyway: '어두운 하늘(투명도)이 핵심. 달빛에 극도로 민감.',
+            nebula: '시잉과 투명도 모두 중요. NB 필터로 달빛 감소 가능.',
+            cluster: '가장 관대한 대상. 밝은 달에서도 관측 가능.',
+            galaxy: '표면 밝기가 가장 낮아 어두운 하늘 필수. 달빛에 매우 민감.',
+        },
+        factorDescs: {
+            seeing: '대기 난류로 상이 흔들리고 있습니다.',
+            moon: '밝은 달빛이 어두운 대상의 대비를 저하시킵니다.',
+            transparency: '대기가 혼탁하여 대비가 떨어집니다.',
+            cloudCover: '구름이 하늘을 가리고 있습니다.',
+            wind: '강풍으로 망원경이 흔들립니다.',
+            jetStream: '고층 제트기류로 상층 대기가 불안정합니다.',
+            convection: '열 대류로 대기가 왜곡되고 있습니다.',
+        },
     },
     footer: {
         feedback: '피드백이나 버그는 여기로',

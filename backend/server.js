@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 // Database Connection String
@@ -17,6 +19,22 @@ require('./models/WeatherData');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// Security headers
+app.use(helmet({
+    contentSecurityPolicy: false, // Allow inline styles/scripts for SPA
+    crossOriginEmbedderPolicy: false,
+}));
+
+// Rate limiting for API routes
+const apiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 30, // 30 requests per minute per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later.' },
+});
+app.use('/api/', apiLimiter);
 
 // Middleware
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -46,6 +64,16 @@ if (MONGODB_URI) {
             // Don't exit here, still serve static files if possible (or fail health check)
         });
 }
+
+// --- Health Check (for Cloud Run / Load Balancers) ---
+app.get('/health', (req, res) => {
+    const dbState = mongoose.connection.readyState; // 0=disconnected, 1=connected, 2=connecting
+    res.status(dbState === 1 || !MONGODB_URI ? 200 : 503).json({
+        status: dbState === 1 || !MONGODB_URI ? 'ok' : 'degraded',
+        uptime: Math.round(process.uptime()),
+        db: MONGODB_URI ? (dbState === 1 ? 'connected' : 'disconnected') : 'not configured',
+    });
+});
 
 // --- API Routes ---
 app.get('/api/weather', weatherController.getWeatherAndSeeing);

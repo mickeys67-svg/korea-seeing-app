@@ -5,27 +5,19 @@ interface TimeSliderProps {
     maxIndex: number;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     startLabel?: string;
-    targetTimeLabel: string;
-    midTimeLabel?: string;
-    endTimeLabel?: string;
+    endLabel?: string;
 }
 
 const TimeSlider: React.FC<TimeSliderProps> = ({
     selectedIndex,
     maxIndex,
     onChange,
-    startLabel = "Now",
-    targetTimeLabel,
-    midTimeLabel = '+12h',
-    endTimeLabel = '+24h'
+    startLabel = '',
+    endLabel = '',
 }) => {
     return (
-        <div className="mb-6 px-1">
-            <div className="flex justify-between text-xs font-data text-[var(--text-tertiary)] mb-2 uppercase tracking-wider font-medium">
-                <span>{startLabel}</span>
-                <span>{midTimeLabel}</span>
-                <span>{endTimeLabel}</span>
-            </div>
+        <div className="mb-5 px-1 relative z-10">
+            {/* Slider */}
             <input
                 type="range"
                 min="0"
@@ -34,9 +26,11 @@ const TimeSlider: React.FC<TimeSliderProps> = ({
                 onChange={onChange}
                 className="w-full"
             />
-            <div className="mt-2 text-center">
-                <span className="text-xs text-[var(--text-secondary)]">Target: </span>
-                <span className="text-sm font-data font-semibold text-[var(--accent)]">{targetTimeLabel}</span>
+
+            {/* Start / End labels */}
+            <div className="flex justify-between text-[11px] font-data text-[var(--text-tertiary)] mt-1.5 tracking-wider">
+                <span>{startLabel}</span>
+                <span>{endLabel}</span>
             </div>
         </div>
     );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { WeatherData } from '../types/weather';
 
 interface UseWeatherDataReturn {
@@ -11,9 +11,13 @@ const useWeatherData = (lat: number | null, lon: number | null): UseWeatherDataR
     const [data, setData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
+    const isMountedRef = useRef(true);
 
     useEffect(() => {
+        isMountedRef.current = true;
+
         if (lat === null || lon === null) {
+            // Coords not yet available — keep loading true but don't fetch
             return;
         }
 
@@ -29,21 +33,26 @@ const useWeatherData = (lat: number | null, lon: number | null): UseWeatherDataR
                     throw new Error('Failed to fetch weather data');
                 }
                 const result: WeatherData = await response.json();
-                setData(result);
+                if (isMountedRef.current) {
+                    setData(result);
+                    setLoading(false);
+                }
             } catch (err) {
                 if (err instanceof Error && err.name === 'AbortError') {
-                    // Do nothing for aborted requests
+                    // Request aborted — don't update state
                     return;
                 }
-                setError(err instanceof Error ? err.message : 'An error occurred');
-            } finally {
-                setLoading(false);
+                if (isMountedRef.current) {
+                    setError(err instanceof Error ? err.message : 'An error occurred');
+                    setLoading(false);
+                }
             }
         };
 
         fetchData();
 
         return () => {
+            isMountedRef.current = false;
             controller.abort();
         };
     }, [lat, lon]);

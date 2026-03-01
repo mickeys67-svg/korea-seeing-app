@@ -10,9 +10,10 @@ interface SeeingProps {
     moonFraction?: number;
     isDaytime?: boolean;
     sunsetTime?: string | null;
+    timezone?: string;
 }
 
-const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDaytime = false, sunsetTime }) => {
+const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDaytime = false, sunsetTime, timezone }) => {
     const t = useI18n();
     const [selectedMetric, setSelectedMetric] = React.useState<{ title: string; desc: string; ranges?: any[] } | null>(null);
     const scores = data.scores;
@@ -76,6 +77,11 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDayt
                 title: t.seeingDetails.modalTitles.cloud,
                 desc: t.seeingDetails.modalDescs.cloud,
                 ranges: [
+                    ...(data.cloudLayers ? [
+                        { label: t.seeingDetails.cloudLayers.low, value: data.cloudLayers.low != null ? `${data.cloudLayers.low}%` : '—' },
+                        { label: t.seeingDetails.cloudLayers.mid, value: data.cloudLayers.mid != null ? `${data.cloudLayers.mid}%` : '—' },
+                        { label: t.seeingDetails.cloudLayers.high, value: data.cloudLayers.high != null ? `${data.cloudLayers.high}%` : '—' },
+                    ] : []),
                     { label: "0", value: "~0%" },
                     { label: "8", value: "~100%" }
                 ]
@@ -119,9 +125,10 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDayt
         }
     ], [scores, t]);
 
-    // 일몰 시간 포맷 (로컬 타임존)
+    // 일몰 시간 포맷 (location timezone)
+    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const formatSunset = (iso: string) => {
-        return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        return new Date(iso).toLocaleTimeString([], { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
     };
 
     return (
@@ -183,11 +190,16 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDayt
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                             <span
                                 className="text-5xl lg:text-6xl font-data font-bold tracking-tight"
-                                style={{ color: scoreColor, textShadow: `0 0 30px ${scoreColor}50` }}
+                                style={{ color: scoreColor, textShadow: `0 0 30px ${scoreColor}50`, fontVariantNumeric: 'tabular-nums' }}
                             >
-                                {data.score}
+                                {Math.round(data.score)}
                             </span>
                             <span className="text-xs lg:text-sm font-data text-[var(--text-tertiary)] tracking-wider">/ 100</span>
+                            {data.usp?.seeing != null && (
+                                <span className="text-sm lg:text-base font-data text-cyan-400/80 mt-1 tracking-wide">
+                                    {data.usp.seeing.toFixed(1)}&#8243;
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -234,11 +246,18 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDayt
                                 >
                                     {metric.icon}
                                 </div>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-xl sm:text-2xl lg:text-3xl font-data font-bold" style={{ color }}>
-                                        {metric.value}
-                                    </span>
-                                    <span className="text-xs lg:text-sm font-data text-[var(--text-tertiary)]">/8</span>
+                                <div className="flex flex-col items-center">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-xl sm:text-2xl lg:text-3xl font-data font-bold" style={{ color }}>
+                                            {metric.value}
+                                        </span>
+                                        <span className="text-xs lg:text-sm font-data text-[var(--text-tertiary)]">/8</span>
+                                    </div>
+                                    {metric.key === 'seeing' && data.usp?.seeing != null && (
+                                        <span className="text-[10px] sm:text-xs font-data text-cyan-400/70 -mt-0.5">
+                                            {data.usp.seeing.toFixed(1)}&#8243;
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-1 min-w-0">
                                     <span className="text-[10px] sm:text-xs lg:text-sm text-[var(--text-secondary)] uppercase tracking-wider font-semibold truncate">

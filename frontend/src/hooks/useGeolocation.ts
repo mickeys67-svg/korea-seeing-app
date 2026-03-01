@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface LocationState {
     loaded: boolean;
@@ -24,6 +24,8 @@ const useGeolocation = () => {
             error: null,
         };
     });
+
+    const watchIdRef = useRef<number | null>(null);
 
     const onSuccess = (position: GeolocationPosition) => {
         setLocation(prev => ({
@@ -61,8 +63,12 @@ const useGeolocation = () => {
     useEffect(() => {
         if (!("geolocation" in navigator)) return;
 
-        // Initial fetch
-        navigator.geolocation.getCurrentPosition(onSuccess, onError);
+        // Initial fetch with timeout + high accuracy options
+        navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000, // 5 minutes cache
+        });
 
         const handleLocationChange = (e: Event) => {
             const customEvent = e as CustomEvent;
@@ -78,7 +84,14 @@ const useGeolocation = () => {
         };
 
         document.addEventListener('cls:location:changed', handleLocationChange);
-        return () => document.removeEventListener('cls:location:changed', handleLocationChange);
+
+        return () => {
+            document.removeEventListener('cls:location:changed', handleLocationChange);
+            // Cleanup watch if any
+            if (watchIdRef.current !== null) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+            }
+        };
     }, []);
 
     return { ...location, refresh };

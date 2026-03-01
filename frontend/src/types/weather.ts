@@ -37,6 +37,11 @@ export interface ForecastItem {
         cape: number;
         confidence?: number;
     };
+    cloudLayers?: {
+        low: number | null;
+        mid: number | null;
+        high: number | null;
+    };
 }
 
 export interface MoonData {

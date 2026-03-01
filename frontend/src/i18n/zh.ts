@@ -145,6 +145,22 @@ const zh: Translations = {
             jetStream: '急流',
             convection: '对流',
         },
+        descriptions: {
+            planet: '对大气稳定度（视宁度·急流）最敏感。月光影响较小。',
+            milkyway: '暗天空（透明度）是关键。对月光极度敏感。',
+            nebula: '视宁度和透明度同样重要。窄带滤镜可减少月光影响。',
+            cluster: '最宽容的目标。明亮月光下也可观测。',
+            galaxy: '表面亮度最低，需要最暗的天空。对月光非常敏感。',
+        },
+        factorDescs: {
+            seeing: '大气湍流导致图像抖动。',
+            moon: '明亮的月光降低了暗目标的对比度。',
+            transparency: '大气混浊导致对比度下降。',
+            cloudCover: '云层遮蔽了天空。',
+            wind: '强风导致望远镜振动。',
+            jetStream: '高层急流导致上层大气不稳定。',
+            convection: '热对流导致大气畸变。',
+        },
     },
     footer: {
         feedback: '反馈或错误报告请发送至',

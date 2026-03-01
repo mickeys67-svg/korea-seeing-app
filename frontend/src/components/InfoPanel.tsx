@@ -3,6 +3,7 @@ import {
     X, Sparkles, BookOpen, Star, Heart, ChevronRight,
     Zap, Target, Sun, Rocket, Globe, ExternalLink, Mail, Radio,
 } from 'lucide-react';
+import useI18n from '../hooks/useI18n';
 
 interface InfoPanelProps {
     isOpen: boolean;
@@ -86,11 +87,52 @@ const Starfield = React.memo(() => (
     </div>
 ));
 
+/* ───────── prose highlight config ───────── */
+
+// Colors for highlighted segments in each prose paragraph (odd indices)
+const proseHighlightStyles: Array<{ colors: string[]; inlineTag?: boolean }> = [
+    { colors: ['var(--text-bright)'] },                           // p0: "peace"
+    { colors: ['var(--cyan)', 'var(--text-bright)'] },            // p1: "quiet dream", "small journey"
+    { colors: ['var(--warp-purple)'], inlineTag: true },          // p2: "seeing" inline tag
+    { colors: ['var(--text-bright)', 'var(--text-bright)'] },     // p3: "ease hesitation", "trusted companion"
+    { colors: ['var(--accent)'] },                                // p4: "sincerity"
+    { colors: ['var(--cyan)'] },                                  // p5: "warm bridge"
+    { colors: ['var(--text-bright)'] },                           // p6: "most brilliant memory"
+];
+
+/** Render alternating normal/highlighted segments */
+const renderProse = (segments: string[], styleIdx: number) => {
+    const style = proseHighlightStyles[styleIdx] || { colors: [] };
+    return segments.map((seg, i) => {
+        if (i % 2 === 0) return <React.Fragment key={i}>{seg}</React.Fragment>;
+        const colorIdx = Math.floor(i / 2);
+        const color = style.colors[colorIdx] || 'var(--text-bright)';
+        if (style.inlineTag) {
+            return (
+                <span
+                    key={i}
+                    className="font-data text-xs px-1.5 py-0.5 rounded"
+                    style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}
+                >
+                    {seg}
+                </span>
+            );
+        }
+        return (
+            <span key={i} className="font-medium" style={{ color }}>
+                {seg}
+            </span>
+        );
+    });
+};
+
 /* ═══════════════════════════════════════════════════
    InfoPanel  ·  centered modal · 3 tabs
    ═══════════════════════════════════════════════════ */
 
 const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
+    const t = useI18n();
+    const ip = t.infoPanel;
     const [activeTab, setActiveTab] = useState<Tab>('about');
     const [visible, setVisible] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -99,6 +141,10 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
         if (isOpen) {
             requestAnimationFrame(() => setVisible(true));
             setActiveTab('about');
+            // Lock body scroll
+            const prevOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+            return () => { document.body.style.overflow = prevOverflow; };
         } else {
             setVisible(false);
         }
@@ -108,7 +154,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
         scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     }, [activeTab]);
 
-    // ESC to close
+    // ESC to close + focus trap
     useEffect(() => {
         if (!isOpen) return;
         const h = (e: KeyboardEvent) => {
@@ -120,112 +166,29 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
 
     if (!isOpen && !visible) return null;
 
-    /* ── data ── */
+    /* ── static data ── */
 
-    const updates = [
-        {
-            version: 'v3.2',
-            date: '2026.03.01',
-            tag: 'NEW',
-            tagColor: 'var(--seeing-exceptional)',
-            icon: Sun,
-            title: '낮/밤 자동 구분',
-            items: [
-                'GPS 기반 실제 일출·일몰 시각 적용',
-                '낮 시간대 예보 카드 자동 dimming',
-                'Warp AI 첫 선택 → 첫 번째 밤 슬롯',
-                '일몰 시각 관측 품질 카드 내 표시',
-            ],
-        },
-        {
-            version: 'v3.1',
-            date: '2026.03.01',
-            tag: 'FIX',
-            tagColor: 'var(--seeing-fair)',
-            icon: Rocket,
-            title: 'Warp AI 점수 정합',
-            items: [
-                '관측 품질 원형과 동일한 종합 점수 기준 통일',
-                '대기 안정도(USP)는 서브 지표로 별도 표시',
-                '구름·투명도 무시하던 구조적 불일치 해결',
-            ],
-        },
-        {
-            version: 'v3.0',
-            date: '2026.02.28',
-            tag: 'MAJOR',
-            tagColor: 'var(--warp-purple)',
-            icon: Target,
-            title: '대상별 관측 적합도 예측',
-            items: [
-                '행성 🪐 · 은하수 🌌 · 성운 ✨ · 성단 🔭 · 은하 🌀',
-                '0–100점 실시간 산출 + S/A/B/C/D 등급',
-                '제한 원인 표시 (시잉/제트기류/달빛 등)',
-                'ESO Paranal · Damian Peach 기준 v4.0 재보정',
-                '250hPa 제트기류 · CAPE 대류불안정 반영',
-            ],
-        },
+    const updatesMeta = [
+        { version: 'v3.2', date: '2026.03.01', tag: 'NEW', tagColor: 'var(--seeing-exceptional)', icon: Sun },
+        { version: 'v3.1', date: '2026.03.01', tag: 'FIX', tagColor: 'var(--seeing-fair)', icon: Rocket },
+        { version: 'v3.0', date: '2026.02.28', tag: 'MAJOR', tagColor: 'var(--warp-purple)', icon: Target },
     ];
 
-    const guides = [
-        {
-            icon: '🎯',
-            title: '관측 품질 원형',
-            desc: '현재 시간 기준 종합 대기 점수 (0–100). 시잉·구름·제트기류·투명도 등 6개 지표를 가중 평균으로 산출합니다.',
-            badge: '85+',
-            badgeLabel: 'S등급 = 최상',
-            color: 'var(--seeing-exceptional)',
-        },
-        {
-            icon: '🪐',
-            title: '대상별 적합도',
-            desc: '5가지 천체 대상별로 현재 대기 조건의 적합도를 독립 모델로 계산합니다. 각 대상의 광학적 특성에 맞는 가중치가 적용됩니다.',
-            badge: '점수',
-            badgeLabel: '낮을수록 제한 원인 표시',
-            color: 'var(--warp-purple)',
-        },
-        {
-            icon: '🚀',
-            title: 'Warp AI 스캔',
-            desc: '최대 24시간 타임슬라이더로 미래 시점을 선택하고 스캔하면 해당 시각의 관측 가능성을 분석합니다. 밤 슬롯(🔵)을 선택하세요.',
-            badge: 'GFS',
-            badgeLabel: '+ ECMWF + 7Timer',
-            color: 'var(--accent)',
-        },
-        {
-            icon: '🌙',
-            title: '달 위상 예보',
-            desc: '3일간 월출·월몰·달 조명률을 확인하세요. 딥스카이 관측은 달 조명률 20% 이하인 날이 이상적입니다.',
-            badge: '<20%',
-            badgeLabel: '딥스카이 최적',
-            color: 'var(--cyan)',
-        },
-        {
-            icon: '📍',
-            title: 'GPS 위치 인식',
-            desc: 'GPS를 허용하면 현재 위치 기준 정밀 예보가 제공됩니다. 거부 시 서울 기본값으로 표시됩니다.',
-            badge: 'AUTO',
-            badgeLabel: '또는 도시 선택',
-            color: 'var(--seeing-good)',
-        },
+    const guideIcons = ['🎯', '🪐', '🚀', '🌙', '📍'];
+    const guideColors = [
+        'var(--seeing-exceptional)',
+        'var(--warp-purple)',
+        'var(--accent)',
+        'var(--cyan)',
+        'var(--seeing-good)',
     ];
+
+    const v3Emojis = ['🎯', '🌍', '☀️', '🚀'];
 
     const tabs: { id: Tab; icon: typeof Star; label: string }[] = [
-        { id: 'about', icon: Heart, label: '소개' },
-        { id: 'news', icon: Sparkles, label: '새 소식' },
-        { id: 'guide', icon: BookOpen, label: '앱 안내' },
-    ];
-
-    const v3Features = [
-        { emoji: '🎯', label: '대상별 관측 적합도', sub: '행성·은하수·성운·성단·은하' },
-        { emoji: '🌍', label: '물리 모델 v4.0', sub: 'ESO·Peach·IDA 기준 재보정' },
-        { emoji: '☀️', label: '일출·일몰 자동 구분', sub: 'GPS 위치 기반 천문 일몰' },
-        { emoji: '🚀', label: 'Warp AI 점수 정합', sub: 'USP + 종합 점수 통합' },
-    ];
-
-    const hashtags = [
-        '천문관측', '천체사진', '시잉예보', '행성관측',
-        '딥스카이', 'ClearSkies', 'Astrophotography',
+        { id: 'about', icon: Heart, label: ip.tabs.about },
+        { id: 'news', icon: Sparkles, label: ip.tabs.news },
+        { id: 'guide', icon: BookOpen, label: ip.tabs.guide },
     ];
 
     /* stagger helper */
@@ -354,7 +317,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                         }}
                     >
                         {/* ════════════════════════════════════
-                            TAB : 소개 (About)
+                            TAB : About
                            ════════════════════════════════════ */}
                         {activeTab === 'about' && (
                             <div className="px-5 sm:px-8 py-6">
@@ -372,171 +335,49 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                         className="text-[10px] font-data uppercase tracking-[0.3em] mb-3"
                                         style={{ color: 'var(--warp-purple)' }}
                                     >
-                                        Forme Observatory · 강화도
+                                        {ip.about.observatory}
                                     </p>
                                     <h3 className="text-2xl sm:text-[28px] font-bold tracking-tight mb-2 text-gradient-brand leading-tight">
-                                        함께 바라보는 밤하늘
+                                        {ip.about.heroTitle}
                                     </h3>
                                     <p
                                         className="text-xs"
                                         style={{ color: 'var(--text-tertiary)' }}
                                     >
-                                        천체사진가와 천문 관측자를 위한 정밀 시잉 예보
+                                        {ip.about.heroDesc}
                                     </p>
                                 </div>
 
-                                {/* ── Prose ── */}
-                                <div style={stagger(1)}>
-                                    <p
-                                        className="text-sm leading-[2] font-light"
-                                        style={{ color: 'var(--text-secondary)' }}
-                                    >
-                                        우리가 함께 바라보는 밤하늘이 조금 더 선명해지길
-                                        바라고, 우리 마음도 항상{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--text-bright)' }}
-                                        >
-                                            행복하고 평화롭기를
-                                        </span>{' '}
-                                        바랍니다.
-                                    </p>
-                                </div>
+                                {/* ── Prose paragraphs with StarDividers ── */}
+                                {ip.about.prose.slice(0, 5).map((segments, pIdx) => (
+                                    <React.Fragment key={pIdx}>
+                                        <div style={stagger(pIdx * 2 + 1)}>
+                                            <p
+                                                className="text-sm leading-[2] font-light"
+                                                style={{ color: 'var(--text-secondary)' }}
+                                            >
+                                                {renderProse(segments, pIdx)}
+                                            </p>
+                                        </div>
+                                        <div style={stagger(pIdx * 2 + 2)}>
+                                            <StarDivider />
+                                        </div>
+                                    </React.Fragment>
+                                ))}
 
-                                <div style={stagger(2)}>
-                                    <StarDivider />
-                                </div>
-
-                                <div style={stagger(3)}>
-                                    <p
-                                        className="text-sm leading-[2] font-light"
-                                        style={{ color: 'var(--text-secondary)' }}
-                                    >
-                                        고개를 들면 언제든 맑은 하늘과 광활한 우주를 마주하는
-                                        것, 그것은 우리{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--cyan)' }}
-                                        >
-                                            꿈별의 공통된 꿈
-                                        </span>
-                                        일 것입니다. 별을 바라보는 일은 단순한 관측을 넘어,{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--text-bright)' }}
-                                        >
-                                            시공간을 건너 마음을 쉬게 하는 우리만의 작은 여행
-                                        </span>
-                                        이라 믿기 때문입니다.
-                                    </p>
-                                </div>
-
-                                <div style={stagger(4)}>
-                                    <StarDivider />
-                                </div>
-
-                                <div style={stagger(5)}>
-                                    <p
-                                        className="text-sm leading-[2] font-light"
-                                        style={{ color: 'var(--text-secondary)' }}
-                                    >
-                                        하지만 흐린 시야와 불안정한{' '}
-                                        <span
-                                            className="font-data text-xs px-1.5 py-0.5 rounded"
-                                            style={{
-                                                background: 'rgba(167,139,250,0.1)',
-                                                color: 'var(--warp-purple)',
-                                            }}
-                                        >
-                                            Seeing
-                                        </span>
-                                        은 소중한 찰나의 순간을 종종 가로막곤 했습니다.
-                                        조금이라도 더 선명한 밤하늘을 선후배님들과 함께 나누고
-                                        싶어, 천체 관측에 꼭 필요한 시잉 정보를 담은 웹을
-                                        만들어 보았습니다.
-                                    </p>
-                                </div>
-
-                                <div style={stagger(6)}>
-                                    <StarDivider />
-                                </div>
-
-                                <div style={stagger(7)}>
-                                    <p
-                                        className="text-sm leading-[2] font-light"
-                                        style={{ color: 'var(--text-secondary)' }}
-                                    >
-                                        이 도구가 망원경을 설치하기 전의{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--text-bright)' }}
-                                        >
-                                            망설임을 덜어주고
-                                        </span>
-                                        , 긴 기다림의 밤에{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--text-bright)' }}
-                                        >
-                                            든든한 이정표
-                                        </span>
-                                        가 되어주기를 바랍니다.
-                                    </p>
-                                </div>
-
-                                <div style={stagger(8)}>
-                                    <StarDivider />
-                                </div>
-
-                                <div style={stagger(9)}>
-                                    <p
-                                        className="text-sm leading-[2] font-light"
-                                        style={{ color: 'var(--text-secondary)' }}
-                                    >
-                                        v1.0에서 시작해 v3.0에 닿았지만, 여전히 보완할 점이
-                                        많은 미숙한 결과물일지도 모릅니다. 하지만 완벽한 하늘이
-                                        아니더라도 별을 향한 우리의 마음만큼은 언제나 맑기를
-                                        바라는{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--accent)' }}
-                                        >
-                                            진심
-                                        </span>
-                                        을 담아 다듬어 가고 있습니다.
-                                    </p>
-                                </div>
-
-                                <div style={stagger(10)}>
-                                    <StarDivider />
-                                </div>
-
+                                {/* Last two prose paragraphs in one block */}
                                 <div style={stagger(11)}>
                                     <p
                                         className="text-sm leading-[2] font-light"
                                         style={{ color: 'var(--text-secondary)' }}
                                     >
-                                        이 공간이 여러분과 우주를 잇는{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--cyan)' }}
-                                        >
-                                            따뜻한 다리
-                                        </span>
-                                        가 되길 소망합니다.
+                                        {renderProse(ip.about.prose[5], 5)}
                                     </p>
                                     <p
                                         className="text-sm leading-[2] font-light mt-1"
                                         style={{ color: 'var(--text-secondary)' }}
                                     >
-                                        맑은 하늘 아래, 여러분의 모든 관측이{' '}
-                                        <span
-                                            className="font-medium"
-                                            style={{ color: 'var(--text-bright)' }}
-                                        >
-                                            생애 가장 찬란한 기억
-                                        </span>
-                                        으로 남기를 기원합니다.
+                                        {renderProse(ip.about.prose[6], 6)}
                                     </p>
                                 </div>
 
@@ -586,10 +427,10 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                         className="text-[10px] font-data uppercase tracking-[0.2em] mb-3"
                                         style={{ color: 'var(--text-tertiary)' }}
                                     >
-                                        v3.0 주요 업데이트
+                                        {ip.about.v3Title}
                                     </p>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {v3Features.map((f, i) => (
+                                        {ip.about.v3Features.map((f, i) => (
                                             <div
                                                 key={i}
                                                 className="rounded-xl px-3 py-3 transition-all hover:scale-[1.02]"
@@ -599,7 +440,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                 }}
                                             >
                                                 <span className="text-lg leading-none">
-                                                    {f.emoji}
+                                                    {v3Emojis[i]}
                                                 </span>
                                                 <p
                                                     className="text-xs font-semibold mt-1.5 mb-0.5"
@@ -642,11 +483,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                             opacity: 0.6,
                                         }}
                                     >
-                                        무료 · PC/모바일 · 광고 없음 · GPS 자동 위치
+                                        {ip.about.siteDesc}
                                     </p>
 
                                     <div className="flex flex-wrap justify-center gap-1.5 mt-3">
-                                        {hashtags.map((tag) => (
+                                        {ip.about.hashtags.map((tag) => (
                                             <span
                                                 key={tag}
                                                 className="text-[10px] font-data px-2 py-0.5 rounded-full"
@@ -683,12 +524,14 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                         )}
 
                         {/* ════════════════════════════════════
-                            TAB : 새 소식 (News)
+                            TAB : News
                            ════════════════════════════════════ */}
                         {activeTab === 'news' && (
                             <div className="px-5 sm:px-6 py-5 space-y-3">
-                                {updates.map((update, idx) => {
-                                    const Icon = update.icon;
+                                {ip.news.updates.map((update, idx) => {
+                                    const meta = updatesMeta[idx];
+                                    if (!meta) return null;
+                                    const Icon = meta.icon;
                                     return (
                                         <div
                                             key={idx}
@@ -704,14 +547,14 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                     <div
                                                         className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                                                         style={{
-                                                            background: `color-mix(in srgb, ${update.tagColor} 12%, transparent)`,
-                                                            border: `1px solid color-mix(in srgb, ${update.tagColor} 25%, transparent)`,
+                                                            background: `color-mix(in srgb, ${meta.tagColor} 12%, transparent)`,
+                                                            border: `1px solid color-mix(in srgb, ${meta.tagColor} 25%, transparent)`,
                                                         }}
                                                     >
                                                         <Icon
                                                             className="w-3.5 h-3.5"
                                                             style={{
-                                                                color: update.tagColor,
+                                                                color: meta.tagColor,
                                                             }}
                                                         />
                                                     </div>
@@ -728,11 +571,11 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                             <span
                                                                 className="text-[9px] font-data font-bold px-1.5 py-0.5 rounded"
                                                                 style={{
-                                                                    color: update.tagColor,
-                                                                    background: `color-mix(in srgb, ${update.tagColor} 10%, transparent)`,
+                                                                    color: meta.tagColor,
+                                                                    background: `color-mix(in srgb, ${meta.tagColor} 10%, transparent)`,
                                                                 }}
                                                             >
-                                                                {update.tag}
+                                                                {meta.tag}
                                                             </span>
                                                         </div>
                                                         <p
@@ -741,8 +584,8 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                                 color: 'var(--text-tertiary)',
                                                             }}
                                                         >
-                                                            {update.version} ·{' '}
-                                                            {update.date}
+                                                            {meta.version} ·{' '}
+                                                            {meta.date}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -756,7 +599,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                         <ChevronRight
                                                             className="w-3 h-3 mt-0.5 flex-shrink-0"
                                                             style={{
-                                                                color: update.tagColor,
+                                                                color: meta.tagColor,
                                                                 opacity: 0.6,
                                                             }}
                                                         />
@@ -781,7 +624,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                     style={{
                                         background: 'rgba(99,102,241,0.04)',
                                         border: '1px solid rgba(99,102,241,0.1)',
-                                        ...stagger(updates.length),
+                                        ...stagger(ip.news.updates.length),
                                     }}
                                 >
                                     <Zap
@@ -792,10 +635,10 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                         className="text-[11px] leading-relaxed"
                                         style={{ color: 'var(--text-tertiary)' }}
                                     >
-                                        GFS · ECMWF · 7Timer · Open-Meteo · Met.no 기반
+                                        {ip.news.dataSourceNote}
                                         <br />
                                         <span style={{ color: 'var(--accent)' }}>
-                                            무료 · 광고 없음 · $0 AI 비용
+                                            {ip.news.dataSourceFree}
                                         </span>
                                     </p>
                                 </div>
@@ -803,7 +646,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                         )}
 
                         {/* ════════════════════════════════════
-                            TAB : 앱 안내 (Guide)
+                            TAB : Guide
                            ════════════════════════════════════ */}
                         {activeTab === 'guide' && (
                             <div className="px-5 sm:px-6 py-5 space-y-3">
@@ -823,18 +666,16 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                             color: 'var(--text-secondary)',
                                         }}
                                     >
-                                        Clear Skies는 천체사진가와 아마추어 천문가를
-                                        위한{' '}
+                                        {ip.guide.intro[0]}
                                         <span
                                             className="font-semibold"
                                             style={{
                                                 color: 'var(--text-bright)',
                                             }}
                                         >
-                                            정밀 시잉 예보
-                                        </span>{' '}
-                                        앱입니다. 대기 조건을 다층 분석해 오늘 밤 관측
-                                        가능성을 알려드립니다.
+                                            {ip.guide.intro[1]}
+                                        </span>
+                                        {ip.guide.intro[2]}
                                     </p>
                                 </div>
 
@@ -853,7 +694,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                             color: 'var(--text-tertiary)',
                                         }}
                                     >
-                                        등급 기준표
+                                        {ip.guide.gradeScaleTitle}
                                     </p>
                                     <div className="grid grid-cols-5 gap-1.5">
                                         {[
@@ -910,7 +751,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                 </div>
 
                                 {/* Feature cards */}
-                                {guides.map((guide, idx) => (
+                                {ip.guide.cards.map((card, idx) => (
                                     <div
                                         key={idx}
                                         className="rounded-xl p-4"
@@ -922,7 +763,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                     >
                                         <div className="flex items-start gap-3">
                                             <span className="text-xl leading-none flex-shrink-0 mt-0.5">
-                                                {guide.icon}
+                                                {guideIcons[idx]}
                                             </span>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between mb-1.5">
@@ -932,16 +773,16 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                             color: 'var(--text-bright)',
                                                         }}
                                                     >
-                                                        {guide.title}
+                                                        {card.title}
                                                     </span>
                                                     <div className="flex flex-col items-end flex-shrink-0 ml-2">
                                                         <span
                                                             className="text-sm font-data font-bold"
                                                             style={{
-                                                                color: guide.color,
+                                                                color: guideColors[idx],
                                                             }}
                                                         >
-                                                            {guide.badge}
+                                                            {card.badge}
                                                         </span>
                                                         <span
                                                             className="text-[9px] font-data"
@@ -949,7 +790,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                                 color: 'var(--text-tertiary)',
                                                             }}
                                                         >
-                                                            {guide.badgeLabel}
+                                                            {card.badgeLabel}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -959,7 +800,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                                         color: 'var(--text-secondary)',
                                                     }}
                                                 >
-                                                    {guide.desc}
+                                                    {card.desc}
                                                 </p>
                                             </div>
                                         </div>
@@ -972,7 +813,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                     style={{
                                         background: 'rgba(255,255,255,0.02)',
                                         border: '1px solid var(--glass-border)',
-                                        ...stagger(guides.length + 2),
+                                        ...stagger(ip.guide.cards.length + 2),
                                     }}
                                 >
                                     <p
@@ -981,7 +822,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                             color: 'var(--text-tertiary)',
                                         }}
                                     >
-                                        Forme Observatory · 강화도
+                                        {ip.guide.contactObservatory}
                                         <br />
                                         <a
                                             href="mailto:mickeys67@gmail.com"

@@ -1,11 +1,11 @@
 import React from 'react';
 import SeeingDetails from './SeeingDetails';
 import MoonPhase from './MoonPhase';
-import NotificationSetup from './NotificationSetup';
+// NotificationSetup removed — no actual notification logic implemented
 import AiPrediction from './AiPrediction';
 import ForecastList from './ForecastList';
 import InfoPanel from './InfoPanel';
-import { Loader2, MapPin, Radio, X, Sparkles } from 'lucide-react';
+import { Loader2, MapPin, X, Info } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useWeatherData from '../hooks/useWeatherData';
 import useI18n from '../hooks/useI18n';
@@ -56,14 +56,18 @@ const Dashboard: React.FC = () => {
 
     const currentForecast = data.forecast && data.forecast.length > 0 ? data.forecast[0] : null;
 
-    // 현재 시간이 낮(일출~일몰)인지 판단 (IIFE — 훅 아님, early return 이후 안전)
+    // 현재 시간이 낮(일출~일몰)인지 판단 — location timezone 기반 비교
     const todayAstro = data.astronomy?.[0];
+    const locationTz = data.location?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const isDaytime = (() => {
         if (!todayAstro?.sun?.sunrise || !todayAstro?.sun?.sunset) return false;
         if (todayAstro.sun.alwaysDown) return false;
         if (todayAstro.sun.alwaysUp) return true;
+        // sunrise/sunset are ISO strings from backend (UTC), compare directly
         const now = new Date();
-        return now >= new Date(todayAstro.sun.sunrise as string) && now <= new Date(todayAstro.sun.sunset as string);
+        const sunrise = new Date(todayAstro.sun.sunrise as string);
+        const sunset = new Date(todayAstro.sun.sunset as string);
+        return now >= sunrise && now <= sunset;
     })();
 
     const getGradeBgClass = (grade: string) => {
@@ -87,24 +91,9 @@ const Dashboard: React.FC = () => {
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[var(--bg-void)]" />
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-xl lg:text-2xl font-bold text-[var(--text-bright)] tracking-tight">
-                                Clear Skies <span className="text-[var(--accent)]">!</span>
-                            </h1>
-                            {/* Info / Release Notes 버튼 */}
-                            <button
-                                onClick={() => setInfoPanelOpen(true)}
-                                className="w-6 h-6 rounded-md flex items-center justify-center transition-all hover:scale-110"
-                                style={{
-                                    background: 'color-mix(in srgb, var(--warp-purple) 12%, transparent)',
-                                    border: '1px solid color-mix(in srgb, var(--warp-purple) 25%, transparent)',
-                                    color: 'var(--warp-purple)',
-                                }}
-                                title="업데이트 & 앱 안내"
-                            >
-                                <Sparkles className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
+                        <h1 className="text-xl lg:text-2xl font-bold text-[var(--text-bright)] tracking-tight">
+                            Clear Skies <span className="text-[var(--accent)]">!</span>
+                        </h1>
                         <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs lg:text-sm">
                             <MapPin className="w-3 h-3" />
                             <span className="truncate max-w-[200px]">
@@ -114,10 +103,18 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-[var(--bg-surface)] px-3 py-1.5 rounded-full border border-[var(--glass-border)]">
-                    <Radio className="w-3 h-3 text-emerald-400" />
-                    <span className="text-[11px] lg:text-xs font-mono text-emerald-400 tracking-wider font-medium">{t.common.live}</span>
-                </div>
+                <button
+                    onClick={() => setInfoPanelOpen(true)}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+                    style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-tertiary)',
+                    }}
+                    title="앱 소개 & 업데이트"
+                >
+                    <Info className="w-4 h-4" />
+                </button>
             </header>
 
             {/* ===== GPS Permission Denied Banner ===== */}
@@ -146,13 +143,14 @@ const Dashboard: React.FC = () => {
                     moonFraction={data.astronomy?.[0]?.moon.fraction ?? 0.5}
                     isDaytime={isDaytime}
                     sunsetTime={todayAstro?.sun?.sunset as string | null | undefined}
+                    timezone={locationTz}
                 />
             )}
 
             {/* ===== Forecast Timeline ===== */}
             {data.forecast && (
                 <ForecastList
-                    forecast={data.forecast.slice(0, 48)}
+                    forecast={data.forecast.slice(0, 72)}
                     timezone={data.location.timezone}
                     astronomy={data.astronomy}
                 />
@@ -169,22 +167,26 @@ const Dashboard: React.FC = () => {
             )}
 
             {/* ===== Astronomy ===== */}
-            {data.astronomy && <MoonPhase data={data.astronomy} timezone={data.location.timezone} />}
+            {data.astronomy && <MoonPhase data={data.astronomy} timezone={data.location.timezone} lat={lat ?? undefined} lon={lon ?? undefined} />}
 
-            <NotificationSetup />
+            {/* NotificationSetup removed — will be re-added when actual push notification logic is implemented */}
 
             {/* Info Panel */}
             <InfoPanel isOpen={infoPanelOpen} onClose={() => setInfoPanelOpen(false)} />
 
-            {/* SEO */}
+            {/* SEO — hidden text for crawlers */}
             <div className="sr-only" aria-hidden="true">
-                <p>Precision Seeing Forecast for Astrophotographers</p>
-                <div className="font-mono italic">
-                    <span>FWHM Estimation</span>
-                    <span>Antoniadi Scale Ref</span>
-                    <span>Pickering Scale Model</span>
-                    <span>Atmospheric Scintillation Analysis</span>
-                </div>
+                <h2>Clear Skies — Astronomical Seeing Forecast</h2>
+                <p>Free precision seeing forecast for astrophotographers and amateur astronomers. Real-time observation quality scoring with target suitability analysis.</p>
+                <ul>
+                    <li>Astronomical seeing (FWHM) estimation and Pickering/Antoniadi scale</li>
+                    <li>Target suitability: planets, Milky Way, nebulae, star clusters, galaxies</li>
+                    <li>Jet stream (250hPa), CAPE convection, sky transparency, cloud cover</li>
+                    <li>Moon phase forecast with optimal dark-sky observation windows</li>
+                    <li>GPS auto-location with astronomical twilight detection</li>
+                    <li>Multi-source data: GFS, ECMWF, 7Timer, Open-Meteo, Met.no</li>
+                    <li>Atmospheric scintillation and boundary layer turbulence analysis</li>
+                </ul>
             </div>
 
             {/* Footer */}

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Loader2, ChevronRight, ChevronLeft, Clock } from 'lucide-react';
+import useI18n from '../hooks/useI18n';
 
 interface PredictionResultProps {
     prediction: {
@@ -26,6 +27,7 @@ interface PredictionResultProps {
     };
     hasPrev: boolean;
     hasNext: boolean;
+    targetTime?: string;
 }
 
 const PredictionCard: React.FC<PredictionResultProps> = ({
@@ -34,14 +36,17 @@ const PredictionCard: React.FC<PredictionResultProps> = ({
     onClose,
     details,
     hasPrev,
-    hasNext
+    hasNext,
+    targetTime
 }) => {
+    const t = useI18n();
+
     if (loading) {
         return (
             <div className="text-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-[var(--accent)] mx-auto mb-3" />
                 <p className="text-sm text-[var(--text-secondary)] font-data animate-pulse">
-                    Analyzing atmospheric layers...
+                    {t.aiPrediction.warpMessages[0]}
                 </p>
             </div>
         );
@@ -64,8 +69,18 @@ const PredictionCard: React.FC<PredictionResultProps> = ({
 
     return (
         <div className="glass-card-inner p-5 animate-scale-in text-center">
+            {/* Scan target time */}
+            {targetTime && (
+                <div className="flex items-center justify-center gap-1.5 mb-2">
+                    <Clock className="w-3.5 h-3.5 text-[var(--warp-purple)]" />
+                    <span className="text-xs font-data font-bold text-[var(--warp-purple)] uppercase tracking-wider">
+                        {t.aiPrediction.scanTarget}: {targetTime}
+                    </span>
+                </div>
+            )}
+
             <div className="text-xs font-data uppercase tracking-[0.15em] text-[var(--text-tertiary)] mb-3 font-medium">
-                Observation Score{usp ? ` · Atm. Stability ${usp.score.toFixed(1)}/10` : ''}
+                {t.aiPrediction.observationScore}{usp ? ` · ${t.aiPrediction.atmStability} ${usp.score.toFixed(1)}/10` : ''}
             </div>
 
             <div className="flex items-center justify-center gap-3 mb-3">
@@ -86,28 +101,28 @@ const PredictionCard: React.FC<PredictionResultProps> = ({
             {details && (
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-left bg-[var(--bg-surface)] p-4 rounded-xl mx-auto max-w-sm border border-[var(--glass-border)]">
                     <div className="flex justify-between">
-                        <span className="text-[var(--text-tertiary)]">Seeing (USP)</span>
+                        <span className="text-[var(--text-tertiary)]">{t.aiPrediction.seeingUsp}</span>
                         <span className="font-data font-bold text-[var(--cyan)]">{usp ? usp.seeing : details.seeing}"</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[var(--text-tertiary)]">Fried (r&#8320;)</span>
+                        <span className="text-[var(--text-tertiary)]">{t.aiPrediction.friedR0}</span>
                         <span className="font-data font-bold text-[var(--text-primary)]">{usp ? usp.details.r0 : '-'} cm</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[var(--text-tertiary)]">Stability</span>
+                        <span className="text-[var(--text-tertiary)]">{t.aiPrediction.stability}</span>
                         <span className="font-data font-bold text-[var(--text-primary)]">{usp ? usp.details.stability : 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[var(--text-tertiary)]">Jet Stream</span>
+                        <span className="text-[var(--text-tertiary)]">{t.aiPrediction.jetStream}</span>
                         <span className="font-data font-bold text-[var(--text-primary)]">{usp ? usp.details.jetStream : 'N/A'}</span>
                     </div>
                     <div className="col-span-2 h-px bg-[var(--glass-border)] my-1" />
                     <div className="flex justify-between">
-                        <span className="text-[var(--text-tertiary)]">Cloud</span>
+                        <span className="text-[var(--text-tertiary)]">{t.aiPrediction.cloud}</span>
                         <span className="font-data font-bold text-[var(--text-primary)]">{details.cloudCover}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[var(--text-tertiary)]">Wind</span>
+                        <span className="text-[var(--text-tertiary)]">{t.aiPrediction.wind}</span>
                         <span className="font-data font-bold text-[var(--text-primary)]">{details.windSpeed}m/s</span>
                     </div>
                 </div>
@@ -117,7 +132,7 @@ const PredictionCard: React.FC<PredictionResultProps> = ({
                 onClick={onClose}
                 className="mt-5 text-sm text-[var(--warp-purple)] hover:text-[var(--text-primary)] transition-colors font-medium"
             >
-                Warp to another time
+                {t.aiPrediction.warpAnother}
             </button>
         </div>
     );

@@ -72,6 +72,9 @@ const WeatherService = {
                 if (h.temperature_2m && h.temperature_2m[omIdx] != null) values.temps.push(h.temperature_2m[omIdx]);
                 if (h.relative_humidity_2m && h.relative_humidity_2m[omIdx] != null) values.humidities.push(h.relative_humidity_2m[omIdx]);
                 if (h.cloud_cover && h.cloud_cover[omIdx] != null) values.clouds.push(ScoringService.normalizeCloud(h.cloud_cover[omIdx]));
+                if (h.cloud_cover_low && h.cloud_cover_low[omIdx] != null) values.cloudLow = h.cloud_cover_low[omIdx];
+                if (h.cloud_cover_mid && h.cloud_cover_mid[omIdx] != null) values.cloudMid = h.cloud_cover_mid[omIdx];
+                if (h.cloud_cover_high && h.cloud_cover_high[omIdx] != null) values.cloudHigh = h.cloud_cover_high[omIdx];
                 if (h.wind_speed_10m && h.wind_speed_10m[omIdx] != null) values.winds.push(h.wind_speed_10m[omIdx] / 3.6);
                 if (h.wind_speed_250hPa && h.wind_speed_250hPa[omIdx] != null) values.jetStreams.push(h.wind_speed_250hPa[omIdx] / 3.6);
                 if (h.cape && h.cape[omIdx] != null) values.capes.push(h.cape[omIdx]);
@@ -93,11 +96,25 @@ const WeatherService = {
                 if (closestMet.wind_speed != null) values.winds.push(closestMet.wind_speed);
             }
         }
+
+        // Air Quality data integration (PM2.5 + AOD for USP model)
+        let pm25 = null;
+        let aod = null;
+        if (aqData && aqData.hourly && aqData.hourly.time) {
+            const aqIdx = WeatherService.findClosestItem(aqData.hourly.time, targetDate);
+            if (aqIdx !== null) {
+                if (aqData.hourly.pm2_5 && aqData.hourly.pm2_5[aqIdx] != null) pm25 = aqData.hourly.pm2_5[aqIdx];
+                if (aqData.hourly.aerosol_optical_depth_550nm && aqData.hourly.aerosol_optical_depth_550nm[aqIdx] != null) aod = aqData.hourly.aerosol_optical_depth_550nm[aqIdx];
+            }
+        }
+
         const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
         return {
             temp: avg(values.temps), humidity: avg(values.humidities), cloudScore: avg(values.clouds) ?? 0,
             wind: avg(values.winds) ?? 0, jetStream: avg(values.jetStreams), cape: avg(values.capes),
-            tempMin: values.temps.length ? Math.min(...values.temps) : 0, tempMax: values.temps.length ? Math.max(...values.temps) : 0
+            tempMin: values.temps.length ? Math.min(...values.temps) : 0, tempMax: values.temps.length ? Math.max(...values.temps) : 0,
+            pm25: pm25 ?? 12, aod: aod ?? 0.15,
+            cloudLow: values.cloudLow ?? null, cloudMid: values.cloudMid ?? null, cloudHigh: values.cloudHigh ?? null
         };
     },
 
@@ -175,7 +192,7 @@ const WeatherService = {
                     surfaceWind: mapped.wind,
                     jetStreamSpeed: mapped.jetStream ? mapped.jetStream * 1.94384 : 40,
                     targetAltitude: 90, urban: true, elevation: 50,
-                    aod: mapped.aod || 0.15, pm25: mapped.pm25 || 12,
+                    aod: mapped.aod, pm25: mapped.pm25,
                     variance: mapped.tempMax - mapped.tempMin,
                     humidity: mapped.humidity
                 });
@@ -237,17 +254,22 @@ const WeatherService = {
                     cape: Math.round(mapped.cape || 0),
                     confidence: finalUsp.confidence
                 },
+                cloudLayers: {
+                    low: mapped.cloudLow != null ? Math.round(mapped.cloudLow) : null,
+                    mid: mapped.cloudMid != null ? Math.round(mapped.cloudMid) : null,
+                    high: mapped.cloudHigh != null ? Math.round(mapped.cloudHigh) : null,
+                },
                 score: observationDetail.score,
                 grade: observationDetail.grade,
                 recommendation: observationDetail.recommendation
             };
         });
 
-        // 5. Active Insight (rule-based)
+        // 5. Active Insight (rule-based) — 현재 시간 블록 기준으로 생성
         let aiInsight = null;
-        const bestBlock = [...mappedForecast].sort((a, b) => b.score - a.score)[0];
-        if (bestBlock) {
-            aiInsight = AnalysisService.getActiveInsight(bestBlock, mappedForecast, targetLang);
+        const currentBlock = mappedForecast[0];
+        if (currentBlock) {
+            aiInsight = AnalysisService.getActiveInsight(currentBlock, mappedForecast, targetLang);
         }
 
         // Timezone resolution: Open-Meteo > coordinate lookup > UTC

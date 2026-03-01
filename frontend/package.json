@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
     "@vitejs/plugin-react": "^5.1.1",
+    "astronomy-engine": "^2.1.19",
     "autoprefixer": "^10.4.24",
     "lucide-react": "^0.563.0",
     "postcss": "^8.5.6",

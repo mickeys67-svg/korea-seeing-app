@@ -18,8 +18,16 @@ const ProviderService = {
         try {
             const vars = [
                 'temperature_2m', 'relative_humidity_2m', 'cloud_cover',
+                'cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high',
                 'wind_speed_10m', 'wind_speed_250hPa', 'cape',
-                'boundary_layer_height', 'skin_temperature'
+                'boundary_layer_height', 'skin_temperature',
+                // Pressure-level variables for USP physics model (vertical profile)
+                'temperature_1000hPa', 'temperature_925hPa', 'temperature_850hPa',
+                'temperature_700hPa', 'temperature_500hPa', 'temperature_300hPa',
+                'temperature_250hPa', 'temperature_200hPa',
+                'wind_speed_1000hPa', 'wind_speed_925hPa', 'wind_speed_850hPa',
+                'wind_speed_700hPa', 'wind_speed_500hPa', 'wind_speed_300hPa',
+                'wind_speed_250hPa', 'wind_speed_200hPa'
             ].join(',');
 
             let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&forecast_days=7&timezone=auto`;
