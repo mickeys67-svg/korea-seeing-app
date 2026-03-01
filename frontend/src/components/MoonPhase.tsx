@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './MoonPhase.css';
 import { type AstronomyDay } from '../types/weather';
 import { getPhaseDef, formatDate, formatTime, calculateDuration, calculateObservationWindows, minutesToTime, formatDurationMins } from '../utils/astronomyUtils';
+import useI18n from '../hooks/useI18n';
 
 interface MoonPhaseProps {
     data: AstronomyDay[];
@@ -9,6 +10,7 @@ interface MoonPhaseProps {
 }
 
 const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone }) => {
+    const t = useI18n();
     const [activeTab, setActiveTab] = useState<'moon' | 'sun' | 'optimal'>('moon');
     const today = data && data.length > 0 ? data[0] : null;
     const currentPhase = today ? getPhaseDef(today.moon.phase) : { name: '', class: '', icon: '' };
@@ -16,9 +18,9 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone }) => {
     if (!today) return null;
 
     const tabs = [
-        { key: 'moon' as const, label: 'Moon Phase' },
-        { key: 'sun' as const, label: 'Sun Times' },
-        { key: 'optimal' as const, label: 'Best Time' },
+        { key: 'moon' as const, label: t.moonPhase.tabs.moon },
+        { key: 'sun' as const, label: t.moonPhase.tabs.sun },
+        { key: 'optimal' as const, label: t.moonPhase.tabs.optimal },
     ];
 
     return (
@@ -48,7 +50,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone }) => {
                             <div>
                                 <h3 className="text-lg font-bold text-[var(--text-bright)] mb-1">{currentPhase.name}</h3>
                                 <p className="text-sm text-[var(--text-secondary)]">
-                                    Illumination: <span className="font-data font-bold text-[var(--text-primary)]">{Math.round(today.moon.fraction * 100)}%</span>
+                                    {t.moonPhase.illumination}: <span className="font-data font-bold text-[var(--text-primary)]">{Math.round(today.moon.fraction * 100)}%</span>
                                 </p>
                             </div>
                             <div className="moon-visual">
@@ -73,13 +75,13 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone }) => {
                                                     return eventDate.getDate() !== baseDate.getDate();
                                                 };
                                                 const moonData = day.moon;
-                                                if (moonData.alwaysUp) return <span className="text-amber-400">Always Up</span>;
-                                                if (moonData.alwaysDown) return <span className="text-[var(--text-tertiary)]">Always Down</span>;
+                                                if (moonData.alwaysUp) return <span className="text-amber-400">{t.moonPhase.alwaysUp}</span>;
+                                                if (moonData.alwaysDown) return <span className="text-[var(--text-tertiary)]">{t.moonPhase.alwaysDown}</span>;
                                                 return (
                                                     <span className="flex items-center gap-2 sm:gap-3">
-                                                        <span>Rise <strong className="text-[var(--text-primary)]">{formatTime(day.moon.rise, timezone)}</strong>{isNextDay(day.moon.rise, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
+                                                        <span>{t.moonPhase.rise} <strong className="text-[var(--text-primary)]">{formatTime(day.moon.rise, timezone)}</strong>{isNextDay(day.moon.rise, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
                                                         <span className="text-[var(--glass-border)]">|</span>
-                                                        <span>Set <strong className="text-[var(--text-primary)]">{formatTime(day.moon.set, timezone)}</strong>{isNextDay(day.moon.set, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
+                                                        <span>{t.moonPhase.set} <strong className="text-[var(--text-primary)]">{formatTime(day.moon.set, timezone)}</strong>{isNextDay(day.moon.set, day.date) ? <span className="text-[10px] text-[var(--text-tertiary)] ml-0.5">(+1)</span> : ''}</span>
                                                     </span>
                                                 );
                                             })()}
@@ -122,9 +124,9 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone }) => {
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-1">
                                         <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx)}</span>
                                         <div className="text-xs sm:text-sm text-[var(--text-secondary)] font-data flex items-center gap-2 sm:gap-3">
-                                            <span>Rise <strong className="text-[var(--text-primary)]">{formatTime(day.sun.sunrise, timezone)}</strong></span>
+                                            <span>{t.moonPhase.rise} <strong className="text-[var(--text-primary)]">{formatTime(day.sun.sunrise, timezone)}</strong></span>
                                             <span className="text-[var(--glass-border)]">|</span>
-                                            <span>Set <strong className="text-[var(--text-primary)]">{formatTime(day.sun.sunset, timezone)}</strong></span>
+                                            <span>{t.moonPhase.set} <strong className="text-[var(--text-primary)]">{formatTime(day.sun.sunset, timezone)}</strong></span>
                                         </div>
                                     </div>
                                     <p className="text-xs text-[var(--text-tertiary)] font-data text-right">

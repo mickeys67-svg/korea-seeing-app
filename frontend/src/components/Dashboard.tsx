@@ -7,9 +7,11 @@ import ForecastList from './ForecastList';
 import { Loader2, MapPin, Radio, X } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useWeatherData from '../hooks/useWeatherData';
+import useI18n from '../hooks/useI18n';
 
 const Dashboard: React.FC = () => {
     const location = useGeolocation();
+    const t = useI18n();
     const [gpsBannerDismissed, setGpsBannerDismissed] = React.useState(false);
     const defaultLat = 37.5665;
     const defaultLon = 126.9780;
@@ -32,7 +34,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="absolute inset-0 rounded-full animate-pulse-ring" />
                 </div>
-                <p className="text-sm text-[var(--text-secondary)] font-mono tracking-wider">ACQUIRING DATA</p>
+                <p className="text-sm text-[var(--text-secondary)] font-mono tracking-wider">{t.common.loading}</p>
             </div>
         );
     }
@@ -69,17 +71,17 @@ const Dashboard: React.FC = () => {
             <header className="w-full flex justify-between items-center mb-8 animate-fade-in-up">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <img src="/logo.jpg" alt="Clear Skies" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
+                        <img src="/logo.jpg" alt="Clear Skies" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[var(--bg-void)]" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold text-[var(--text-bright)] tracking-tight">
+                        <h1 className="text-xl lg:text-2xl font-bold text-[var(--text-bright)] tracking-tight">
                             Clear Skies <span className="text-[var(--accent)]">!</span>
                         </h1>
-                        <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs">
+                        <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs lg:text-sm">
                             <MapPin className="w-3 h-3" />
                             <span className="truncate max-w-[200px]">
-                                {location.name || (location.val ? "GPS Location" : "Seoul, Korea")}
+                                {location.name || (location.val ? t.common.gpsLocation : t.common.defaultCity)}
                             </span>
                         </div>
                     </div>
@@ -87,7 +89,7 @@ const Dashboard: React.FC = () => {
 
                 <div className="flex items-center gap-1.5 bg-[var(--bg-surface)] px-3 py-1.5 rounded-full border border-[var(--glass-border)]">
                     <Radio className="w-3 h-3 text-emerald-400" />
-                    <span className="text-[11px] font-mono text-emerald-400 tracking-wider font-medium">LIVE</span>
+                    <span className="text-[11px] lg:text-xs font-mono text-emerald-400 tracking-wider font-medium">{t.common.live}</span>
                 </div>
             </header>
 
@@ -96,9 +98,9 @@ const Dashboard: React.FC = () => {
                 <div className="w-full mb-4 animate-fade-in-up">
                     <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
                         <MapPin className="w-4 h-4 text-amber-400/80 shrink-0" />
-                        <p className="text-xs text-[var(--text-secondary)] flex-1">
-                            <span className="text-amber-400/90 font-semibold">위치 접근 불가</span>
-                            {' '}— 서울 기본값으로 표시 중. 정확한 로컬 예보를 보려면 위치를 선택하세요.
+                        <p className="text-xs lg:text-sm text-[var(--text-secondary)] flex-1">
+                            <span className="text-amber-400/90 font-semibold">{t.gpsBanner.title}</span>
+                            {' '}{t.gpsBanner.message}
                         </p>
                         <button
                             onClick={() => setGpsBannerDismissed(true)}
@@ -145,11 +147,11 @@ const Dashboard: React.FC = () => {
 
             {/* Footer */}
             <footer className="mt-12 mb-8 text-center animate-fade-in">
-                <p className="text-xs font-mono text-[var(--text-tertiary)] tracking-widest uppercase">
+                <p className="text-xs lg:text-sm font-mono text-[var(--text-tertiary)] tracking-widest uppercase">
                     Clear Skies v3.0 &middot; Forme Observatory &middot; Ganghwado
                 </p>
-                <p className="text-xs text-[var(--text-tertiary)] mt-2">
-                    Feedback or bugs? Send them to{' '}
+                <p className="text-xs lg:text-sm text-[var(--text-tertiary)] mt-2">
+                    {t.footer.feedback}{' '}
                     <a href="mailto:mickeys67@gmail.com" className="text-[var(--accent)] hover:underline">mickeys67@gmail.com</a>
                 </p>
             </footer>

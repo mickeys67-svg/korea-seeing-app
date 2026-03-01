@@ -1,0 +1,88 @@
+import type { Translations } from './en';
+
+const ja: Translations = {
+    common: {
+        live: 'ライブ',
+        loading: 'データ取得中',
+        gpsLocation: 'GPS現在地',
+        defaultCity: 'ソウル、韓国',
+        humidity: '湿度',
+        temp: '気温',
+        wind: '風速',
+        confidence: '信頼度',
+    },
+    gpsBanner: {
+        title: '位置情報アクセス不可',
+        message: '— ソウルのデフォルト表示中。正確な予報のため位置を選択してください。',
+    },
+    seeingDetails: {
+        title: '観測品質',
+        grades: { S: '最高', A: '優秀', B: '良好', C: '普通', D: '不良' },
+        metrics: {
+            SEEING: 'シーイング',
+            TRANSPARENCY: '透明度',
+            CLOUD: '雲量',
+            WIND: '風',
+            JET_STREAM: 'ジェット気流',
+            CONVECTION: '大気対流',
+        },
+        modalTitles: {
+            seeing: '天文シーイング',
+            transparency: '空の透明度',
+            cloud: '雲量',
+            wind: '地上風速',
+            jetStream: 'ジェット気流 (250hPa)',
+            convection: '大気対流',
+        },
+        modalDescs: {
+            seeing: '大気乱流の測定値。低いほど大気が安定し、鮮明な像が得られます。0(最良) ～ 8(激しい乱流)。',
+            transparency: '深宇宙天体観測の大気透明度。低いほど空が澄んでいます。0(快晴) ～ 8(霞)。',
+            cloud: '雲による空の遮蔽。低いほど観測しやすい。0(晴天) ～ 8(全曇)。',
+            wind: '望遠鏡の安定性に影響する地上風速。低いほど穏やかです。0(無風) ～ 8(強風)。',
+            jetStream: '高高度の乱流を引き起こす上層気流。低いほど高高度の歪みが少ない。高度約10km基準。',
+            convection: '垂直大気不安定度(CAPE)。低いほど大気が安定し、熱歪みが少ない。',
+        },
+    },
+    forecastList: {
+        title: '予報タイムライン',
+        subtitle: '3時間間隔',
+        datapoints: 'データポイント',
+        live: 'ライブ',
+        see: 'シーイング',
+    },
+    aiPrediction: {
+        warpInsight: 'ワープインサイト',
+        ensembleVersion: 'アンサンブル v2.0',
+        warpScan: 'ワープスキャン',
+        warpMessages: [
+            '大気層をワープ航法で探索中...',
+            'より良いシーイングのため時空を調整中...',
+            '光速で乱流をスキャン中...',
+            'フラックスコンデンサを充電中...',
+            'ハイパードライブ解析を起動中...',
+            '雲データを量子トンネリングで解析中...',
+        ],
+        uspComments: {
+            exceptional: '大気安定度が最高です。高解像度惑星撮影に完璧な条件。',
+            good: '安定した大気を検出。ディープスカイ観測と多くの撮影対象に最適です。',
+            poor: '境界層の乱流を検出。低倍率広視野観測をお勧めします。',
+        },
+    },
+    moonPhase: {
+        tabs: { moon: '月の位相', sun: '日の出/入り', optimal: 'ベストタイム' },
+        illumination: '照明率',
+        rise: '出',
+        set: '入',
+        alwaysUp: '常に昇っている',
+        alwaysDown: '常に沈んでいる',
+        duration: '継続時間',
+        observationWindow: '観測可能時間',
+        darkWindow: '暗い時間帯',
+        noWindow: '今夜は適切な暗い時間帯なし',
+    },
+    footer: {
+        feedback: 'フィードバックやバグの報告はこちら',
+    },
+};
+
+export default ja;

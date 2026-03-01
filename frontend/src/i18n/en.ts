@@ -1,0 +1,87 @@
+const en = {
+    common: {
+        live: 'LIVE',
+        loading: 'ACQUIRING DATA',
+        gpsLocation: 'GPS Location',
+        defaultCity: 'Seoul, Korea',
+        humidity: 'Humidity',
+        temp: 'Temp',
+        wind: 'Wind',
+        confidence: 'Confidence',
+    },
+    gpsBanner: {
+        title: 'Location access denied',
+        message: '— Showing Seoul defaults. Select a location for accurate local forecast.',
+    },
+    seeingDetails: {
+        title: 'Observation Quality',
+        grades: { S: 'Exceptional', A: 'Excellent', B: 'Good', C: 'Fair', D: 'Poor' },
+        metrics: {
+            SEEING: 'SEEING',
+            TRANSPARENCY: 'TRANSPARENCY',
+            CLOUD: 'CLOUD',
+            WIND: 'WIND',
+            JET_STREAM: 'JET STREAM',
+            CONVECTION: 'CONVECTION',
+        },
+        modalTitles: {
+            seeing: 'Astronomical Seeing',
+            transparency: 'Sky Transparency',
+            cloud: 'Cloud Cover',
+            wind: 'Surface Wind',
+            jetStream: 'Jet Stream (250hPa)',
+            convection: 'Atmospheric Convection',
+        },
+        modalDescs: {
+            seeing: 'Atmospheric turbulence measurement. Lower = more stable air, sharper images. Scale: 0 (perfect) to 8 (severe turbulence).',
+            transparency: 'Atmospheric clarity for deep-sky objects. Lower = clearer sky, better contrast. Scale: 0 (crystal clear) to 8 (hazy).',
+            cloud: 'Sky obstruction by clouds. Lower = clearer viewing windows. Scale: 0 (cloudless) to 8 (overcast).',
+            wind: 'Ground-level wind affecting telescope stability. Lower = calmer conditions. Scale: 0 (calm) to 8 (strong gusts).',
+            jetStream: 'High-altitude winds causing upper-atmosphere turbulence. Lower = less high-altitude distortion. Measured at ~10km altitude.',
+            convection: 'Vertical air instability (CAPE). Lower = more stable atmosphere, less thermal distortion.',
+        },
+    },
+    forecastList: {
+        title: 'Forecast Timeline',
+        subtitle: '3-hour intervals',
+        datapoints: 'datapoints',
+        live: 'Live',
+        see: 'SEE',
+    },
+    aiPrediction: {
+        warpInsight: 'Warp Insight',
+        ensembleVersion: 'Ensemble v2.0',
+        warpScan: 'Warp Scan',
+        warpMessages: [
+            'Warping through atmospheric layers...',
+            'Bending spacetime for better seeing...',
+            'Scanning turbulence at light speed...',
+            'Charging flux capacitor...',
+            'Engaging hyperdrive analysis...',
+            'Quantum-tunneling through cloud data...',
+        ],
+        uspComments: {
+            exceptional: 'Exceptional atmospheric stability. Perfect for high-resolution planetary imaging.',
+            good: 'Steady air detected. Ideal for deep-sky observation and most imaging targets.',
+            poor: 'Boundary layer turbulence detected. Low-power wide-field observation recommended.',
+        },
+    },
+    moonPhase: {
+        tabs: { moon: 'Moon Phase', sun: 'Sun Times', optimal: 'Best Time' },
+        illumination: 'Illumination',
+        rise: 'Rise',
+        set: 'Set',
+        alwaysUp: 'Always Up',
+        alwaysDown: 'Always Down',
+        duration: 'Duration',
+        observationWindow: 'Observation Window',
+        darkWindow: 'Dark window',
+        noWindow: 'No suitable dark window tonight',
+    },
+    footer: {
+        feedback: 'Feedback or bugs? Send them to',
+    },
+};
+
+export default en;
+export type Translations = typeof en;

@@ -2,12 +2,14 @@ import React from 'react';
 import { Eye, Cloud, Wind, Droplets, Plane, ThermometerSun, ChevronRight } from 'lucide-react';
 import InfoModal from './InfoModal';
 import type { ForecastItem } from '../types/weather';
+import useI18n from '../hooks/useI18n';
 
 interface SeeingProps {
     data: ForecastItem;
 }
 
 const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
+    const t = useI18n();
     const [selectedMetric, setSelectedMetric] = React.useState<{ title: string; desc: string; ranges?: any[] } | null>(null);
     const scores = data.scores;
 
@@ -28,13 +30,10 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
     }, []);
 
     const getGradeLabel = (grade: string) => {
-        switch (grade) {
-            case 'S': return 'Exceptional';
-            case 'A': return 'Excellent';
-            case 'B': return 'Good';
-            case 'C': return 'Fair';
-            default: return 'Poor';
-        }
+        const map: Record<string, keyof typeof t.seeingDetails.grades> = {
+            S: 'S', A: 'A', B: 'B', C: 'C',
+        };
+        return t.seeingDetails.grades[map[grade] || 'D'];
     };
 
     const scoreColor = getScoreColor(data.score);
@@ -42,79 +41,79 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
 
     const metrics = React.useMemo(() => [
         {
-            key: 'seeing', label: 'SEEING', value: scores.seeing,
+            key: 'seeing', label: t.seeingDetails.metrics.SEEING, value: scores.seeing,
             icon: <Eye className="w-5 h-5" />,
             modal: {
-                title: "Astronomical Seeing",
-                desc: "Atmospheric turbulence measurement. Lower = more stable air, sharper images. Scale: 0 (perfect) to 8 (severe turbulence).",
+                title: t.seeingDetails.modalTitles.seeing,
+                desc: t.seeingDetails.modalDescs.seeing,
                 ranges: [
-                    { label: "0-2 (Excellent)", value: "Sub-arcsecond, stable" },
-                    { label: "3-5 (Average)", value: "Moderate turbulence" },
-                    { label: "6-8 (Poor)", value: "Severe turbulence" }
+                    { label: "0-2", value: t.seeingDetails.grades.S },
+                    { label: "3-5", value: t.seeingDetails.grades.C },
+                    { label: "6-8", value: t.seeingDetails.grades.D }
                 ]
             }
         },
         {
-            key: 'transparency', label: 'TRANSPARENCY', value: scores.transparency,
+            key: 'transparency', label: t.seeingDetails.metrics.TRANSPARENCY, value: scores.transparency,
             icon: <Droplets className="w-5 h-5" />,
             modal: {
-                title: "Sky Transparency",
-                desc: "Atmospheric clarity for deep-sky objects. Lower = clearer sky, better contrast. Scale: 0 (crystal clear) to 8 (hazy).",
+                title: t.seeingDetails.modalTitles.transparency,
+                desc: t.seeingDetails.modalDescs.transparency,
                 ranges: [
-                    { label: "0-2 (Clear)", value: "High contrast" },
-                    { label: "6-8 (Hazy)", value: "Low visibility" }
+                    { label: "0-2", value: t.seeingDetails.grades.A },
+                    { label: "6-8", value: t.seeingDetails.grades.D }
                 ]
             }
         },
         {
-            key: 'cloudCover', label: 'CLOUD', value: scores.cloudCover,
+            key: 'cloudCover', label: t.seeingDetails.metrics.CLOUD, value: scores.cloudCover,
             icon: <Cloud className="w-5 h-5" />,
             modal: {
-                title: "Cloud Cover",
-                desc: "Sky obstruction by clouds. Lower = clearer viewing windows. Scale: 0 (cloudless) to 8 (overcast).",
+                title: t.seeingDetails.modalTitles.cloud,
+                desc: t.seeingDetails.modalDescs.cloud,
                 ranges: [
-                    { label: "0 (Clear)", value: "~0% coverage" },
-                    { label: "8 (Overcast)", value: "~100% coverage" }
+                    { label: "0", value: "~0%" },
+                    { label: "8", value: "~100%" }
                 ]
             }
         },
         {
-            key: 'wind', label: 'WIND', value: scores.wind,
+            key: 'wind', label: t.seeingDetails.metrics.WIND, value: scores.wind,
             icon: <Wind className="w-5 h-5" />,
             modal: {
-                title: "Surface Wind",
-                desc: "Ground-level wind affecting telescope stability. Lower = calmer conditions. Scale: 0 (calm) to 8 (strong gusts).",
+                title: t.seeingDetails.modalTitles.wind,
+                desc: t.seeingDetails.modalDescs.wind,
                 ranges: [
-                    { label: "0 (Calm)", value: "< 2 m/s" },
-                    { label: "8 (Strong)", value: "> 12 m/s" }
+                    { label: "0", value: "< 2 m/s" },
+                    { label: "8", value: "> 12 m/s" }
                 ]
             }
         },
         {
-            key: 'jetStream', label: 'JET STREAM', value: scores.jetStream,
+            key: 'jetStream', label: t.seeingDetails.metrics.JET_STREAM, value: scores.jetStream,
             icon: <Plane className="w-5 h-5 rotate-45" />,
             modal: {
-                title: "Jet Stream (250hPa)",
-                desc: "High-altitude winds causing upper-atmosphere turbulence. Lower = less high-altitude distortion. Measured at ~10km altitude.",
+                title: t.seeingDetails.modalTitles.jetStream,
+                desc: t.seeingDetails.modalDescs.jetStream,
                 ranges: [
-                    { label: "0 (Calm)", value: "< 50 kt" },
-                    { label: "8 (Strong)", value: "> 150 kt" }
+                    { label: "0", value: "< 50 kt" },
+                    { label: "8", value: "> 150 kt" }
                 ]
             }
         },
         {
-            key: 'convection', label: 'CONVECTION', value: scores.convection,
+            key: 'convection', label: t.seeingDetails.metrics.CONVECTION, value: scores.convection,
             icon: <ThermometerSun className="w-5 h-5" />,
             modal: {
-                title: "Atmospheric Convection",
-                desc: "Vertical air instability (CAPE). Lower = more stable atmosphere, less thermal distortion.",
+                title: t.seeingDetails.modalTitles.convection,
+                desc: t.seeingDetails.modalDescs.convection,
                 ranges: [
-                    { label: "0 (Stable)", value: "Low CAPE" },
-                    { label: "8 (Unstable)", value: "High CAPE" }
+                    { label: "0", value: "Low CAPE" },
+                    { label: "8", value: "High CAPE" }
                 ]
             }
         }
-    ], [scores]);
+    ], [scores, t]);
 
     return (
         <>
@@ -123,13 +122,13 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                 <div className="flex flex-col items-center mb-8">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: scoreColor }} />
-                        <span className="text-sm font-data uppercase tracking-[0.2em] text-[var(--text-bright)] font-semibold">
-                            Observation Quality
+                        <span className="text-sm lg:text-base font-data uppercase tracking-[0.2em] text-[var(--text-bright)] font-semibold">
+                            {t.seeingDetails.title}
                         </span>
                     </div>
 
                     {/* Circular Score Gauge */}
-                    <div className="relative w-52 h-52 mb-5">
+                    <div className="relative w-52 h-52 lg:w-64 lg:h-64 mb-5">
                         <svg viewBox="-14 -14 148 148" className="w-full h-full -rotate-90">
                             {/* Outer decorative ring */}
                             <circle
@@ -159,12 +158,12 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                             <span
-                                className="text-5xl font-data font-bold tracking-tight"
+                                className="text-5xl lg:text-6xl font-data font-bold tracking-tight"
                                 style={{ color: scoreColor, textShadow: `0 0 30px ${scoreColor}50` }}
                             >
                                 {data.score}
                             </span>
-                            <span className="text-xs font-data text-[var(--text-tertiary)] tracking-wider">/ 100</span>
+                            <span className="text-xs lg:text-sm font-data text-[var(--text-tertiary)] tracking-wider">/ 100</span>
                         </div>
                     </div>
 
@@ -177,16 +176,16 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                         }}
                     >
                         <span
-                            className="text-xl font-bold font-data"
+                            className="text-xl lg:text-2xl font-bold font-data"
                             style={{ color: scoreColor }}
                         >
                             {data.grade}
                         </span>
-                        <span className="text-sm text-[var(--text-secondary)]">{getGradeLabel(data.grade)}</span>
+                        <span className="text-sm lg:text-base text-[var(--text-secondary)]">{getGradeLabel(data.grade)}</span>
                     </div>
 
                     {data.recommendation && (
-                        <p className="text-[15px] text-[var(--text-secondary)] text-center mt-4 max-w-sm leading-relaxed px-4">
+                        <p className="text-[15px] lg:text-base text-[var(--text-secondary)] text-center mt-4 max-w-sm lg:max-w-lg leading-relaxed px-4">
                             {data.recommendation}
                         </p>
                     )}
@@ -212,13 +211,13 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                                     {metric.icon}
                                 </div>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-xl sm:text-2xl font-data font-bold" style={{ color }}>
+                                    <span className="text-xl sm:text-2xl lg:text-3xl font-data font-bold" style={{ color }}>
                                         {metric.value}
                                     </span>
                                     <span className="text-xs font-data text-[var(--text-tertiary)]">/8</span>
                                 </div>
                                 <div className="flex items-center gap-1 min-w-0">
-                                    <span className="text-[10px] sm:text-xs text-[var(--text-secondary)] uppercase tracking-wider font-semibold truncate">
+                                    <span className="text-[10px] sm:text-xs lg:text-sm text-[var(--text-secondary)] uppercase tracking-wider font-semibold truncate">
                                         {metric.label}
                                     </span>
                                     <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -228,29 +227,29 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                     })}
                 </div>
 
-                {/* Environment Bar — responsive spacing */}
+                {/* Environment Bar */}
                 <div className="flex items-center justify-around glass-card-inner p-3 sm:p-4 rounded-xl">
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
                         <Droplets className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-blue-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Humidity</span>
-                            <span className="font-data text-sm sm:text-base font-semibold text-blue-300">{data.rh2m}%</span>
+                            <span className="text-[10px] sm:text-[11px] lg:text-xs uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.humidity}</span>
+                            <span className="font-data text-sm sm:text-base lg:text-lg font-semibold text-blue-300">{data.rh2m}%</span>
                         </div>
                     </div>
                     <div className="w-px h-8 sm:h-10 bg-[var(--glass-border)]" />
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
                         <ThermometerSun className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-amber-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Temp</span>
-                            <span className="font-data text-sm sm:text-base font-semibold text-amber-300">{data.temp2m}°C</span>
+                            <span className="text-[10px] sm:text-[11px] lg:text-xs uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.temp}</span>
+                            <span className="font-data text-sm sm:text-base lg:text-lg font-semibold text-amber-300">{data.temp2m}°C</span>
                         </div>
                     </div>
                     <div className="w-px h-8 sm:h-10 bg-[var(--glass-border)]" />
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
                         <Wind className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] font-medium">Wind</span>
-                            <span className="font-data text-sm sm:text-base font-semibold text-cyan-300">{data.wind10m.speed}<span className="text-[10px] sm:text-[11px] text-[var(--text-tertiary)]"> m/s</span></span>
+                            <span className="text-[10px] sm:text-[11px] lg:text-xs uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.wind}</span>
+                            <span className="font-data text-sm sm:text-base lg:text-lg font-semibold text-cyan-300">{data.wind10m.speed}<span className="text-[10px] sm:text-[11px] text-[var(--text-tertiary)]"> m/s</span></span>
                         </div>
                     </div>
                 </div>

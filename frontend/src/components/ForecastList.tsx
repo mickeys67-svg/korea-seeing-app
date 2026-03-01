@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ForecastItem } from '../types/weather';
+import useI18n from '../hooks/useI18n';
 
 interface ForecastListProps {
     forecast: ForecastItem[];
@@ -7,6 +8,7 @@ interface ForecastListProps {
 }
 
 const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone }) => {
+    const t = useI18n();
     const formatTime = (isoString: string) => {
         const date = new Date(isoString);
         const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -38,16 +40,16 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone }) => {
         <div className="glass-card w-full p-5 sm:p-6 mt-6 animate-fade-in-up delay-2" style={{ animationFillMode: 'backwards' }}>
             <div className="flex justify-between items-center mb-5">
                 <div>
-                    <h3 className="text-xl font-bold text-[var(--text-bright)]">
-                        Forecast Timeline
+                    <h3 className="text-xl lg:text-2xl font-bold text-[var(--text-bright)]">
+                        {t.forecastList.title}
                     </h3>
-                    <p className="text-xs font-data text-[var(--text-tertiary)] uppercase tracking-wider mt-0.5">
-                        3-hour intervals &middot; {forecast.length} datapoints
+                    <p className="text-xs lg:text-sm font-data text-[var(--text-tertiary)] uppercase tracking-wider mt-0.5">
+                        {t.forecastList.subtitle} &middot; {forecast.length} {t.forecastList.datapoints}
                     </p>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-surface)] border border-[var(--glass-border)]">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[11px] font-data text-emerald-400 uppercase tracking-wider font-medium">Live</span>
+                    <span className="text-[11px] lg:text-xs font-data text-emerald-400 uppercase tracking-wider font-medium">{t.forecastList.live}</span>
                 </div>
             </div>
 
@@ -85,7 +87,7 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone }) => {
                             {/* Seeing micro-bar */}
                             <div className="w-full mt-2 space-y-1">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[10px] text-[var(--text-tertiary)] uppercase font-medium">See</span>
+                                    <span className="text-[10px] text-[var(--text-tertiary)] uppercase font-medium">{t.forecastList.see}</span>
                                     <span className="text-[11px] font-data font-bold" style={{ color: seeingColor }}>{s.toFixed(1)}</span>
                                 </div>
                                 <div className="w-full h-[3px] bg-white/5 rounded-full overflow-hidden">

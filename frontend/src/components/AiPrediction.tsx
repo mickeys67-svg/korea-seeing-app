@@ -6,6 +6,7 @@ import type { ForecastItem } from '../types/weather';
 import TimeSlider from './TimeSlider';
 import PredictionCard from './PredictionCard';
 import LiveClock from './LiveClock';
+import useI18n from '../hooks/useI18n';
 
 interface Props {
     forecastList: ForecastItem[];
@@ -13,16 +14,8 @@ interface Props {
     aiSummary?: string | null;
 }
 
-const WARP_MESSAGES = [
-    "Warping through atmospheric layers...",
-    "Bending spacetime for better seeing...",
-    "Scanning turbulence at light speed...",
-    "Charging flux capacitor...",
-    "Engaging hyperdrive analysis...",
-    "Quantum-tunneling through cloud data...",
-];
-
 const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) => {
+    const t = useI18n();
     const resolvedTz = (timezone && timezone !== 'UTC' && timezone !== 'GMT')
         ? timezone
         : Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -30,7 +23,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
     const [loading, setLoading] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [showInfo, setShowInfo] = useState(false);
-    const [loadingMsg, setLoadingMsg] = useState(WARP_MESSAGES[0]);
+    const [loadingMsg, setLoadingMsg] = useState(t.aiPrediction.warpMessages[0]);
 
     const availableForecasts = forecastList.slice(0, 9);
     const selectedForecast = availableForecasts[selectedIndex] || availableForecasts[0];
@@ -40,7 +33,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
 
         setLoading(true);
         setPrediction(null);
-        setLoadingMsg(WARP_MESSAGES[Math.floor(Math.random() * WARP_MESSAGES.length)]);
+        setLoadingMsg(t.aiPrediction.warpMessages[Math.floor(Math.random() * t.aiPrediction.warpMessages.length)]);
 
         setTimeout(() => {
             const result = predictSeeing({
@@ -55,11 +48,11 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
                 result.probability = selectedForecast.usp.score * 10;
 
                 if (selectedForecast.usp.score >= 8.0) {
-                    result.comment = "Exceptional atmospheric stability. Perfect for high-resolution planetary imaging.";
+                    result.comment = t.aiPrediction.uspComments.exceptional;
                 } else if (selectedForecast.usp.score >= 6.5) {
-                    result.comment = "Steady air detected. Ideal for deep-sky observation and most imaging targets.";
+                    result.comment = t.aiPrediction.uspComments.good;
                 } else {
-                    result.comment = "Boundary layer turbulence detected. Low-power wide-field observation recommended.";
+                    result.comment = t.aiPrediction.uspComments.poor;
                 }
             }
 
@@ -132,7 +125,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
                     <div className="glass-card-inner p-5 flex gap-3 items-start border-l-2 border-[var(--warp-purple)]">
                         <Zap className="w-5 h-5 text-[var(--warp-purple)] shrink-0 mt-0.5" />
                         <div>
-                            <span className="text-sm font-data uppercase tracking-[0.15em] text-[var(--warp-purple)] block mb-1.5 font-bold">Warp Insight</span>
+                            <span className="text-sm font-data uppercase tracking-[0.15em] text-[var(--warp-purple)] block mb-1.5 font-bold">{t.aiPrediction.warpInsight}</span>
                             <p className="text-[15px] text-[var(--text-secondary)] leading-relaxed">
                                 {aiSummary}
                             </p>
@@ -160,7 +153,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
                             <Info className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--warp-purple)] transition-colors" />
                         </div>
                         <span className="text-xs font-data text-[var(--text-tertiary)] uppercase tracking-[0.15em]">
-                            Ensemble v2.0
+                            {t.aiPrediction.ensembleVersion}
                         </span>
                     </div>
                 </button>
@@ -169,7 +162,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
                     <LiveClock timezone={resolvedTz} />
                     {selectedForecast.usp && (
                         <div className="flex items-center gap-1.5 text-xs font-data text-[var(--text-tertiary)]">
-                            <span>Confidence:</span>
+                            <span>{t.common.confidence}:</span>
                             <span className="font-bold" style={{ color: selectedForecast.usp.confidence > 80 ? 'var(--seeing-exceptional)' : 'var(--seeing-fair)' }}>
                                 {selectedForecast.usp.confidence}%
                             </span>
@@ -201,7 +194,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             style={{ background: 'linear-gradient(135deg, var(--warp-pink), var(--accent-dim), var(--warp-purple))' }} />
                         <Rocket className="w-5 h-5 relative z-10" />
-                        <span className="relative z-10">Warp Scan</span>
+                        <span className="relative z-10">{t.aiPrediction.warpScan}</span>
                         <Sparkles className="w-4 h-4 relative z-10 opacity-70" />
                     </button>
                     <p className="text-xs text-[var(--text-tertiary)] mt-3 font-data uppercase tracking-[0.12em]">

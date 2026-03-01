@@ -1,0 +1,88 @@
+import type { Translations } from './en';
+
+const ko: Translations = {
+    common: {
+        live: '실시간',
+        loading: '데이터 수신 중',
+        gpsLocation: 'GPS 현재 위치',
+        defaultCity: '서울, 대한민국',
+        humidity: '습도',
+        temp: '기온',
+        wind: '바람',
+        confidence: '신뢰도',
+    },
+    gpsBanner: {
+        title: '위치 접근 불가',
+        message: '— 서울 기본값으로 표시 중. 정확한 로컬 예보를 보려면 위치를 선택하세요.',
+    },
+    seeingDetails: {
+        title: '관측 품질',
+        grades: { S: '최상', A: '우수', B: '양호', C: '보통', D: '불량' },
+        metrics: {
+            SEEING: '시잉',
+            TRANSPARENCY: '투명도',
+            CLOUD: '구름',
+            WIND: '바람',
+            JET_STREAM: '제트기류',
+            CONVECTION: '대기대류',
+        },
+        modalTitles: {
+            seeing: '천문 시잉',
+            transparency: '하늘 투명도',
+            cloud: '구름 덮임',
+            wind: '지상 풍속',
+            jetStream: '제트기류 (250hPa)',
+            convection: '대기 대류',
+        },
+        modalDescs: {
+            seeing: '대기 난류 측정값. 낮을수록 대기가 안정적이고 별상이 선명합니다. 0(최상) ~ 8(심한 난류).',
+            transparency: '심우주 천체 관측의 대기 투명도. 낮을수록 하늘이 맑고 대비가 좋습니다. 0(맑음) ~ 8(흐림).',
+            cloud: '구름에 의한 하늘 가림. 낮을수록 관측 가능 시간이 많습니다. 0(구름 없음) ~ 8(완전 흐림).',
+            wind: '망원경 안정성에 영향을 주는 지상 풍속. 낮을수록 좋습니다. 0(무풍) ~ 8(강풍).',
+            jetStream: '고고도 난류를 유발하는 상층 기류. 낮을수록 고고도 왜곡이 적습니다. 고도 약 10km 기준.',
+            convection: '수직 대기 불안정도(CAPE). 낮을수록 대기가 안정적이고 열 왜곡이 적습니다.',
+        },
+    },
+    forecastList: {
+        title: '예보 타임라인',
+        subtitle: '3시간 간격',
+        datapoints: '데이터 포인트',
+        live: '실시간',
+        see: '시잉',
+    },
+    aiPrediction: {
+        warpInsight: '워프 인사이트',
+        ensembleVersion: '앙상블 v2.0',
+        warpScan: '워프 스캔',
+        warpMessages: [
+            '대기층을 워프 항법으로 탐색 중...',
+            '더 나은 시잉을 위해 시공간 조정 중...',
+            '광속으로 난류 스캔 중...',
+            '플럭스 커패시터 충전 중...',
+            '하이퍼드라이브 분석 가동 중...',
+            '구름 데이터를 양자 터널링으로 분석 중...',
+        ],
+        uspComments: {
+            exceptional: '대기 안정도 최상. 고해상도 행성 촬영에 완벽한 조건입니다.',
+            good: '안정적인 대기 감지됨. 심우주 관측 및 대부분의 촬영 대상에 이상적입니다.',
+            poor: '경계층 난류 감지됨. 저배율 광시야 관측을 권장합니다.',
+        },
+    },
+    moonPhase: {
+        tabs: { moon: '달 위상', sun: '일출/일몰', optimal: '최적 시간' },
+        illumination: '조명률',
+        rise: '출',
+        set: '몰',
+        alwaysUp: '항상 떠 있음',
+        alwaysDown: '항상 아래 있음',
+        duration: '지속 시간',
+        observationWindow: '관측 가능 시간',
+        darkWindow: '어두운 시간대',
+        noWindow: '오늘 밤 적합한 어두운 시간대 없음',
+    },
+    footer: {
+        feedback: '피드백이나 버그는 여기로',
+    },
+};
+
+export default ko;
