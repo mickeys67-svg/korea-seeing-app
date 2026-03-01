@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Rocket, Info, Zap } from 'lucide-react';
 import ModelInfoModal from './ModelInfoModal';
 import { predictSeeing } from '../utils/aiService';
-import type { ForecastItem } from '../types/weather';
+import type { ForecastItem, AstronomyDay } from '../types/weather';
 import TimeSlider from './TimeSlider';
 import PredictionCard from './PredictionCard';
 import LiveClock from './LiveClock';
@@ -12,21 +12,48 @@ interface Props {
     forecastList: ForecastItem[];
     timezone?: string;
     aiSummary?: string | null;
+    astronomy?: AstronomyDay[];
 }
 
-const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) => {
+// 슬롯 시간이 밤인지 판별 (실제 sunrise/sunset 기반)
+function isNightSlot(isoString: string, astronomy: AstronomyDay[] | undefined, tz: string): boolean {
+    const slotTime = new Date(isoString);
+    if (astronomy?.length) {
+        const localDateStr = slotTime.toLocaleDateString('en-CA', { timeZone: tz });
+        const matchDay = astronomy.find(d => d.date === localDateStr);
+        if (matchDay?.sun?.sunrise && matchDay?.sun?.sunset) {
+            return slotTime < new Date(matchDay.sun.sunrise as string) || slotTime > new Date(matchDay.sun.sunset as string);
+        }
+    }
+    // fallback
+    const hour = parseInt(slotTime.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
+    return hour < 6 || hour > 18;
+}
+
+const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astronomy }) => {
     const t = useI18n();
     const resolvedTz = (timezone && timezone !== 'UTC' && timezone !== 'GMT')
         ? timezone
         : Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const availableForecasts = forecastList.slice(0, 9);
+
+    // 슬롯별 밤/낮 플래그
+    const nightFlags = availableForecasts.map(f => isNightSlot(f.time, astronomy, resolvedTz));
+
+    // 초기 선택: 첫 번째 밤 슬롯 (없으면 0)
+    const [selectedIndex, setSelectedIndex] = useState(() => {
+        const firstNight = nightFlags.findIndex(n => n);
+        return firstNight >= 0 ? firstNight : 0;
+    });
+
     const [prediction, setPrediction] = useState<{ probability: number; comment: string } | null>(null);
     const [loading, setLoading] = useState(false);
-    const [selectedIndex, setSelectedIndex] = useState(0);
     const [showInfo, setShowInfo] = useState(false);
     const [loadingMsg, setLoadingMsg] = useState(t.aiPrediction.warpMessages[0]);
 
-    const availableForecasts = forecastList.slice(0, 9);
     const selectedForecast = availableForecasts[selectedIndex] || availableForecasts[0];
+    const isCurrentDaytime = !nightFlags[selectedIndex];
 
     const handlePredict = () => {
         if (!selectedForecast) return;
@@ -179,6 +206,32 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
                 startLabel="Now"
                 targetTimeLabel={targetTimeLabel}
             />
+
+            {/* 슬롯별 낮/밤 도트 인디케이터 */}
+            <div className="flex justify-center gap-1.5 -mt-3 mb-4 relative z-10">
+                {availableForecasts.map((_, i) => (
+                    <button
+                        key={i}
+                        onClick={() => { setSelectedIndex(i); setPrediction(null); }}
+                        className={`rounded-full transition-all duration-200 ${
+                            i === selectedIndex
+                                ? 'w-3.5 h-3.5 ring-2 ring-offset-1 ring-offset-transparent ' + (nightFlags[i] ? 'bg-indigo-400 ring-indigo-400' : 'bg-amber-400 ring-amber-400')
+                                : 'w-2 h-2 ' + (nightFlags[i] ? 'bg-indigo-400/40 hover:bg-indigo-400/70' : 'bg-amber-400/40 hover:bg-amber-400/70')
+                        }`}
+                        title={nightFlags[i] ? '밤' : '낮'}
+                    />
+                ))}
+            </div>
+
+            {/* 낮 시간 선택 경고 */}
+            {isCurrentDaytime && (
+                <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/20 relative z-10">
+                    <span className="text-base">☀️</span>
+                    <p className="text-xs text-amber-400/80">
+                        {t.common.daytime} — {t.common.daytimeDesc}
+                    </p>
+                </div>
+            )}
 
             {/* Warp Scan Button */}
             {!prediction && !loading && (

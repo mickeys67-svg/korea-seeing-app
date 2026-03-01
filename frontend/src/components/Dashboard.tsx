@@ -147,6 +147,7 @@ const Dashboard: React.FC = () => {
                     forecastList={data.forecast}
                     timezone={data.location.timezone}
                     aiSummary={data.aiSummary}
+                    astronomy={data.astronomy}
                 />
             )}
 
