@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://clearsky.kr/sitemap.xml
+Sitemap: https://www.clearsky.kr/sitemap.xml
