@@ -276,6 +276,22 @@
   animation: glitchFlicker 4s ease-in-out infinite;
 }
 
+/* ========== InfoPanel Celestial Effects ========== */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.12; transform: scale(0.8); }
+  50% { opacity: 0.9; transform: scale(1.15); }
+}
+
+@keyframes nebula-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.4; transform: scale(1.08) rotate(2deg); }
+}
+
+@keyframes constellation-fade {
+  0% { opacity: 0; stroke-dashoffset: 60; }
+  100% { opacity: 0.2; stroke-dashoffset: 0; }
+}
+
 /* ========== Dot Grid Background Pattern ========== */
 .bg-dot-pattern {
   background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);

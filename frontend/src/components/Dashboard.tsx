@@ -4,7 +4,8 @@ import MoonPhase from './MoonPhase';
 import NotificationSetup from './NotificationSetup';
 import AiPrediction from './AiPrediction';
 import ForecastList from './ForecastList';
-import { Loader2, MapPin, Radio, X } from 'lucide-react';
+import InfoPanel from './InfoPanel';
+import { Loader2, MapPin, Radio, X, Sparkles } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useWeatherData from '../hooks/useWeatherData';
 import useI18n from '../hooks/useI18n';
@@ -13,6 +14,7 @@ const Dashboard: React.FC = () => {
     const location = useGeolocation();
     const t = useI18n();
     const [gpsBannerDismissed, setGpsBannerDismissed] = React.useState(false);
+    const [infoPanelOpen, setInfoPanelOpen] = React.useState(false);
     const defaultLat = 37.5665;
     const defaultLon = 126.9780;
 
@@ -85,9 +87,24 @@ const Dashboard: React.FC = () => {
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[var(--bg-void)]" />
                     </div>
                     <div>
-                        <h1 className="text-xl lg:text-2xl font-bold text-[var(--text-bright)] tracking-tight">
-                            Clear Skies <span className="text-[var(--accent)]">!</span>
-                        </h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl lg:text-2xl font-bold text-[var(--text-bright)] tracking-tight">
+                                Clear Skies <span className="text-[var(--accent)]">!</span>
+                            </h1>
+                            {/* Info / Release Notes 버튼 */}
+                            <button
+                                onClick={() => setInfoPanelOpen(true)}
+                                className="w-6 h-6 rounded-md flex items-center justify-center transition-all hover:scale-110"
+                                style={{
+                                    background: 'color-mix(in srgb, var(--warp-purple) 12%, transparent)',
+                                    border: '1px solid color-mix(in srgb, var(--warp-purple) 25%, transparent)',
+                                    color: 'var(--warp-purple)',
+                                }}
+                                title="업데이트 & 앱 안내"
+                            >
+                                <Sparkles className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                         <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs lg:text-sm">
                             <MapPin className="w-3 h-3" />
                             <span className="truncate max-w-[200px]">
@@ -155,6 +172,9 @@ const Dashboard: React.FC = () => {
             {data.astronomy && <MoonPhase data={data.astronomy} timezone={data.location.timezone} />}
 
             <NotificationSetup />
+
+            {/* Info Panel */}
+            <InfoPanel isOpen={infoPanelOpen} onClose={() => setInfoPanelOpen(false)} />
 
             {/* SEO */}
             <div className="sr-only" aria-hidden="true">
