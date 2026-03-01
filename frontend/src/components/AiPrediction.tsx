@@ -6,17 +6,15 @@ import type { ForecastItem } from '../types/weather';
 import TimeSlider from './TimeSlider';
 import PredictionCard from './PredictionCard';
 import LiveClock from './LiveClock';
-import TargetPredictionGrid from './TargetPredictionGrid';
 import useI18n from '../hooks/useI18n';
 
 interface Props {
     forecastList: ForecastItem[];
     timezone?: string;
     aiSummary?: string | null;
-    moonFraction?: number;
 }
 
-const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, moonFraction = 0.5 }) => {
+const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) => {
     const t = useI18n();
     const resolvedTz = (timezone && timezone !== 'UTC' && timezone !== 'GMT')
         ? timezone
@@ -135,12 +133,6 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, moon
                     </div>
                 </div>
             )}
-
-            {/* Target Suitability Grid — always visible, updates with time slider */}
-            <TargetPredictionGrid
-                forecast={selectedForecast}
-                moonFraction={moonFraction}
-            />
 
             {/* Header */}
             <div className="flex flex-col items-center mb-6 relative z-10">

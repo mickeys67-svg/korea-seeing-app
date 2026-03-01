@@ -19,178 +19,266 @@ interface TargetModel {
     emoji: string;
     /**
      * How sensitive this target is to moonlight.
-     *   0        = immune (planets — visible even under full moon)
-     *   0 < s < 1 = linear penalty: moonMult = 1 - fraction * s
-     *   s ≥ 1    = exponential gate:  moonMult = (1 - fraction)^(s * 2)
+     *   0        = immune
+     *   0 < s < 1 = linear penalty: moonMult = 1 – fraction × s
+     *   s ≥ 1    = exponential gate: moonMult = (1 – fraction)^(s × 2)
      */
     moonSensitivity: number;
     /** Factor weights — each row MUST sum to 1.0 */
     weights: Record<string, number>;
     /**
-     * Exponential decay constant k per factor: quality = exp(-val * k)
-     * Factor input: 0 (perfect) → 8 (worst)
-     * Factor output: 1.0 (perfect) → ~0 (terrible)
+     * Exponential decay constant k per factor: quality = exp(–val × k)
+     * Input: 0 (perfect) → 8 (worst). Output: 1.0 → ~0.
      *
-     * Calibration reference:
-     *   k=0.40, val=1 → 0.67   k=0.40, val=4 → 0.20
-     *   k=0.55, val=1 → 0.58   k=0.55, val=4 → 0.11  (cloud punished hard)
-     *   k=0.35, val=3 → 0.35   k=0.50, val=3 → 0.22
+     * Quick reference:
+     *   k=0.30, val=2 → 0.549   k=0.40, val=2 → 0.449   k=0.55, val=2 → 0.333
+     *   k=0.30, val=4 → 0.301   k=0.40, val=4 → 0.202   k=0.55, val=4 → 0.111
+     *   k=0.38, val=4 → 0.217   k=0.58, val=3 → 0.174   k=0.28, val=4 → 0.329
      */
     sensitivity: Record<string, number>;
 }
 
 /**
  * ─────────────────────────────────────────────────────────────────────
- *  Five physics-calibrated target models.
+ *  Five physics-calibrated target models  —  v4.0  (World Standard)
  *
- *  Data source scales (from backend scoringService.js):
- *   • seeing / transparency: 0-8 continuous (0 = perfect)
- *   • cloudCover: 0-8 linear (0 % → 0, 100 % → 8)
- *   • wind: 0-8 based on surface wind speed
- *   • jetStream: DISCRETE {0,2,4,6,8} based on 250 hPa wind speed
- *       0 = <50 kt (<25.7 m/s)   excellent planetary seeing
- *       2 = 50-80 kt             borderline for high magnification
- *       4 = 80-120 kt            poor planetary, routine for DSO
- *       6 = 120-150 kt           very poor
- *       8 = >150 kt              extreme (rare)
- *   • convection: DISCRETE {0,2,4,6,8} from CAPE (J/kg) + time factor
- *       0 = CAPE <100            excellent stability
- *       2 = 100-500 J/kg         mild (×0.7 at night → often stays low)
- *       4 = 500-1000 J/kg        moderate evening convection
- *       6 = 1000-2000 J/kg       strong (thunderstorm risk)
- *       8 = >2000 J/kg           severe
+ *  Backend input scales (scoringService.js):
+ *   • seeing / transparency : 0-8 continuous  (0 = perfect)
+ *   • cloudCover            : 0-8 linear      (0 % → 0, 100 % → 8)
+ *   • wind                  : 0-8 surface wind speed proxy
+ *   • jetStream             : DISCRETE {0, 2, 4, 6, 8} from 250 hPa wind
+ *       0 = < 50 kt   excellent planetary seeing
+ *       2 = 50-80 kt  borderline for high-magnification work
+ *       4 = 80-120 kt poor planetary; Korea winter typical
+ *       6 = 120-150 kt very poor
+ *       8 = > 150 kt  extreme (rare)
+ *   • convection            : DISCRETE {0, 2, 4, 6, 8} from CAPE (J/kg)
+ *       0 = < 100     excellent stability
+ *       2 = 100-500   mild (× 0.7 at night → often stays low)
+ *       4 = 500-1000  moderate evening convection
+ *       6 = 1000-2000 strong (thunderstorm risk)
+ *       8 = > 2000    severe
  *
- *  Calibrated against:
- *   • Sky & Telescope observing conditions and planetary imaging guides
- *   • Astronomical League / IDA dark-sky standards (Bortle scale)
- *   • Cloudy Nights forum (planetary imaging expert consensus)
- *   • Damian Peach / Christopher Go planetary jet-stream sensitivity studies
- *   • IDA Milky Way photography and dark-sky measurement standards
- *   • Optolong, IDAS, Antlia narrowband filter specs (nebula moon tolerance)
+ *  Global reference sources  (v4.0 calibration):
+ *   • Damian Peach / Christopher Go / Christoph Pellier planetary studies
+ *     — jet stream at 250 hPa is as critical as local seeing for high-mag work
+ *     — tropical latitude advantage: jet stream absent below ~25° N
+ *   • ESO Paranal site survey & DIMM seeing statistics
+ *     — median FWHM 0.66", τ₀ 3.5 ms → calibration anchor for k values
+ *   • IDA / Unihedron SQM Bortle-scale dark-sky standards
+ *     — sky brightness (transparency) is THE primary Milky Way / galaxy factor
+ *   • Cloudy Nights expert consensus (planetary imaging forum)
+ *     — jet-stream threshold: < 80 kt for serious planetary work
+ *   • Adam Block / Ken Crawford / Rogelio Bernal Andreo galaxy imaging notes
+ *     — typical galaxy FL 500-1500 mm → jet stream affects resolution
+ *   • Optolong L-eNhance, IDAS NBZT, Antlia ALP-T narrowband filter specs
+ *     — Hα + OIII passband blocks > 98 % of broadband sky glow / moonlight
  * ─────────────────────────────────────────────────────────────────────
  */
 const TARGETS: TargetModel[] = [
     {
         // ── 🪐 PLANETS ──────────────────────────────────────────────────
-        // Primary need: atmospheric stability (seeing + jet stream).
-        // Transparency irrelevant (planets are bright point-like sources).
-        // Moon: visible even under full moon, but scattered moonlight lowers
-        // contrast in the eyepiece → small non-zero penalty (10% @ full moon).
-        // Convection: daytime CAPE causes evening "atmospheric boil" — must not be zero.
-        // Jet stream at 250 hPa is as important as local seeing for planetary resolution
-        // (expert imagers: "the best planetary nights = jet stream south of your location").
+        //
+        // PRIMARY need: atmospheric stability (seeing + jet stream).
+        // Transparency is nearly irrelevant — planets are bright surface-
+        // brightness objects; even Bortle 9 city sky allows Jupiter/Saturn.
+        //
+        // Jet stream at 250 hPa is equally (or more) critical than local seeing:
+        //   • Damian Peach images from Barbados specifically because jet stream
+        //     is absent at tropical latitudes (~18° N) in winter.
+        //   • Korea winter: jet=4 (80-120 kt) → severe upper-atmo turbulence
+        //     even when local seeing (surface) appears decent.
+        //   • Score check: seeing=1(good) + jet=6(very strong) →
+        //     jet should appear as primary limiting factor  ← v4 fix
+        //
+        // Convection (CAPE): daytime heating creates evening "atmospheric boil".
+        //   Summer continental evenings: CAPE 500-1000 J/kg → score=4 → ruins
+        //   planetary imaging for 2-4 hours post-sunset.
+        //   Increased k: 0.25 → 0.30 for faster penalty per CAPE tier.
+        //
+        // Wind: at >250× magnification, wind vibration (even gentle breezes)
+        //   degrades image. Increased k: 0.25 → 0.30.
+        //
+        // Moon: contrast reduction, but Jupiter/Saturn/Mars remain usable even
+        //   under full moon. Non-zero but small penalty (10 % at full moon).
+        //
         id: 'planet',
         emoji: '🪐',
-        moonSensitivity: 0.10,  // full moon → 10% reduction only
-        weights:     { seeing: 0.40, transparency: 0.05, cloudCover: 0.25, wind: 0.10, jetStream: 0.15, convection: 0.05 },
-        sensitivity: { seeing: 0.40, transparency: 0.15, cloudCover: 0.55, wind: 0.25, jetStream: 0.35, convection: 0.25 },
-        //            ─────────────────────────────────────────────────────────────────
-        //            sum = 0.40+0.05+0.25+0.10+0.15+0.05 = 1.00 ✓
+        moonSensitivity: 0.10,
+        weights:     { seeing: 0.39, transparency: 0.02, cloudCover: 0.25, wind: 0.10, jetStream: 0.18, convection: 0.06 },
+        sensitivity: { seeing: 0.40, transparency: 0.15, cloudCover: 0.55, wind: 0.30, jetStream: 0.38, convection: 0.30 },
+        //            ─────────────────────────────────────────────────────────────
+        //            weights sum: 0.39+0.02+0.25+0.10+0.18+0.06 = 1.00 ✓
         //
-        //  Changes from v1:
-        //   jetStream  0.10→0.15  (critical for planetary resolution, as important as local seeing)
-        //   wind       0.15→0.10  (ground wind less critical than upper atmosphere)
-        //   convection 0.00→0.05  (daytime heating → evening atmospheric boil)
-        //   seeing     0.45→0.40  (room for jetStream/convection)
-        //   moonSens   0.00→0.10  (non-zero: scattered light reduces contrast)
-        //   jetStream sens 0.30→0.35 (faster quality decay for strong jet)
+        //  v4 changes vs v2:
+        //   jetStream weight  0.15 → 0.18  (planetary killer; dominates on jet=6 nights)
+        //   seeing weight     0.40 → 0.39  (reduced to make room for jet stream)
+        //   transparency w    0.05 → 0.02  (irrelevant for bright planet discs)
+        //   convection weight 0.05 → 0.06  (summer boiling effect)
+        //   jetStream k       0.35 → 0.38  (faster decay per 250 hPa wind tier)
+        //   wind k            0.25 → 0.30  (vibration at high magnification)
+        //   convection k      0.25 → 0.30  (stronger CAPE penalty)
+        //
+        //  Validation — Korea winter (seeing=2, jet=4, no cloud, no moon):
+        //   atm ≈ 0.64 → 63/B  ✓ (decent but jet-limited)
+        //  Validation — seeing=1, jet=6 (very strong):
+        //   jetStream drop (1-0.102)×0.18=0.162 > seeing drop (1-0.670)×0.39=0.129
+        //   → jet correctly identified as primary limiting factor  ✓
     },
     {
-        // ── 🌌 MILKY WAY ─────────────────────────────────────────────────
-        // Wide-field photography (14-35mm lens, f/1.4-f/2.8, 10-30s exposures).
-        // Moon = death sentence even at 10-15% illumination (MW contrast washed out).
-        // Transparency/darkness is THE critical factor (IDA Bortle scale).
-        // Seeing is almost irrelevant — you're not resolving individual stars.
-        // Wind: at typical focal lengths ground vibration negligible; weight ~0.05.
-        // Jet stream: completely irrelevant for wide-angle imaging.
-        // Convection: matters indirectly via haze/moisture trapping → modest weight.
+        // ── 🌌 MILKY WAY ──────────────────────────────────────────────────
+        //
+        // Wide-field photography: 14-35 mm lenses, f/1.4-f/2.8, 10-30 s.
+        //
+        // Sky darkness (transparency) is THE critical metric.
+        //   IDA / SQM Bortle-scale: difference between Bortle 3 (21.5 mag/sq")
+        //   and Bortle 6 (20.0 mag/sq") is enormous for MW core contrast.
+        //   Transparency weight raised 0.37 → 0.40 (primary factor reinforced).
+        //
+        // Moon: even 10-15 % illumination washes out MW core contrast.
+        //   Exponential gate (s = 1.3):
+        //     10 % crescent: (0.90)^2.6 = 0.77 → 77 % quality  (thin crescent ok)
+        //     20 % crescent: (0.80)^2.6 = 0.56 → 56 % quality  (borderline)
+        //     30 % crescent: (0.70)^2.6 = 0.40 → 40 % quality  (difficult)
+        //     50 % half-moon: (0.50)^2.6 = 0.19 → 19 % quality (mostly blocked)
+        //   Reduced from 1.5 → 1.3: thin crescents are slightly more usable in
+        //   practice at dark sites.
+        //
+        // Seeing: at 14-35 mm, individual star FWHM spans many pixels → irrelevant.
+        //   Weight reduced 0.08 → 0.06.
+        // Jet stream: completely irrelevant for wide-angle imaging. Weight: 0.04.
+        // Wind: at short FL, ground vibration negligible. Weight: 0.04.
+        // Convection: matters indirectly via haze / humidity trapping. Weight: 0.08.
+        //
         id: 'milkyway',
         emoji: '🌌',
-        moonSensitivity: 1.5,   // full moon → score ≈ 0 (completely blocked)
-        weights:     { seeing: 0.08, transparency: 0.37, cloudCover: 0.38, wind: 0.05, jetStream: 0.04, convection: 0.08 },
+        moonSensitivity: 1.3,
+        weights:     { seeing: 0.06, transparency: 0.40, cloudCover: 0.38, wind: 0.04, jetStream: 0.04, convection: 0.08 },
         sensitivity: { seeing: 0.15, transparency: 0.50, cloudCover: 0.55, wind: 0.20, jetStream: 0.10, convection: 0.15 },
-        //            sum = 0.08+0.37+0.38+0.05+0.04+0.08 = 1.00 ✓
+        //            weights sum: 0.06+0.40+0.38+0.04+0.04+0.08 = 1.00 ✓
         //
-        //  Changes from v1:
-        //   transparency  0.30→0.37  (sky darkness proxy — primary factor)
-        //   wind          0.10→0.05  (wide-angle lens, ground vibration negligible)
-        //   jetStream     0.10→0.04  (completely irrelevant for wide-field)
-        //   convection    0.07→0.08  (haze/humidity trapping effect)
-        //   jetStream sens 0.20→0.10 (slower decay since weight is tiny)
+        //  v4 changes vs v2:
+        //   moonSensitivity   1.5  → 1.3   (thin crescent slightly more usable)
+        //   transparency w    0.37 → 0.40  (Bortle primary factor reinforced)
+        //   seeing w          0.08 → 0.06  (wide-field: irrelevant)
+        //   wind w            0.05 → 0.04  (negligible at short focal length)
     },
     {
-        // ── 💫 NEBULAE ───────────────────────────────────────────────────
-        // Emission / reflection / planetary nebulae mix.
-        // Typical imaging: 500-1500mm focal length, moderate exposure stacking (5-20 min/frame).
-        // Seeing: matters at these focal lengths — fine nebula filaments (e.g., Veil, Crab)
-        //   require steady air to resolve at 1000mm+ FL.
-        // Transparency: critical for reflection nebulae and faint emission wings.
+        // ── 💫 NEBULAE ──────────────────────────────────────────────────
         //
-        // Jet stream: HIGHER weight than wide-field targets.
-        //   At 500-1500mm, jet stream turbulence at 250 hPa (< 80 kt = score 2) can
-        //   cause measurable blur during 10-min sub-exposures. This is fundamentally
-        //   different from Milky Way imaging at 24mm where jet stream is irrelevant.
+        // Emission / reflection / planetary nebulae (mixed population).
+        // Typical imaging: 500-1500 mm focal length, 5-20 min/frame stacking.
         //
-        // Moon sensitivity calibrated for ~70% broadband / 30% dual-narrowband users:
-        //   Broadband (DSLR/color OSC): moonSens ≈ 0.85  (full moon → 15% quality)
-        //   Dual-narrowband (Optolong L-eNhance, IDAS NBZT, Antlia ALP-T): moonSens ≈ 0.10
-        //   Weighted average: 0.70×0.85 + 0.30×0.15 = 0.64 → rounded to 0.70
-        //   (Narrowband passes only Hα+OIII/SII; moonlight is ~continuum → mostly blocked)
+        // Seeing: at 500-1500 mm, filamentary structures (Veil, Crab, Rosette)
+        //   require steady air. Seeing weight raised 0.20 → 0.22.
+        //
+        // Jet stream: higher weight vs Milky Way due to longer focal lengths.
+        //   250 hPa wind at < 80 kt (score 2) can cause measurable blur during
+        //   10-min sub-exposures at 1000+ mm FL. Weight raised 0.09 → 0.10.
+        //   Sensitivity k raised 0.25 → 0.28 (faster quality loss per tier).
+        //
+        // Transparency: critical for reflection nebulae (Pleiades, Witch Head)
+        //   and faint emission wings. Weight unchanged at 0.32.
+        //
+        // Moon sensitivity — dual-population calibration:
+        //   70 % broadband (DSLR / color OSC): moonSens ≈ 0.85
+        //     (full moon → 15 % remaining quality)
+        //   30 % narrowband (Optolong L-eNhance, IDAS NBZT, Antlia ALP-T):
+        //     Hα (656 nm) + OIII (501 nm) passbands 3-7 nm wide.
+        //     Moon is broadband continuum → > 98 % blocked by NB filter.
+        //     moonSens ≈ 0.10
+        //   Weighted average: 0.70 × 0.85 + 0.30 × 0.10 = 0.625 → 0.70
+        //   (kept at 0.70 — captures mix of visual/broadband/NB user base)
+        //
         id: 'nebula',
         emoji: '💫',
-        moonSensitivity: 0.70,  // full moon → 30% remaining; half moon → 65%
-        weights:     { seeing: 0.20, transparency: 0.32, cloudCover: 0.28, wind: 0.08, jetStream: 0.09, convection: 0.03 },
-        sensitivity: { seeing: 0.30, transparency: 0.50, cloudCover: 0.55, wind: 0.20, jetStream: 0.25, convection: 0.20 },
-        //            sum = 0.20+0.32+0.28+0.08+0.09+0.03 = 1.00 ✓
+        moonSensitivity: 0.70,
+        weights:     { seeing: 0.22, transparency: 0.32, cloudCover: 0.26, wind: 0.07, jetStream: 0.10, convection: 0.03 },
+        sensitivity: { seeing: 0.30, transparency: 0.50, cloudCover: 0.55, wind: 0.20, jetStream: 0.28, convection: 0.20 },
+        //            weights sum: 0.22+0.32+0.26+0.07+0.10+0.03 = 1.00 ✓
         //
-        //  Changes from v2:
-        //   moonSens      0.75→0.70  (narrowband filter adoption; 30% users can image in moonlight)
-        //   jetStream     0.07→0.09  (longer FL vs MW: upper atmosphere affects resolution)
-        //   cloudCover    0.30→0.28  (reduced to accommodate jetStream increase)
+        //  v4 changes vs v2:
+        //   seeing w          0.20 → 0.22  (filamentary structure resolution)
+        //   jetStream w       0.09 → 0.10  (medium FL: jet stream matters)
+        //   cloudCover w      0.28 → 0.26  (reduced to balance)
+        //   wind w            0.08 → 0.07  (slight reduction)
+        //   jetStream k       0.25 → 0.28  (faster decay for medium FL)
     },
     {
-        // ── ✨ STAR CLUSTERS ──────────────────────────────────────────────
-        // Open clusters (naked-eye/binoculars) + globular clusters (high-mag).
+        // ── ✨ STAR CLUSTERS ─────────────────────────────────────────────
+        //
+        // Open clusters (naked-eye / binoculars) + globular clusters (high-mag).
         // Most tolerant category — high surface brightness objects.
-        // Seeing: open clusters = low importance; globulars = core resolution matters.
-        //   Average weight higher than before to reflect globular component.
-        // Moon: open clusters easily visible with full moon; globular halos suffer
-        //   somewhat. Overall: low moon sensitivity (0.30).
+        //
+        // Seeing: bimodal importance.
+        //   Open clusters (M45, M44, Hyades): low seeing requirement.
+        //   Globular clusters (M13, M3, M5): core star resolution is highly
+        //   seeing-dependent. Sub-arcsecond seeing resolves core stars at
+        //   >300×; 3" seeing gives featureless ball. Weight raised 0.25 → 0.28.
+        //
+        // Moon: open clusters visible to naked eye under full moon. Globular
+        //   halos suffer somewhat but core remains bright. Reduced 0.30 → 0.25.
+        //   Full moon: 1 – 1.0 × 0.25 = 0.75 → score ≈ 75/A  ✓
+        //   Half moon: 1 – 0.5 × 0.25 = 0.875 → score ≈ 87.5/S ✓
+        //
+        // Transparency: reduced weight since clusters are high SB objects.
+        //   Weight 0.20 → 0.18.
+        //
         id: 'cluster',
         emoji: '✨',
-        moonSensitivity: 0.30,  // full moon → 70% remaining (grade A or B)
-        weights:     { seeing: 0.25, transparency: 0.20, cloudCover: 0.35, wind: 0.10, jetStream: 0.08, convection: 0.02 },
+        moonSensitivity: 0.25,
+        weights:     { seeing: 0.28, transparency: 0.18, cloudCover: 0.33, wind: 0.10, jetStream: 0.08, convection: 0.03 },
         sensitivity: { seeing: 0.30, transparency: 0.35, cloudCover: 0.55, wind: 0.25, jetStream: 0.20, convection: 0.20 },
-        //            sum = 0.25+0.20+0.35+0.10+0.08+0.02 = 1.00 ✓
+        //            weights sum: 0.28+0.18+0.33+0.10+0.08+0.03 = 1.00 ✓
         //
-        //  Changes from v1:
-        //   seeing        0.22→0.25  (globular cluster core resolution)
-        //   transparency  0.18→0.20  (globular halo visibility)
-        //   cloudCover    0.38→0.35  (adjusted for above)
-        //   wind          0.12→0.10  (slightly reduced)
+        //  v4 changes vs v2:
+        //   moonSensitivity   0.30 → 0.25  (M13/M45/M44 clearly visible with moon)
+        //   seeing w          0.25 → 0.28  (globular core resolution)
+        //   transparency w    0.20 → 0.18  (high SB; less transparency-dependent)
+        //   cloudCover w      0.35 → 0.33  (reduced to balance)
+        //   convection w      0.02 → 0.03  (slight increase for completeness)
     },
     {
         // ── 🔭 GALAXIES ──────────────────────────────────────────────────
-        // Lowest surface brightness objects → most demanding of all categories.
-        // Transparency/sky darkness is the single most critical factor.
-        //   (Difference between Bortle 3 and Bortle 6 is enormous for galaxies)
-        // Moon: any significant moonlight washes out galaxy structure.
-        //   exponential gate (sensitivity=1.0): half-moon → 25% remaining.
-        // Cloud weight reduced to make room for transparency dominance.
+        //
+        // Lowest surface brightness objects — most demanding category overall.
+        //
+        // Transparency (sky darkness) is the single most critical factor.
+        //   Bortle 3 vs Bortle 6 difference is enormous for spiral arms / halos.
+        //   Weight raised 0.38 → 0.40. Sensitivity k raised 0.55 → 0.58
+        //   (faster quality loss: even modest sky glow washes out outer halos).
+        //
+        // Moon: any significant moonlight destroys galaxy structure.
+        //   Exponential gate (s = 1.0):
+        //     20 % crescent : (0.80)² = 0.64 → 64 % quality  (thin crescent ok)
+        //     50 % half-moon: (0.50)² = 0.25 → 25 % quality  (very poor)
+        //     full moon     : ~0 %  (completely blocked)
+        //
+        // Jet stream: typical galaxy FL is 500-1500+ mm (RC / Cassegrain).
+        //   — Adam Block: 12.5" RC ~1560 mm
+        //   — Ken Crawford: 12.5" RC ~1300 mm
+        //   — Rogelio Bernal Andreo: 400-900 mm
+        //   At these FL, 250 hPa jet stream blur affects sub-exposure sharpness.
+        //   Weight raised 0.05 → 0.08. Sensitivity k raised 0.25 → 0.28.
+        //
+        // Cloud cover: reduced weight 0.25 → 0.22 to accommodate jet and
+        //   transparency increases (cloud still punished hard via k=0.55).
+        //
         id: 'galaxy',
         emoji: '🔭',
-        moonSensitivity: 1.0,   // full moon → ≈0; half moon → 25% remaining
-        weights:     { seeing: 0.20, transparency: 0.38, cloudCover: 0.25, wind: 0.08, jetStream: 0.05, convection: 0.04 },
-        sensitivity: { seeing: 0.35, transparency: 0.55, cloudCover: 0.55, wind: 0.20, jetStream: 0.25, convection: 0.20 },
-        //            sum = 0.20+0.38+0.25+0.08+0.05+0.04 = 1.00 ✓
+        moonSensitivity: 1.0,
+        weights:     { seeing: 0.20, transparency: 0.40, cloudCover: 0.22, wind: 0.07, jetStream: 0.08, convection: 0.03 },
+        sensitivity: { seeing: 0.35, transparency: 0.58, cloudCover: 0.55, wind: 0.20, jetStream: 0.28, convection: 0.20 },
+        //            weights sum: 0.20+0.40+0.22+0.07+0.08+0.03 = 1.00 ✓
         //
-        //  Changes from v1:
-        //   transparency  0.32→0.38  (PRIMARY factor — low SB objects need darkest sky)
-        //   cloudCover    0.30→0.25  (transparency increase compensated here)
-        //   seeing        0.18→0.20  (detail structure requires decent seeing)
-        //   wind          0.10→0.08  (lower than before)
-        //   jetStream     0.08→0.05  (moderate focal lengths, less jet stream critical)
-        //   convection    0.02→0.04  (long-exposure turbulence sensitivity)
+        //  v4 changes vs v2:
+        //   transparency w    0.38 → 0.40  (primary factor: low SB dominance)
+        //   jetStream w       0.05 → 0.08  (RC/Cassegrain FL: jet stream relevant)
+        //   cloudCover w      0.25 → 0.22  (reduced to accommodate above)
+        //   wind w            0.08 → 0.07  (slight reduction)
+        //   convection w      0.04 → 0.03  (slight reduction)
+        //   transparency k    0.55 → 0.58  (faster decay: outer halos demand dark sky)
+        //   jetStream k       0.25 → 0.28  (more penalty for long FL imaging)
     },
 ];
 
@@ -205,20 +293,20 @@ function getGrade(score: number): TargetGrade {
 }
 
 /**
- * Compute a moon quality multiplier (0-1).
+ * Compute a moon quality multiplier (0–1).
  *
  * moonFraction = 0 (new moon, best) … 1 (full moon, worst)
  *
- *  s = 0        → 1.0 always           (planets: moon ignored)
- *  0 < s < 1   → 1 – fraction × s     (linear, gentle reduction)
- *  s ≥ 1       → (1 – fraction)^(s×2) (exponential, hard gate)
+ *  s = 0       → 1.0 always             (immune to moon)
+ *  0 < s < 1  → 1 – fraction × s       (linear, gentle penalty)
+ *  s ≥ 1      → (1 – fraction)^(s × 2) (exponential gate)
  *
- * Full-moon examples:
- *   planet   (s=0.10): 1 – 1.0×0.10          = 0.90   (10 % reduction)
- *   cluster  (s=0.30): 1 – 1.0×0.30          = 0.70   (30 % reduction)
- *   nebula   (s=0.75): 1 – 1.0×0.75          = 0.25   (75 % reduction)
- *   galaxy   (s=1.00): 0.001^2               ≈ 0.000  (blocked)
- *   milkyway (s=1.50): 0.001^3               ≈ 0.000  (completely blocked)
+ * Full-moon multipliers:
+ *   planet   (s=0.10):  1 – 1.0×0.10          = 0.90  ( 10 % reduction)
+ *   cluster  (s=0.25):  1 – 1.0×0.25          = 0.75  ( 25 % reduction)
+ *   nebula   (s=0.70):  1 – 1.0×0.70          = 0.30  ( 70 % reduction)
+ *   galaxy   (s=1.00):  (0.001)^2.0            ≈ 0.000 (completely blocked)
+ *   milkyway (s=1.30):  (0.001)^2.6            ≈ 0.000 (completely blocked)
  */
 function getMoonMultiplier(moonFraction: number, sensitivity: number): number {
     if (sensitivity <= 0) return 1.0;
@@ -274,8 +362,7 @@ export function predictTargets(forecast: ForecastItem, moonFraction: number): Ta
             }
         }
 
-        // Compare moon's contribution: if it's causing more score loss than
-        // any single atmospheric factor, flag it as the limiting factor.
+        // Compare moon's contribution against atmospheric limiting factors.
         // Normalisation factor 0.4 keeps moon comparable to atmospheric weights.
         if (model.moonSensitivity > 0) {
             const moonDrop = (1 - moonMult) * model.moonSensitivity * 0.4;

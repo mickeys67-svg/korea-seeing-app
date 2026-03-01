@@ -1,14 +1,16 @@
 import React from 'react';
 import { Eye, Cloud, Wind, Droplets, Plane, ThermometerSun, ChevronRight } from 'lucide-react';
 import InfoModal from './InfoModal';
+import TargetPredictionGrid from './TargetPredictionGrid';
 import type { ForecastItem } from '../types/weather';
 import useI18n from '../hooks/useI18n';
 
 interface SeeingProps {
     data: ForecastItem;
+    moonFraction?: number;
 }
 
-const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
+const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
     const t = useI18n();
     const [selectedMetric, setSelectedMetric] = React.useState<{ title: string; desc: string; ranges?: any[] } | null>(null);
     const scores = data.scores;
@@ -253,6 +255,9 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Target Suitability Grid */}
+                <TargetPredictionGrid forecast={data} moonFraction={moonFraction} />
             </div>
 
             <InfoModal
