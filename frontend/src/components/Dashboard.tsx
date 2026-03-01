@@ -54,15 +54,15 @@ const Dashboard: React.FC = () => {
 
     const currentForecast = data.forecast && data.forecast.length > 0 ? data.forecast[0] : null;
 
-    // 현재 시간이 낮(일출~일몰)인지 판단
+    // 현재 시간이 낮(일출~일몰)인지 판단 (IIFE — 훅 아님, early return 이후 안전)
     const todayAstro = data.astronomy?.[0];
-    const isDaytime = React.useMemo(() => {
+    const isDaytime = (() => {
         if (!todayAstro?.sun?.sunrise || !todayAstro?.sun?.sunset) return false;
         if (todayAstro.sun.alwaysDown) return false;
         if (todayAstro.sun.alwaysUp) return true;
         const now = new Date();
         return now >= new Date(todayAstro.sun.sunrise as string) && now <= new Date(todayAstro.sun.sunset as string);
-    }, [todayAstro]);
+    })();
 
     const getGradeBgClass = (grade: string) => {
         switch (grade) {
