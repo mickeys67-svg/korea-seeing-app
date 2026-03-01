@@ -154,6 +154,20 @@ const AnalysisService = {
             const equipment = this._getEquipment(data);
             const factors = this._getLimitingFactors(data);
             const trend = this._analyzeTrend(data, forecastList);
+            const cloudScore = data.scores?.cloudCover ?? 0;
+
+            // ═══ Cloud gate: 구름 ≥7 → 등급/점수 표시 생략, 구름 메시지만 ═══
+            if (cloudScore >= 7) {
+                let cloudMsg = isKo ? '관측 불가. 구름이 하늘을 가리고 있습니다.' : 'Observation impossible. Sky fully blocked by clouds.';
+                // 트렌드에서 개선 예상이 있으면 추가
+                if (trend && !trend.isBestNow && trend.bestBlock.score >= score + 15) {
+                    const bestTime = trend.bestTime;
+                    cloudMsg += isKo
+                        ? ` ${this._formatHourKo(bestTime)}경 개선 가능성.`
+                        : ` May improve around ${this._formatHourEn(bestTime)}.`;
+                }
+                return cloudMsg;
+            }
 
             // Part 1: Current status summary (score 정수 표시)
             const roundedScore = Math.round(score);

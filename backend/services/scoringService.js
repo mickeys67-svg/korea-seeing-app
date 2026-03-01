@@ -73,6 +73,13 @@ const ScoringService = {
         // Invert: 0 badness → 100 score (perfect), 8 badness → 0 score (worst)
         let finalScore = (1 - weightedBadness / 8) * 100;
 
+        // Cloud gate — clouds block the sky regardless of other conditions
+        if (cloudScore >= 7) {
+            finalScore = Math.min(finalScore, 10);
+        } else if (cloudScore >= 5) {
+            finalScore = finalScore * 0.5;
+        }
+
         // Ensure result is a valid number and clamped
         if (isNaN(finalScore)) finalScore = 0;
         const roundedScore = Math.max(0, Math.min(100, Math.round(finalScore * 10) / 10));
@@ -80,7 +87,7 @@ const ScoringService = {
         return {
             score: roundedScore,
             grade: ScoringService.getGrade(roundedScore),
-            recommendation: ScoringService.getRecommendation(roundedScore)
+            recommendation: ScoringService.getRecommendation(roundedScore, cloudScore)
         };
     },
 
@@ -92,7 +99,11 @@ const ScoringService = {
         return 'D';
     },
 
-    getRecommendation: (score) => {
+    getRecommendation: (score, cloudScore) => {
+        // Cloud gate — sky blocked overrides score-based recommendation
+        if (cloudScore >= 7) return 'Observation impossible. Sky fully blocked by clouds.';
+        if (cloudScore >= 5) return 'Intermittent observation only through cloud gaps.';
+
         if (score >= 85) return 'Steady skies! Excellent conditions, great for all targets.';
         if (score >= 70) return 'Stable air and very good conditions. Suitable for most observations.';
         if (score >= 55) return 'Average conditions. Stable enough for bright solar system targets.';
