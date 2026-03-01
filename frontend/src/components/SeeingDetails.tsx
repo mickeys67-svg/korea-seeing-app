@@ -124,7 +124,7 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
                 <div className="flex flex-col items-center mb-8">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: scoreColor }} />
-                        <span className="text-sm lg:text-base font-data uppercase tracking-[0.2em] text-[var(--text-bright)] font-semibold">
+                        <span className="text-sm lg:text-lg font-data uppercase tracking-[0.2em] text-[var(--text-bright)] font-semibold">
                             {t.seeingDetails.title}
                         </span>
                     </div>
@@ -187,7 +187,7 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
                     </div>
 
                     {data.recommendation && (
-                        <p className="text-[15px] lg:text-base text-[var(--text-secondary)] text-center mt-4 max-w-sm lg:max-w-lg leading-relaxed px-4">
+                        <p className="text-[15px] lg:text-lg text-[var(--text-secondary)] text-center mt-4 max-w-sm lg:max-w-lg leading-relaxed px-4">
                             {data.recommendation}
                         </p>
                     )}
@@ -216,7 +216,7 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
                                     <span className="text-xl sm:text-2xl lg:text-3xl font-data font-bold" style={{ color }}>
                                         {metric.value}
                                     </span>
-                                    <span className="text-xs font-data text-[var(--text-tertiary)]">/8</span>
+                                    <span className="text-xs lg:text-sm font-data text-[var(--text-tertiary)]">/8</span>
                                 </div>
                                 <div className="flex items-center gap-1 min-w-0">
                                     <span className="text-[10px] sm:text-xs lg:text-sm text-[var(--text-secondary)] uppercase tracking-wider font-semibold truncate">
@@ -234,7 +234,7 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
                         <Droplets className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-blue-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] sm:text-[11px] lg:text-xs uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.humidity}</span>
+                            <span className="text-[10px] sm:text-[11px] lg:text-sm uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.humidity}</span>
                             <span className="font-data text-sm sm:text-base lg:text-lg font-semibold text-blue-300">{data.rh2m}%</span>
                         </div>
                     </div>
@@ -242,7 +242,7 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
                         <ThermometerSun className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-amber-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] sm:text-[11px] lg:text-xs uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.temp}</span>
+                            <span className="text-[10px] sm:text-[11px] lg:text-sm uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.temp}</span>
                             <span className="font-data text-sm sm:text-base lg:text-lg font-semibold text-amber-300">{data.temp2m}°C</span>
                         </div>
                     </div>
@@ -250,7 +250,7 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
                         <Wind className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-cyan-400/80 shrink-0" />
                         <div className="flex flex-col">
-                            <span className="text-[10px] sm:text-[11px] lg:text-xs uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.wind}</span>
+                            <span className="text-[10px] sm:text-[11px] lg:text-sm uppercase tracking-wider text-[var(--text-tertiary)] font-medium">{t.common.wind}</span>
                             <span className="font-data text-sm sm:text-base lg:text-lg font-semibold text-cyan-300">{data.wind10m.speed}<span className="text-[10px] sm:text-[11px] text-[var(--text-tertiary)]"> m/s</span></span>
                         </div>
                     </div>

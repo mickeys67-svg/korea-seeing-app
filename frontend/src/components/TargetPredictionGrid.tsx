@@ -37,16 +37,16 @@ const TargetPredictionGrid: React.FC<Props> = ({ forecast, moonFraction }) => {
         <div className="relative z-10 mt-5">
             {/* Section header */}
             <div className="flex justify-between items-baseline mb-3">
-                <span className="text-sm font-bold text-[var(--text-bright)] uppercase tracking-wider">
+                <span className="text-sm lg:text-base font-bold text-[var(--text-bright)] uppercase tracking-wider">
                     {t.targets.title}
                 </span>
-                <span className="text-[10px] font-data text-[var(--text-tertiary)] uppercase tracking-wider">
+                <span className="text-[10px] lg:text-xs font-data text-[var(--text-tertiary)] uppercase tracking-wider">
                     {t.targets.subtitle}
                 </span>
             </div>
 
             {/* 5-column target grid */}
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5 lg:gap-3">
                 {results.map(result => {
                     const color = getScoreColor(result.score);
                     const factor = factorNames[result.limitingFactor] ?? result.limitingFactor;
@@ -54,24 +54,24 @@ const TargetPredictionGrid: React.FC<Props> = ({ forecast, moonFraction }) => {
                     return (
                         <div
                             key={result.id}
-                            className="glass-card-inner flex flex-col items-center p-2 sm:p-3 gap-1 min-w-0 transition-all duration-500"
+                            className="glass-card-inner flex flex-col items-center p-2 sm:p-3 lg:p-4 gap-1 lg:gap-1.5 min-w-0 transition-all duration-500"
                             style={{
                                 borderColor: `color-mix(in srgb, ${color} 18%, transparent)`,
                             }}
                         >
                             {/* Emoji */}
-                            <span className="text-lg sm:text-2xl leading-none select-none">
+                            <span className="text-lg sm:text-2xl lg:text-3xl leading-none select-none">
                                 {result.emoji}
                             </span>
 
                             {/* Target name */}
-                            <span className="text-[8px] sm:text-[10px] text-[var(--text-tertiary)] w-full text-center overflow-hidden text-ellipsis whitespace-nowrap leading-tight">
+                            <span className="text-[8px] sm:text-[10px] lg:text-xs text-[var(--text-tertiary)] w-full text-center overflow-hidden text-ellipsis whitespace-nowrap leading-tight">
                                 {targetNames[result.id]}
                             </span>
 
                             {/* Score number */}
                             <span
-                                className="text-base sm:text-xl font-data font-bold leading-none"
+                                className="text-base sm:text-xl lg:text-2xl font-data font-bold leading-none"
                                 style={{ color, textShadow: `0 0 12px ${color}60` }}
                             >
                                 {result.score}
@@ -79,14 +79,14 @@ const TargetPredictionGrid: React.FC<Props> = ({ forecast, moonFraction }) => {
 
                             {/* Grade letter */}
                             <span
-                                className="text-[9px] sm:text-[11px] font-data font-bold tracking-widest leading-none"
+                                className="text-[9px] sm:text-[11px] lg:text-sm font-data font-bold tracking-widest leading-none"
                                 style={{ color }}
                             >
                                 {result.grade}
                             </span>
 
                             {/* Progress bar */}
-                            <div className="w-full h-[2px] sm:h-[3px] bg-white/5 rounded-full overflow-hidden mt-0.5">
+                            <div className="w-full h-[2px] sm:h-[3px] lg:h-1 bg-white/5 rounded-full overflow-hidden mt-0.5">
                                 <div
                                     className="h-full rounded-full transition-all duration-700"
                                     style={{ width: `${result.score}%`, background: color }}
@@ -94,7 +94,7 @@ const TargetPredictionGrid: React.FC<Props> = ({ forecast, moonFraction }) => {
                             </div>
 
                             {/* Limiting factor */}
-                            <span className="text-[7px] sm:text-[9px] text-[var(--text-tertiary)] truncate w-full text-center leading-tight mt-0.5">
+                            <span className="text-[7px] sm:text-[9px] lg:text-[11px] text-[var(--text-tertiary)] truncate w-full text-center leading-tight mt-0.5">
                                 {factor}
                             </span>
                         </div>
