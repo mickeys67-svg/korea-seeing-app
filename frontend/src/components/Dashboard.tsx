@@ -54,6 +54,16 @@ const Dashboard: React.FC = () => {
 
     const currentForecast = data.forecast && data.forecast.length > 0 ? data.forecast[0] : null;
 
+    // 현재 시간이 낮(일출~일몰)인지 판단
+    const todayAstro = data.astronomy?.[0];
+    const isDaytime = React.useMemo(() => {
+        if (!todayAstro?.sun?.sunrise || !todayAstro?.sun?.sunset) return false;
+        if (todayAstro.sun.alwaysDown) return false;
+        if (todayAstro.sun.alwaysUp) return true;
+        const now = new Date();
+        return now >= new Date(todayAstro.sun.sunrise as string) && now <= new Date(todayAstro.sun.sunset as string);
+    }, [todayAstro]);
+
     const getGradeBgClass = (grade: string) => {
         switch (grade) {
             case 'S': return 'grade-bg-s';
@@ -114,11 +124,22 @@ const Dashboard: React.FC = () => {
 
             {/* ===== Hero: Observation Score ===== */}
             {currentForecast && (
-                <SeeingDetails data={currentForecast} moonFraction={data.astronomy?.[0]?.moon.fraction ?? 0.5} />
+                <SeeingDetails
+                    data={currentForecast}
+                    moonFraction={data.astronomy?.[0]?.moon.fraction ?? 0.5}
+                    isDaytime={isDaytime}
+                    sunsetTime={todayAstro?.sun?.sunset as string | null | undefined}
+                />
             )}
 
             {/* ===== Forecast Timeline ===== */}
-            {data.forecast && <ForecastList forecast={data.forecast.slice(0, 48)} timezone={data.location.timezone} />}
+            {data.forecast && (
+                <ForecastList
+                    forecast={data.forecast.slice(0, 48)}
+                    timezone={data.location.timezone}
+                    astronomy={data.astronomy}
+                />
+            )}
 
             {/* ===== AI Prediction ===== */}
             {data.forecast && data.forecast.length > 0 && (

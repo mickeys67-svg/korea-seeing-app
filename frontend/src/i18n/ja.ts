@@ -10,6 +10,8 @@ const ja: Translations = {
         temp: '気温',
         wind: '風速',
         confidence: '信頼度',
+        daytime: '昼間',
+        daytimeDesc: '日没後に観測可能',
     },
     gpsBanner: {
         title: '位置情報アクセス不可',

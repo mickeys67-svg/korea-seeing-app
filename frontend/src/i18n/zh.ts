@@ -10,6 +10,8 @@ const zh: Translations = {
         temp: '气温',
         wind: '风速',
         confidence: '置信度',
+        daytime: '白天',
+        daytimeDesc: '日落后可观测',
     },
     gpsBanner: {
         title: '无法获取位置',

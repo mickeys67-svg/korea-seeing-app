@@ -50,22 +50,22 @@ const PredictionCard: React.FC<PredictionResultProps> = ({
     if (!prediction) return null;
 
     const usp = details?.usp;
-    const displayValue = usp ? usp.score : prediction.probability;
-    const displayMax = usp ? '/10' : '%';
+    // 종합 점수(0-100%)를 항상 메인으로 표시 — 관측 품질 원형과 동일 기준
+    const displayValue = prediction.probability;
+    const displayMax = '%';
 
-    const getValueColor = (val: number, isUsp: boolean): string => {
-        const threshold = isUsp ? val * 10 : val;
-        if (threshold > 70) return 'var(--seeing-exceptional)';
-        if (threshold > 40) return 'var(--seeing-fair)';
+    const getValueColor = (val: number): string => {
+        if (val > 70) return 'var(--seeing-exceptional)';
+        if (val > 40) return 'var(--seeing-fair)';
         return 'var(--seeing-very-poor)';
     };
 
-    const valueColor = getValueColor(displayValue, !!usp);
+    const valueColor = getValueColor(displayValue);
 
     return (
         <div className="glass-card-inner p-5 animate-scale-in text-center">
             <div className="text-xs font-data uppercase tracking-[0.15em] text-[var(--text-tertiary)] mb-3 font-medium">
-                {usp ? `Warp Score (${usp.confidence}% confidence)` : 'Observation Probability'}
+                Observation Score{usp ? ` · Atm. Stability ${usp.score.toFixed(1)}/10` : ''}
             </div>
 
             <div className="flex items-center justify-center gap-3 mb-3">

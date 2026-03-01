@@ -8,6 +8,8 @@ const en = {
         temp: 'Temp',
         wind: 'Wind',
         confidence: 'Confidence',
+        daytime: 'Daytime',
+        daytimeDesc: 'Observation possible after sunset',
     },
     gpsBanner: {
         title: 'Location access denied',

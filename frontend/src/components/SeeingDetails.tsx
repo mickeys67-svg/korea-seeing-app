@@ -8,9 +8,11 @@ import useI18n from '../hooks/useI18n';
 interface SeeingProps {
     data: ForecastItem;
     moonFraction?: number;
+    isDaytime?: boolean;
+    sunsetTime?: string | null;
 }
 
-const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
+const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDaytime = false, sunsetTime }) => {
     const t = useI18n();
     const [selectedMetric, setSelectedMetric] = React.useState<{ title: string; desc: string; ranges?: any[] } | null>(null);
     const scores = data.scores;
@@ -117,9 +119,29 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5 }) => {
         }
     ], [scores, t]);
 
+    // 일몰 시간 포맷 (로컬 타임존)
+    const formatSunset = (iso: string) => {
+        return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
     return (
         <>
             <div className="glass-card w-full p-6 sm:p-8 animate-fade-in-up">
+                {/* 낮 시간 배너 */}
+                {isDaytime && (
+                    <div className="flex items-center gap-3 mb-6 px-4 py-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                        <span className="text-xl shrink-0">☀️</span>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-data uppercase tracking-wider text-amber-400/90 font-semibold">
+                                {t.common.daytime}
+                            </p>
+                            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+                                {t.common.daytimeDesc}
+                                {sunsetTime ? ` · ${formatSunset(sunsetTime)}` : ''}
+                            </p>
+                        </div>
+                    </div>
+                )}
                 {/* Hero Score */}
                 <div className="flex flex-col items-center mb-8">
                     <div className="flex items-center gap-2 mb-4">

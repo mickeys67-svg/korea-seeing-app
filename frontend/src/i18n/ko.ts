@@ -10,6 +10,8 @@ const ko: Translations = {
         temp: '기온',
         wind: '바람',
         confidence: '신뢰도',
+        daytime: '낮 시간대',
+        daytimeDesc: '일몰 후 관측 가능',
     },
     gpsBanner: {
         title: '위치 접근 불가',

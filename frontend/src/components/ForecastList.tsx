@@ -1,22 +1,44 @@
 import React from 'react';
-import type { ForecastItem } from '../types/weather';
+import type { ForecastItem, AstronomyDay } from '../types/weather';
 import useI18n from '../hooks/useI18n';
 
 interface ForecastListProps {
     forecast: ForecastItem[];
     timezone?: string;
+    astronomy?: AstronomyDay[];
 }
 
-const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone }) => {
+const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astronomy }) => {
     const t = useI18n();
+    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // 실제 sunrise/sunset 기반 isNight 계산
+    const getIsNight = (isoString: string): boolean => {
+        const slotTime = new Date(isoString);
+
+        if (astronomy && astronomy.length > 0) {
+            // 슬롯의 로컬 날짜를 YYYY-MM-DD 로 변환 (en-CA 로케일 = YYYY-MM-DD 포맷)
+            const localDateStr = slotTime.toLocaleDateString('en-CA', { timeZone: tz });
+            const matchDay = astronomy.find(d => d.date === localDateStr);
+
+            if (matchDay?.sun?.sunrise && matchDay?.sun?.sunset) {
+                const sunrise = new Date(matchDay.sun.sunrise as string);
+                const sunset = new Date(matchDay.sun.sunset as string);
+                return slotTime < sunrise || slotTime > sunset;
+            }
+        }
+
+        // fallback: 하드코딩 (astronomy 없을 때)
+        const hour = parseInt(slotTime.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
+        return hour < 6 || hour > 18;
+    };
+
     const formatTime = (isoString: string) => {
         const date = new Date(isoString);
-        const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
         const hour = parseInt(date.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
         return {
             day: date.toLocaleDateString('ko-KR', { timeZone: tz, weekday: 'short' }),
             time: hour.toString().padStart(2, '0') + ':00',
-            isNight: hour < 6 || hour > 18
         };
     };
 
@@ -55,7 +77,8 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone }) => {
 
             <div className="flex overflow-x-auto gap-2.5 pb-3 no-scrollbar snap-x snap-mandatory -mx-1 px-1">
                 {forecast.map((point: ForecastItem, idx: number) => {
-                    const { day, time, isNight } = formatTime(point.time);
+                    const { day, time } = formatTime(point.time);
+                    const isNight = getIsNight(point.time);
                     const s = point.scores.seeing;
                     const seeingColor = getSeeingColor(s);
                     const scoreColor = getScoreColor(point.score);
@@ -64,12 +87,10 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone }) => {
                     return (
                         <div
                             key={idx}
-                            className="flex-shrink-0 snap-start group relative glass-card-inner p-3.5 flex flex-col items-center min-w-[96px] transition-all duration-200 hover:bg-[rgba(255,255,255,0.06)]"
+                            className={`flex-shrink-0 snap-start group relative glass-card-inner p-3.5 flex flex-col items-center min-w-[96px] transition-all duration-200 hover:bg-[rgba(255,255,255,0.06)] ${!isNight ? 'opacity-40' : ''}`}
                         >
-                            {/* Night indicator */}
-                            {isNight && (
-                                <div className="absolute top-2 right-2 w-2 h-2 bg-indigo-400/60 rounded-full" />
-                            )}
+                            {/* 낮/밤 indicator */}
+                            <div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${isNight ? 'bg-indigo-400/60' : 'bg-amber-400/60'}`} />
 
                             {/* Time */}
                             <span className="text-xs text-[var(--text-secondary)] font-medium">{day}</span>

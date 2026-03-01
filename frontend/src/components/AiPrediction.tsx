@@ -44,16 +44,16 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary }) =>
                 humidity: selectedForecast.rh2m
             });
 
-            if (selectedForecast.usp) {
-                result.probability = selectedForecast.usp.score * 10;
+            // 종합 점수(관측 품질 원형과 동일 기준) 사용 → 두 시스템 정합
+            result.probability = selectedForecast.score;
 
-                if (selectedForecast.usp.score >= 8.0) {
-                    result.comment = t.aiPrediction.uspComments.exceptional;
-                } else if (selectedForecast.usp.score >= 6.5) {
-                    result.comment = t.aiPrediction.uspComments.good;
-                } else {
-                    result.comment = t.aiPrediction.uspComments.poor;
-                }
+            // 코멘트: 종합 점수 기준
+            if (selectedForecast.score >= 85) {
+                result.comment = t.aiPrediction.uspComments.exceptional;
+            } else if (selectedForecast.score >= 55) {
+                result.comment = t.aiPrediction.uspComments.good;
+            } else {
+                result.comment = t.aiPrediction.uspComments.poor;
             }
 
             setPrediction(result);
