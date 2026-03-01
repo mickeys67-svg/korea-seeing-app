@@ -4,12 +4,13 @@ import MoonPhase from './MoonPhase';
 import NotificationSetup from './NotificationSetup';
 import AiPrediction from './AiPrediction';
 import ForecastList from './ForecastList';
-import { Loader2, MapPin, Radio } from 'lucide-react';
+import { Loader2, MapPin, Radio, X } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useWeatherData from '../hooks/useWeatherData';
 
 const Dashboard: React.FC = () => {
     const location = useGeolocation();
+    const [gpsBannerDismissed, setGpsBannerDismissed] = React.useState(false);
     const defaultLat = 37.5665;
     const defaultLon = 126.9780;
 
@@ -89,6 +90,25 @@ const Dashboard: React.FC = () => {
                     <span className="text-[11px] font-mono text-emerald-400 tracking-wider font-medium">LIVE</span>
                 </div>
             </header>
+
+            {/* ===== GPS Permission Denied Banner ===== */}
+            {location.error && !location.val && !gpsBannerDismissed && (
+                <div className="w-full mb-4 animate-fade-in-up">
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                        <MapPin className="w-4 h-4 text-amber-400/80 shrink-0" />
+                        <p className="text-xs text-[var(--text-secondary)] flex-1">
+                            <span className="text-amber-400/90 font-semibold">위치 접근 불가</span>
+                            {' '}— 서울 기본값으로 표시 중. 정확한 로컬 예보를 보려면 위치를 선택하세요.
+                        </p>
+                        <button
+                            onClick={() => setGpsBannerDismissed(true)}
+                            className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* ===== Hero: Observation Score ===== */}
             {currentForecast && (

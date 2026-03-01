@@ -129,33 +129,42 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data }) => {
                     </div>
 
                     {/* Circular Score Gauge */}
-                    <div className="relative w-44 h-44 mb-4">
-                        <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                    <div className="relative w-52 h-52 mb-5">
+                        <svg viewBox="-14 -14 148 148" className="w-full h-full -rotate-90">
+                            {/* Outer decorative ring */}
+                            <circle
+                                cx="60" cy="60" r="58"
+                                fill="none"
+                                stroke="rgba(255,255,255,0.05)"
+                                strokeWidth="0.75"
+                            />
+                            {/* Background track */}
                             <circle
                                 cx="60" cy="60" r="52"
                                 fill="none"
-                                stroke="rgba(255,255,255,0.06)"
-                                strokeWidth="6"
+                                stroke="rgba(255,255,255,0.08)"
+                                strokeWidth="8"
                             />
+                            {/* Progress arc */}
                             <circle
                                 cx="60" cy="60" r="52"
                                 fill="none"
                                 stroke={scoreColor}
-                                strokeWidth="6"
+                                strokeWidth="8"
                                 strokeLinecap="round"
                                 strokeDasharray={`${scorePercent * 3.27} 327`}
                                 className="transition-all duration-1000 ease-out"
-                                style={{ filter: `drop-shadow(0 0 8px ${scoreColor})` }}
+                                style={{ filter: `drop-shadow(0 0 12px ${scoreColor})` }}
                             />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
                             <span
                                 className="text-5xl font-data font-bold tracking-tight"
-                                style={{ color: scoreColor }}
+                                style={{ color: scoreColor, textShadow: `0 0 30px ${scoreColor}50` }}
                             >
                                 {data.score}
                             </span>
-                            <span className="text-sm font-data text-[var(--text-tertiary)]">/100</span>
+                            <span className="text-xs font-data text-[var(--text-tertiary)] tracking-wider">/ 100</span>
                         </div>
                     </div>
 
