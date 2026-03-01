@@ -31,18 +31,25 @@ const AnalysisService = {
     },
 
     /**
-     * Equipment/target recommendation based on seeing + score.
+     * Equipment/target recommendation based on seeing + score + cloud.
+     * Cloud-aware: blocks deep-sky/imaging recommendations when clouds are heavy.
      */
     _getEquipment(data) {
         const seeing = data.usp?.seeing ?? 2.0;
         const score = data.score ?? 50;
+        const cloudScore = data.scores?.cloudCover ?? 0;
 
-        if (seeing < 1.0 && score >= 80) return { ko: '행성/딥스카이 모두 최적', en: 'ideal for planetary & deep sky' };
-        if (seeing < 1.2 && score >= 70) return { ko: '행성 고배율 촬영 최적', en: 'excellent for high-mag planetary' };
-        if (seeing < 1.5 && score >= 65) return { ko: '행성 촬영 적합', en: 'good for planetary imaging' };
-        if (seeing < 2.0 && score >= 50) return { ko: '딥스카이 광시야 추천', en: 'deep sky wide-field recommended' };
-        if (score >= 40) return { ko: '안시 관측 가능', en: 'naked-eye/binocular viewing possible' };
-        return { ko: '관측 비추천', en: 'observation not recommended' };
+        // ═══ Layer 1: 구름 → 별이 보이는가? ═══
+        if (cloudScore >= 7) return { ko: '관측 불가. 구름이 하늘을 가림', en: 'observation blocked by cloud cover' };
+        if (cloudScore >= 5) return { ko: '구름 사이로 간헐적 관측만 가능', en: 'intermittent observation only through cloud gaps' };
+
+        // ═══ Layer 2: 하늘 열림 → Seeing + Score 장비 추천 ═══
+        if (seeing < 1.0 && score >= 85) return { ko: '고해상도 행성·딥스카이 촬영에 이상적', en: 'ideal for high-res planetary & deep-sky imaging' };
+        if (seeing < 1.2 && score >= 70) return { ko: '고배율 행성 관측·촬영에 최적', en: 'excellent for high-mag planetary imaging' };
+        if (seeing < 1.5 && score >= 55) return { ko: '행성 촬영 가능. 일반 관측 적합', en: 'suitable for planetary imaging' };
+        if (seeing < 2.0 && score >= 45) return { ko: '광시야 촬영 가능. 저배율 관측 적합', en: 'wide-field imaging possible' };
+        if (score >= 35) return { ko: '안시 관측 가능. 저배율 위주', en: 'visual observation only' };
+        return { ko: '관측 비추천. 대기 불량', en: 'observation not recommended' };
     },
 
     /**
@@ -148,12 +155,13 @@ const AnalysisService = {
             const factors = this._getLimitingFactors(data);
             const trend = this._analyzeTrend(data, forecastList);
 
-            // Part 1: Current status summary
+            // Part 1: Current status summary (score 정수 표시)
+            const roundedScore = Math.round(score);
             let status;
             if (isKo) {
-                status = `${grade}등급(${score}점), 시잉 ${seeing}". ${equipment.ko}.`;
+                status = `${grade}등급(${roundedScore}점), 시잉 ${seeing}". ${equipment.ko}.`;
             } else {
-                status = `Grade ${grade}(${score}), seeing ${seeing}". ${equipment.en}.`;
+                status = `Grade ${grade}(${roundedScore}), seeing ${seeing}". ${equipment.en}.`;
             }
 
             // Part 2: Dynamic context (trend OR limiting factors)
@@ -191,24 +199,23 @@ const AnalysisService = {
                 }
             }
 
-            // If no trend context, fall back to limiting factors
+            // If no trend context, fall back to limiting factors (수치 포함)
             if (!context && factors.length > 0) {
+                const fmt = (f) => isKo ? `${f.ko}(${f.severity}/8)` : `${f.en}(${f.severity}/8)`;
                 if (score >= 70) {
-                    const top = factors[0];
                     context = isKo
-                        ? ` 제한요인: ${top.ko}.`
-                        : ` Limiting: ${top.en}.`;
+                        ? ` 제한요인: ${fmt(factors[0])}.`
+                        : ` Limiting: ${fmt(factors[0])}.`;
                 } else if (score >= 40) {
                     const topTwo = factors.slice(0, 2);
-                    const names = topTwo.map(f => isKo ? f.ko : f.en).join(', ');
                     context = isKo
-                        ? ` 주의: ${names}.`
-                        : ` Watch: ${names}.`;
+                        ? ` 주의: ${topTwo.map(fmt).join(', ')}.`
+                        : ` Watch: ${topTwo.map(fmt).join(', ')}.`;
                 } else {
-                    const top = factors[0];
+                    const topTwo = factors.slice(0, 2);
                     context = isKo
-                        ? ` 주요 원인: ${top.ko}.`
-                        : ` Main cause: ${top.en}.`;
+                        ? ` 주요 원인: ${topTwo.map(fmt).join(', ')}.`
+                        : ` Main cause: ${topTwo.map(fmt).join(', ')}.`;
                 }
             }
 
