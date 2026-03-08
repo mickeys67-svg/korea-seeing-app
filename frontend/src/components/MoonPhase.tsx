@@ -15,7 +15,9 @@ interface MoonPhaseProps {
 const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
     const t = useI18n();
     const [activeTab, setActiveTab] = useState<'moon' | 'sun' | 'optimal' | 'planets'>('moon');
-    const today = data && data.length > 0 ? data[0] : null;
+    // Display only 3 days; the 4th day (if present) is a buffer for nextDay moon calculations
+    const displayData = data ? data.slice(0, 3) : [];
+    const today = displayData.length > 0 ? displayData[0] : null;
     const currentPhase = today ? getPhaseDef(today.moon.phase, today.moon.fraction) : { name: '', class: '', icon: '' };
 
     if (!today) return null;
@@ -67,7 +69,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                         </div>
 
                         <div className="space-y-2 mb-4">
-                            {data.map((day, idx) => (
+                            {displayData.map((day, idx) => (
                                 <div key={day.date} className="glass-card-inner p-3 sm:p-3.5">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3">
                                         <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx, { today: t.forecastList.today, tomorrow: t.forecastList.tomorrow, dayAfter: t.forecastList.dayAfter })}</span>
@@ -156,8 +158,8 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                         </div>
 
                         <div className="space-y-4">
-                            {data.map((day, idx) => {
-                                const nextDay = data[idx + 1];
+                            {displayData.map((day, idx) => {
+                                const nextDay = data[idx + 1]; // Use full data array (includes 4th day buffer)
                                 const windows = calculateObservationWindows(day, nextDay, t.moonPhase.observationLabels);
                                 const totalMins = windows.reduce((acc, w) => acc + w.duration, 0);
                                 const totalTimeStr = totalMins > 0 ? formatDurationMins(totalMins) : t.moonPhase.noDarkTime;

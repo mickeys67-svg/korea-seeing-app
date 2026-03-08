@@ -171,8 +171,20 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
         // Both happened before observation → last event determines state
         isMoonUpAtStart = moonRise! > moonSet!; // rose after set → UP
     } else if (moonRise === null && moonSet === null) {
-        // No proximity events → use illumination as fallback
-        isMoonUpAtStart = moonIllumination > 50;
+        // No proximity events — estimate from moon phase & flags
+        if (currentDay.moon.alwaysUp) {
+            isMoonUpAtStart = true;
+        } else if (currentDay.moon.alwaysDown) {
+            isMoonUpAtStart = false;
+        } else {
+            // Phase-based estimate:
+            //   phase 0 = new moon (rises/sets with sun → DOWN at night)
+            //   phase 0.1-0.5 = waxing (rises before sunset → UP at obsStart)
+            //   phase 0.5-0.55 = just past full (rises near sunset → likely UP)
+            //   phase 0.55-1.0 = waning (rises after sunset → DOWN at obsStart)
+            const phase = currentDay.moon.phase;
+            isMoonUpAtStart = phase >= 0.1 && phase <= 0.55;
+        }
     } else if (moonSet !== null && (moonRise === null || moonSet < moonRise)) {
         // Both after obsStart: set comes first → was already up
         isMoonUpAtStart = true;
@@ -210,7 +222,9 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
     }
 
     // fallback for completely dark nights with no events detected
-    if (events.length === 0 && !isMoonUpAtStart && windowsList.length === 0 && moonIllumination < 30) {
+    // If moon is determined to be DOWN at start and no events occur during the night,
+    // the entire night is dark (regardless of illumination — moon is below horizon)
+    if (events.length === 0 && !isMoonUpAtStart && windowsList.length === 0) {
         if (obsEnd > obsStart + 20) {
             windowsList.push({ start: obsStart, end: obsEnd, type: 'dark' });
         }

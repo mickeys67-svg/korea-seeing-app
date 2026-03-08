@@ -33,10 +33,12 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
             processedSeeing = TranslationService.translateForecastBatch(processedSeeing, targetLang);
         }
 
-        // 4. Astronomy Data (Moon & Sun for 3 days) — pass timezone offset for correct local dates
+        // 4. Astronomy Data (Moon & Sun for 4 days) — pass timezone offset for correct local dates
+        //    4th day is a buffer so the last displayed day (day 3) has nextDay moon data
+        //    for accurate observation window calculation (moonrise/set after midnight)
         const startDate = (processedSeeing && processedSeeing.length > 0) ? new Date(processedSeeing[0].time) : new Date();
         const utcOffset = meta ? meta.timezoneOffset : 0;
-        const astronomy = AstronomyService.getAstronomyForecast(startDate, 3, lat, lon, utcOffset);
+        const astronomy = AstronomyService.getAstronomyForecast(startDate, 4, lat, lon, utcOffset);
 
         res.json({
             location: {
