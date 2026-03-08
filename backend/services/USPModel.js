@@ -110,7 +110,7 @@ const USPModel = {
         if (data.layers && Array.isArray(data.layers) && data.layers.length > 0) {
             data.layers.forEach(layer => {
                 const cn2 = USPModel.cn2Proxy(
-                    layer.tke || 0.15, // Base turbulence floor
+                    layer.tke || 0.08, // Base turbulence floor
                     layer.windShear || 0,
                     layer.ri || 0
                 );
@@ -121,7 +121,8 @@ const USPModel = {
             // Simplified Fallback
             const baseCn2 = 4.5e-13;
             const windImpact = 1 + Math.pow(data.surfaceWind || 0, 1.2) * 0.05;
-            const jetImpact = 1 + (data.jetStreamSpeed || 40) / 100;
+            const jetKt = data.jetStreamSpeed || 40;
+            const jetImpact = 1 + Math.log1p(jetKt / 80) * 0.6;
             cn2Integral = baseCn2 * windImpact * jetImpact;
         }
 

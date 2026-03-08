@@ -367,9 +367,6 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astr
                             <span className="relative z-10">{t.aiPrediction.warpScan}</span>
                             <Sparkles className="w-4 h-4 relative z-10 opacity-70" />
                         </button>
-                        <p className="text-xs text-[var(--text-tertiary)] mt-3 font-data uppercase tracking-[0.12em]">
-                            GFS / ECMWF / 7Timer Ensemble
-                        </p>
                     </div>
                 )}
 

@@ -139,7 +139,7 @@ const WeatherService = {
             const dT = t2 - t1;
             const avgT = (t1 + t2) / 2 + 273.15;
             const ri = (9.8 / avgT) * (dT / dz) / Math.pow(windShear || 0.001, 2);
-            layers.push({ tke: 0.5, windShear, ri, dz });
+            layers.push({ tke: 0.2, windShear, ri, dz });
         }
         return layers;
     },
@@ -224,7 +224,7 @@ const WeatherService = {
             // 4. Scoring & Observation Detail
             const observationDetail = ScoringService.calculateObservationScore({
                 seeing: (finalUsp.seeing - 0.4) * 2,
-                transparency: Math.max(0, (item.transparency || 8) - 1),
+                transparency: Math.max(0, (item.transparency ?? 4) - 1),
                 cloud: mapped.cloudScore,
                 wind: mapped.wind < 2 ? 0 : (mapped.wind < 5 ? 2 : (mapped.wind < 8 ? 4 : 8)),
                 jetstream: ScoringService.calculateJetStreamScore(mapped.jetStream),
@@ -243,7 +243,7 @@ const WeatherService = {
                 usp: finalUsp,
                 scores: {
                     seeing: parseFloat(((finalUsp.seeing - 0.4) * 2).toFixed(1)),
-                    transparency: parseFloat(Math.max(0, (item.transparency || 8) - 1).toFixed(1)),
+                    transparency: parseFloat(Math.max(0, (item.transparency ?? 4) - 1).toFixed(1)),
                     cloudCover: parseFloat(mapped.cloudScore.toFixed(1)),
                     wind: parseFloat((mapped.wind < 2 ? 0 : (mapped.wind < 5 ? 2 : (mapped.wind < 8 ? 4 : 8))).toFixed(1)),
                     jetStream: parseFloat(ScoringService.calculateJetStreamScore(mapped.jetStream).toFixed(1)),

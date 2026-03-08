@@ -4,13 +4,13 @@ const ScoringService = {
     // Jet Stream Score: Based on 250hPa Wind Speed (knots)
     // Using simplified "overhead" approach since we don't have distance map yet.
     calculateJetStreamScore: (speedMs) => {
-        if (speedMs == null) return 8; // Unknown = assume worst for safety.
+        if (speedMs == null) return 4; // Unknown = slightly cautious neutral
         const speedKt = speedMs * 1.94384; // m/s to knots
 
-        if (speedKt < 50) return 0;
-        if (speedKt < 80) return 2;
-        if (speedKt < 120) return 4;
-        if (speedKt < 150) return 6;
+        if (speedKt < 60) return 0;
+        if (speedKt < 100) return 2;
+        if (speedKt < 130) return 4;
+        if (speedKt < 160) return 6;
         return 8;
     },
 
