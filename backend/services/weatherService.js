@@ -4,16 +4,10 @@ const USPModel = require('./USPModel');
 const AnalysisService = require('./analysisService');
 const KmaService = require('./kmaService');
 const EnsembleService = require('./ensembleService');
+// Firestore reference — set by server.js via setDb() to avoid duplicate connections
 let _firestoreDb = null;
-function _getDb() {
-    if (!_firestoreDb) {
-        try {
-            const { Firestore } = require('@google-cloud/firestore');
-            _firestoreDb = new Firestore({ databaseId: 'koreaseeingapp1' });
-        } catch { _firestoreDb = null; }
-    }
-    return _firestoreDb;
-}
+function _getDb() { return _firestoreDb; }
+function _setDb(db) { _firestoreDb = db; }
 
 // ═══ Last-Known-Good Cache — serves stale data when all APIs fail ═══
 // In-memory, resets on container restart (which is fine — natural cleanup)
@@ -640,4 +634,5 @@ const WeatherService = {
     }
 };
 
+WeatherService.setDb = _setDb;
 module.exports = WeatherService;

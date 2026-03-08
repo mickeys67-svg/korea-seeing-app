@@ -274,6 +274,7 @@ const ko: Translations = {
         ratingLabels: ['매우 나쁨', '나쁨', '보통', '좋음', '매우 좋음'] as readonly string[],
         commentPlaceholder: '코멘트를 남겨주세요 (선택)',
         submit: '제출',
+        error: '제출에 실패했습니다. 다시 시도해주세요.',
     },
     updatePopup: {
         badge: 'v3.4 업데이트',

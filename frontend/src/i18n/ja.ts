@@ -274,6 +274,7 @@ const ja: Translations = {
         ratingLabels: ['非常に悪い', '悪い', '普通', '良い', '非常に良い'] as readonly string[],
         commentPlaceholder: 'コメントを残してください（任意）',
         submit: '送信',
+        error: '送信に失敗しました。もう一度お試しください。',
     },
     updatePopup: {
         badge: 'v3.4 アップデート',

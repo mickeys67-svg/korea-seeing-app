@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 interface LocationState {
     loaded: boolean;
@@ -24,8 +24,6 @@ const useGeolocation = () => {
             error: null,
         };
     });
-
-    const watchIdRef = useRef<number | null>(null);
 
     const onSuccess = (position: GeolocationPosition) => {
         setLocation(prev => ({
@@ -87,10 +85,6 @@ const useGeolocation = () => {
 
         return () => {
             document.removeEventListener('cls:location:changed', handleLocationChange);
-            // Cleanup watch if any
-            if (watchIdRef.current !== null) {
-                navigator.geolocation.clearWatch(watchIdRef.current);
-            }
         };
     }, []);
 

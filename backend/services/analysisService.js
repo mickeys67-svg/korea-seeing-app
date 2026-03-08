@@ -56,9 +56,9 @@ const AnalysisService = {
      * Get local hour from UTC date + offset (server-timezone-agnostic).
      */
     _localHour(date, utcOffsetSeconds = 0) {
-        const utcH = date.getUTCHours();
-        const offsetH = utcOffsetSeconds / 3600; // Support half-hour timezones (India +5:30)
-        return ((utcH + Math.floor(offsetH)) % 24 + 24) % 24;
+        // Properly handle half-hour timezones (India +5:30, Nepal +5:45)
+        const totalMinutes = date.getUTCHours() * 60 + date.getUTCMinutes() + utcOffsetSeconds / 60;
+        return Math.floor(((totalMinutes / 60) % 24 + 24) % 24);
     },
 
     /**

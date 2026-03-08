@@ -430,6 +430,16 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                     </p>
                                 </div>
 
+                                {/* ── Pomi Memorial ── */}
+                                <div className="mt-6 text-center" style={stagger(11)}>
+                                    <p className="text-[11px] italic" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
+                                        {`"${ip.news.pomiMemorial}"`}
+                                    </p>
+                                    <p className="text-[10px] mt-1 font-data" style={{ color: 'var(--text-tertiary)', opacity: 0.5 }}>
+                                        🐾 2025.7.30
+                                    </p>
+                                </div>
+
                                 {/* ── Sign-off ── */}
                                 <div className="text-center py-8" style={stagger(12)}>
                                     <p className="text-xl font-bold tracking-tight mb-3 text-gradient-brand">
@@ -570,18 +580,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                     </a>
                                 </div>
 
-                                {/* ── Pomi Memorial ── */}
-                                <div
-                                    className="mt-5 pt-4 text-center"
-                                    style={{ borderTop: '1px solid var(--glass-border)' }}
-                                >
-                                    <p className="text-[11px] italic" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
-                                        {`"${ip.news.pomiMemorial}"`}
-                                    </p>
-                                    <p className="text-[10px] mt-1 font-data" style={{ color: 'var(--text-tertiary)', opacity: 0.5 }}>
-                                        2025.7.30
-                                    </p>
-                                </div>
                             </div>
                         )}
 

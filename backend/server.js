@@ -7,8 +7,9 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-// Import Controllers
+// Import Controllers & Services
 const weatherController = require('./controllers/weatherController');
+const WeatherService = require('./services/weatherService');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -45,9 +46,10 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50kb' }));
 
-// Firestore Database
+// Firestore Database — single instance shared across all services
 const db = new Firestore({ databaseId: 'koreaseeingapp1' });
 app.locals.db = db;
+WeatherService.setDb(db);
 console.log('Firestore initialized (database: koreaseeingapp1)');
 
 // --- Health Check (for Cloud Run / Load Balancers) ---

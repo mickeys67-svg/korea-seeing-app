@@ -45,16 +45,18 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
         return map;
     }, [forecast, tz, todayStr, t]);
 
-    // Find closest slot to now (for NOW indicator)
-    const closestNowIdx = React.useMemo(() => {
+    // Build index map (O(n) once) + find closest slot to now
+    const { globalIdxMap, closestNowIdx } = React.useMemo(() => {
+        const map = new Map<ForecastItem, number>();
         const now = Date.now();
         let minDiff = Infinity;
         let idx = -1;
         forecast.forEach((f, i) => {
+            map.set(f, i);
             const diff = Math.abs(new Date(f.time).getTime() - now);
             if (diff < minDiff) { minDiff = diff; idx = i; }
         });
-        return idx;
+        return { globalIdxMap: map, closestNowIdx: idx };
     }, [forecast]);
 
     return (
@@ -91,7 +93,7 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
                         </div>
 
                         {group.points.map((point: ForecastItem) => {
-                            const globalIdx = forecast.indexOf(point);
+                            const globalIdx = globalIdxMap.get(point) ?? -1;
                             const isNow = globalIdx === closestNowIdx;
                             const { day, time } = formatTime(point.time);
                             const isNight = isNightSlot(point.time, astronomy, tz);

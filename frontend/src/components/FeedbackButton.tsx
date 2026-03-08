@@ -15,6 +15,7 @@ const FeedbackButton: React.FC<FeedbackButtonProps> = ({ lat, lon, timestamp }) 
     const [comment, setComment] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState(false);
     const [showComment, setShowComment] = useState(false);
 
     const ratingLabels = t.feedback.ratingLabels;
@@ -23,9 +24,10 @@ const FeedbackButton: React.FC<FeedbackButtonProps> = ({ lat, lon, timestamp }) 
         if (rating === 0 || submitting) return;
 
         setSubmitting(true);
+        setError(false);
         try {
             const baseUrl = import.meta.env.PROD ? '' : 'http://localhost:8080';
-            await fetch(`${baseUrl}/api/feedback`, {
+            const res = await fetch(`${baseUrl}/api/feedback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -33,14 +35,13 @@ const FeedbackButton: React.FC<FeedbackButtonProps> = ({ lat, lon, timestamp }) 
                     lon,
                     timestamp,
                     rating,
-                    comment: comment.trim() || undefined,
+                    ...(comment.trim() && { comment: comment.trim() }),
                 }),
             });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             setSubmitted(true);
         } catch {
-            // Show error — let user retry
-            setSubmitting(false);
-            return;
+            setError(true);
         } finally {
             setSubmitting(false);
         }
@@ -104,6 +105,11 @@ const FeedbackButton: React.FC<FeedbackButtonProps> = ({ lat, lon, timestamp }) 
                         rows={2}
                         className="w-full px-3 py-2 text-xs rounded-lg bg-white/5 border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] resize-none focus:outline-none focus:border-cyan-500/40 transition-colors"
                     />
+                    {error && (
+                        <p className="text-[11px] text-center text-red-400/80 animate-fade-in-up">
+                            {t.feedback.error || 'Failed to submit. Please try again.'}
+                        </p>
+                    )}
                     <button
                         onClick={handleSubmit}
                         disabled={rating === 0 || submitting}

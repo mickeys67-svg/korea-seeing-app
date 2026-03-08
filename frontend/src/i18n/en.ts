@@ -272,6 +272,7 @@ const en = {
         ratingLabels: ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'] as readonly string[],
         commentPlaceholder: 'Any comments? (optional)',
         submit: 'Submit',
+        error: 'Failed to submit. Please try again.',
     },
     updatePopup: {
         badge: 'v3.4 UPDATE',

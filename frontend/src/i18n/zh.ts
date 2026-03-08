@@ -274,6 +274,7 @@ const zh: Translations = {
         ratingLabels: ['非常差', '较差', '一般', '良好', '非常好'] as readonly string[],
         commentPlaceholder: '留下您的评论（可选）',
         submit: '提交',
+        error: '提交失败，请重试。',
     },
     updatePopup: {
         badge: 'v3.4 更新',
