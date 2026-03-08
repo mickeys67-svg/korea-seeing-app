@@ -53,12 +53,14 @@ const ScoringService = {
     //
     calculateObservationScore: (params, lang = 'en') => {
         // Atmospheric quality weights (cloud excluded, normalized to 1.0)
+        // Calibrated against Meteoblue/Clear Outside/Astrospheric global standards
+        // Jet stream reduced from 0.25→0.18 (250hPa wind already captured in USP seeing)
         const WEIGHTS = {
-            seeing: 0.31,
-            transparency: 0.19,
+            seeing: 0.35,
+            transparency: 0.20,
             wind: 0.12,
-            jetstream: 0.25,
-            convection: 0.13
+            jetstream: 0.18,
+            convection: 0.15
         };
 
         const seeingScore = typeof params.seeing === 'number' ? params.seeing : 8;

@@ -67,6 +67,72 @@ function getTimezoneFromCoords(lat, lon) {
     return null;
 }
 
+// ═══ Quality Scoring Helper Functions (v2.0 — Global Standard Calibrated) ═══
+
+// 7Timer seeing index (1-8) → arcseconds conversion
+// 7Timer bins: 1=<0.5" 2=0.5-0.75" 3=0.75-1" 4=1-1.25" 5=1.25-1.5" 6=1.5-2" 7=2-2.5" 8=>2.5"
+function _7timerToArcsec(code) {
+    const map = [0, 0.4, 0.6, 0.9, 1.1, 1.4, 1.75, 2.25, 3.0];
+    if (code < 1 || code > 8) return null;
+    return map[code] || null;
+}
+
+// Non-linear seeing → score (0-8, 0=best)
+// More granular in the 0.5-2.5" range where observation quality changes most
+// Anchors: 0.5"→0, 0.8"→1, 1.2"→2.5, 1.8"→4, 2.5"→5.5, 3.5"→7, 5.0"→8
+function _seeingToScore(seeing) {
+    if (seeing <= 0.5) return 0;
+    if (seeing <= 0.8) return (seeing - 0.5) / 0.3 * 1.0;           // 0→1
+    if (seeing <= 1.2) return 1.0 + (seeing - 0.8) / 0.4 * 1.5;    // 1→2.5
+    if (seeing <= 1.8) return 2.5 + (seeing - 1.2) / 0.6 * 1.5;    // 2.5→4
+    if (seeing <= 2.5) return 4.0 + (seeing - 1.8) / 0.7 * 1.5;    // 4→5.5
+    if (seeing <= 3.5) return 5.5 + (seeing - 2.5) / 1.0 * 1.5;    // 5.5→7
+    if (seeing <= 5.0) return 7.0 + (seeing - 3.5) / 1.5 * 1.0;    // 7→8
+    return 8;
+}
+
+// Continuous wind → score (0-8, 0=best)
+// Replaces 4-level discrete mapping: provides smooth gradation across full range
+function _windToScore(wind) {
+    if (wind == null) return 3; // neutral — no data
+    if (wind <= 2) return 0;
+    if (wind <= 5) return (wind - 2) / 3 * 2;           // 0→2
+    if (wind <= 8) return 2 + (wind - 5) / 3 * 2;       // 2→4
+    if (wind <= 12) return 4 + (wind - 8) / 4 * 2;      // 4→6
+    if (wind <= 20) return 6 + (wind - 12) / 8 * 2;     // 6→8
+    return 8;
+}
+
+// Derive transparency from physical proxies when 7Timer is unavailable
+// Humidity → water vapor scattering, AOD → aerosol extinction, PM2.5 → particle scatter
+function _deriveTransparency(humidity, aod, pm25, elevation) {
+    let score = 2.0; // base: decent transparency
+    // Humidity: water vapor absorbs and scatters light
+    if (humidity != null) {
+        if (humidity > 85) score += 2.5;
+        else if (humidity > 70) score += 1.5;
+        else if (humidity > 55) score += 0.5;
+        else if (humidity < 30) score -= 0.5; // very dry = excellent
+    }
+    // AOD: direct atmospheric transparency measure (lower = cleaner)
+    if (aod != null) {
+        if (aod > 0.4) score += 2.0;       // heavy aerosol
+        else if (aod > 0.25) score += 1.0;  // moderate
+        else if (aod > 0.1) score += 0.5;   // light
+        else score -= 0.3;                    // very clean air
+    }
+    // PM2.5: particulate scatter (ug/m3)
+    if (pm25 != null) {
+        if (pm25 > 75) score += 2.0;     // unhealthy air
+        else if (pm25 > 35) score += 1.0; // moderate pollution
+        else if (pm25 > 15) score += 0.5; // light haze
+    }
+    // Elevation: higher = less atmosphere to look through
+    if (elevation != null && elevation > 1000) score -= 0.5;
+    if (elevation != null && elevation > 2000) score -= 0.5; // additional bonus
+    return Math.min(8, Math.max(0, score));
+}
+
 const WeatherService = {
     // ... [Rest of the constants and helpers remain unchanged] ...
     PRESSURE_LEVEL_HEIGHTS: {
@@ -366,7 +432,7 @@ const WeatherService = {
                     wind10m: { direction: 'N/A', speed: 3 }
                 });
             }
-            timerData = { dataseries: syntheticData };
+            timerData = { dataseries: syntheticData, _synthetic: true };
         }
 
         // Helper to extract model-specific data from consolidated Open-Meteo response
@@ -442,11 +508,17 @@ const WeatherService = {
             };
 
             // 4. Scoring & Observation Detail — compute once, reuse everywhere
-            const seeingScore = parseFloat(Math.min(8, Math.max(0, (finalUsp.seeing - 0.4) * 2)).toFixed(1));
+            // Multi-model seeing blend: USP (physics) + 7Timer (CMC model) for diversity
+            const timerSeeingArcsec = (!timerData._synthetic && item.seeing != null) ? _7timerToArcsec(item.seeing) : null;
+            const blendedSeeing = timerSeeingArcsec != null
+                ? finalUsp.seeing * 0.6 + timerSeeingArcsec * 0.4
+                : finalUsp.seeing;
+            const seeingScore = parseFloat(Math.min(8, Math.max(0, _seeingToScore(blendedSeeing))).toFixed(1));
+            // Transparency: 7Timer when available, physics-derived fallback otherwise
             const transparencyScore = item.transparency != null
                 ? parseFloat(Math.max(0, item.transparency - 1).toFixed(1))
-                : 4; // null = neutral (no data)
-            const windScore = mapped.wind == null ? 3 : parseFloat((mapped.wind < 2 ? 0 : (mapped.wind < 5 ? 2 : (mapped.wind < 8 ? 4 : 8))).toFixed(1));
+                : parseFloat(_deriveTransparency(mapped.humidity, mapped.aod, mapped.pm25, siteElevation).toFixed(1));
+            const windScore = parseFloat(_windToScore(mapped.wind).toFixed(1));
             const jetStreamScore = parseFloat(ScoringService.calculateJetStreamScore(mapped.jetStream).toFixed(1));
             const convectionScore = parseFloat(ScoringService.calculateConvectionScore(mapped.cape, hour).toFixed(1));
 
@@ -489,7 +561,10 @@ const WeatherService = {
                 },
                 score: observationDetail.score,
                 grade: observationDetail.grade,
-                recommendation: observationDetail.recommendation
+                recommendation: observationDetail.recommendation,
+                // Internal: air quality for training data (not sent to frontend)
+                _pm25: mapped.pm25,
+                _aod: mapped.aod
             };
         });
 
@@ -508,7 +583,7 @@ const WeatherService = {
                             cloudScore: f.scores?.cloudCover ?? null, wind: f.wind10m?.speed ?? null,
                             jetStream: f.raw?.jetStreamSpeed ?? null, cape: f.raw?.cape ?? null,
                             humidity: f.rh2m ?? null, temp: f.temp2m ?? null,
-                            pm25: null, aod: null,
+                            pm25: f._pm25 ?? null, aod: f._aod ?? null,
                             moonPhase: 0, moonFraction: 0,
                         },
                         layers: f.cloudLayers || {},

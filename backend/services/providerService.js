@@ -95,7 +95,7 @@ const ProviderService = {
                 'temperature_250hPa', 'temperature_200hPa',
                 'wind_speed_1000hPa', 'wind_speed_925hPa', 'wind_speed_850hPa',
                 'wind_speed_700hPa', 'wind_speed_500hPa', 'wind_speed_300hPa',
-                'wind_speed_200hPa'
+                'wind_speed_250hPa', 'wind_speed_200hPa'
             ].join(',');
 
             let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&forecast_days=7&timezone=auto`;
