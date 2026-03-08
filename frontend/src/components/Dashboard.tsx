@@ -184,7 +184,7 @@ const Dashboard: React.FC = () => {
                     <li>Jet stream (250hPa), CAPE convection, sky transparency, cloud cover</li>
                     <li>Moon phase forecast with optimal dark-sky observation windows</li>
                     <li>GPS auto-location with astronomical twilight detection</li>
-                    <li>Multi-source data: GFS, ECMWF, 7Timer, Open-Meteo, Met.no</li>
+                    <li>Multi-source atmospheric data analysis</li>
                     <li>Atmospheric scintillation and boundary layer turbulence analysis</li>
                 </ul>
             </div>

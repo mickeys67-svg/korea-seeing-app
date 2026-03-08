@@ -218,7 +218,7 @@ const en = {
                     ],
                 },
             ],
-            dataSourceNote: 'Based on GFS · ECMWF · 7Timer · Open-Meteo · Met.no',
+            dataSourceNote: 'Multi-source atmospheric data analysis',
             dataSourceFree: 'Free · No ads · $0 AI cost',
         },
         guide: {
@@ -227,7 +227,7 @@ const en = {
             cards: [
                 { title: 'Observation Quality Dial', desc: 'Overall atmospheric score (0–100) at current time. Calculated as weighted average of 6 metrics: seeing, clouds, jet stream, transparency, etc.', badge: '85+', badgeLabel: 'S grade = Best' },
                 { title: 'Target Suitability', desc: 'Independently calculates suitability for 5 celestial target types using current atmospheric conditions. Each target has optical-specific weight factors.', badge: 'Score', badgeLabel: 'Low score shows limiting factors' },
-                { title: 'Warp AI Scan', desc: 'Select a future time point up to 24h ahead with the time slider and scan to analyze observation potential. Choose a night slot (🔵).', badge: 'GFS', badgeLabel: '+ ECMWF + 7Timer' },
+                { title: 'Warp AI Scan', desc: 'Select a future time point up to 24h ahead with the time slider and scan to analyze observation potential. Choose a night slot (🔵).', badge: 'AI', badgeLabel: 'Multi-source analysis' },
                 { title: 'Moon Phase Forecast', desc: 'Check moonrise/moonset and illumination for 3 days. Deep-sky observation is ideal when moon illumination is below 20%.', badge: '<20%', badgeLabel: 'Deep-sky optimal' },
                 { title: 'GPS Location Detection', desc: 'Allow GPS for precise location-based forecasts. If denied, Seoul defaults will be shown.', badge: 'AUTO', badgeLabel: 'Or select city' },
             ],
