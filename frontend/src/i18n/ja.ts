@@ -33,7 +33,7 @@ const ja: Translations = {
             transparency: '空の透明度',
             cloud: '雲量',
             wind: '地上風速',
-            jetStream: 'ジェット気流 (250hPa)',
+            jetStream: 'ジェット気流',
             convection: '大気対流',
         },
         modalDescs: {
@@ -42,7 +42,7 @@ const ja: Translations = {
             cloud: '雲による空の遮蔽。低いほど観測しやすい。0(晴天) ～ 8(全曇)。',
             wind: '望遠鏡の安定性に影響する地上風速。低いほど穏やかです。0(無風) ～ 8(強風)。',
             jetStream: '高高度の乱流を引き起こす上層気流。低いほど高高度の歪みが少ない。高度約10km基準。',
-            convection: '垂直大気不安定度(CAPE)。低いほど大気が安定し、熱歪みが少ない。',
+            convection: '垂直大気不安定度。低いほど大気が安定し、熱歪みが少ない。',
         },
         cloudLayers: { low: '下層 (0-2km)', mid: '中層 (2-6km)', high: '上層 (6km+)' },
     },
@@ -53,13 +53,14 @@ const ja: Translations = {
         live: 'ライブ',
         see: 'シーイング',
         now: '現在',
+        forecast: '予報',
         today: '今日',
         tomorrow: '明日',
         dayAfter: '明後日',
     },
     aiPrediction: {
         warpInsight: 'ワープインサイト',
-        ensembleVersion: 'アンサンブル v2.0',
+        ensembleVersion: 'アンサンブル分析',
         warpScan: 'ワープスキャン',
         warpMessages: [
             '大気層をワープ航法で探索中...',
@@ -81,8 +82,8 @@ const ja: Translations = {
         },
         observationScore: '観測スコア',
         atmStability: '大気安定度',
-        seeingUsp: 'シーイング (USP)',
-        friedR0: 'Fried (r₀)',
+        seeingUsp: 'シーイング予測',
+        friedR0: '大気コヒーレンス',
         stability: '安定性',
         jetStream: 'ジェット気流',
         cloud: '雲',
@@ -126,6 +127,14 @@ const ja: Translations = {
         belowHorizon: '地平線の下',
         planetsTip: '高度30°以上の惑星は大気の歪みが少なく、最も観測しやすいです。出没時刻を確認して観測を計画しましょう。',
         planetNames: { mercury: '水星', venus: '金星', mars: '火星', jupiter: '木星', saturn: '土星' },
+        observationLabels: {
+            beforeMoonrise: '月出前',
+            afterMoonset: '月没後',
+            darkSky: '暗い空',
+            optimalDark: '最適な暗い条件。',
+            shortWindow: '短い観測時間。',
+            longDark: '長く暗い夜。',
+        },
     },
     targets: {
         title: '天体別観測適合度',
@@ -183,15 +192,33 @@ const ja: Translations = {
             v3Title: 'v3.0 主要アップデート',
             v3Features: [
                 { label: '天体別観測適合度', sub: '惑星·天の川·星雲·星団·銀河' },
-                { label: '物理モデル v4.0', sub: 'ESO·Peach·IDA基準で再較正' },
+                { label: '予報モデル強化', sub: '専門観測データ基準で較正' },
                 { label: '日の出/入り自動判別', sub: 'GPS位置基準の天文薄明' },
-                { label: 'Warp AIスコア統合', sub: 'USP + 総合スコア統一' },
+                { label: 'Warp AIスコア統合', sub: '予測 + 総合スコア統一' },
             ],
             siteDesc: '無料 · PC/モバイル · 広告なし · GPS自動位置',
             hashtags: ['天文観測', '天体写真', 'シーイング予報', '惑星観測', 'ディープスカイ', 'ClearSkies', 'Astrophotography'],
         },
         news: {
             updates: [
+                {
+                    title: '予報信頼性向上',
+                    items: [
+                        '観測地の標高・環境を自動反映し予報精度を改善',
+                        '山岳観測地と都市部の違いを精密に反映',
+                        'データ欠損時の安定したニュートラル処理でエラー削減',
+                        '予報パイプライン全体の安定性を強化',
+                    ],
+                },
+                {
+                    title: '精密雲モデル適用',
+                    items: [
+                        '気象庁リアルタイム雲データを適用',
+                        '雲観測の精度を大幅に向上',
+                        '30分間隔の自動更新でリアルタイム精度が向上',
+                        '雲があるのに「観測可能」と表示される問題を修正',
+                    ],
+                },
                 {
                     title: '昼/夜 自動判別',
                     items: [
@@ -205,8 +232,8 @@ const ja: Translations = {
                     title: 'Warp AIスコア整合',
                     items: [
                         '観測品質ダイヤルと同一の総合スコア基準に統一',
-                        '大気安定度(USP)はサブ指標として別途表示',
-                        '雲・透明度を無視していた構造的不整合を解決',
+                        '大気安定度はサブ指標として別途表示',
+                        '雲・透明度が反映されていなかった問題を修正',
                     ],
                 },
                 {
@@ -215,12 +242,12 @@ const ja: Translations = {
                         '惑星 🪐 · 天の川 🌌 · 星雲 ✨ · 星団 🔭 · 銀河 🌀',
                         '0–100点リアルタイム算出 + S/A/B/C/D等級',
                         '制限要因の表示（シーイング/ジェット気流/月明りなど）',
-                        'ESO Paranal · Damian Peach基準 v4.0再較正',
-                        '250hPaジェット気流 · CAPE対流不安定性を反映',
+                        '専門観測所データ基準で精密較正',
+                        'ジェット気流・大気安定度を反映',
                     ],
                 },
             ],
-            dataSourceNote: '多元気象データに基づく精密分析',
+            dataSourceNote: 'GFS · ECMWF · 7Timer · Open-Meteo · Met.no ベース',
             dataSourceFree: '無料 · 広告なし · AI費用$0',
         },
         guide: {
@@ -229,12 +256,29 @@ const ja: Translations = {
             cards: [
                 { title: '観測品質ダイヤル', desc: '現在時刻基準の総合大気スコア（0–100）。シーイング・雲・ジェット気流・透明度など6つの指標を加重平均で算出します。', badge: '85+', badgeLabel: 'S等級 = 最高' },
                 { title: '天体別適合度', desc: '5種類の天体対象ごとに現在の大気条件の適合度を独立モデルで計算。各対象の光学特性に合わせた重みが適用されます。', badge: 'スコア', badgeLabel: '低いほど制限要因を表示' },
-                { title: 'Warp AIスキャン', desc: '最大24時間のタイムスライダーで未来の時点を選択してスキャンすると、その時刻の観測可能性を分析。夜スロット（🔵）を選択してください。', badge: 'AI', badgeLabel: '多元データ分析' },
+                { title: 'Warp AIスキャン', desc: '最大72時間（3日間）のタイムスライダーで未来の時点を選択してスキャンすると、その時刻の観測可能性を分析。夜スロット（🔵）を選択してください。', badge: 'GFS', badgeLabel: '+ ECMWF + 7Timer' },
                 { title: '月の位相予報', desc: '3日間の月の出・月の入り・照明率を確認。ディープスカイ観測は月の照明率20%以下の日が理想的です。', badge: '<20%', badgeLabel: 'ディープスカイ最適' },
                 { title: 'GPS位置検出', desc: 'GPSを許可すると現在位置基準の精密予報が提供されます。拒否するとソウルのデフォルト値が表示されます。', badge: 'AUTO', badgeLabel: 'または都市選択' },
             ],
             contactObservatory: 'Forme Observatory · 江華島',
         },
+    },
+    apiHealth: {
+        ok: 'データ正常',
+        recovering: 'データ復旧中',
+    },
+    feedback: {
+        question: '今夜の観測はいかがでしたか？',
+        thankYou: 'フィードバックありがとうございます！',
+        ratingLabels: ['非常に悪い', '悪い', '普通', '良い', '非常に良い'] as readonly string[],
+        commentPlaceholder: 'コメントを残してください（任意）',
+        submit: '送信',
+    },
+    updatePopup: {
+        badge: 'v3.4 アップデート',
+        title: '予報信頼性向上',
+        desc: '観測地の標高と環境を自動反映し、予報精度が改善されました。山岳・都市部の違いを精密に反映し、データ欠損時も安定的に動作します。',
+        dismiss: '確認',
     },
 };
 

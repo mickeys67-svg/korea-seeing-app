@@ -1,6 +1,8 @@
 import React from 'react';
 import type { ForecastItem, AstronomyDay } from '../types/weather';
 import useI18n from '../hooks/useI18n';
+import { isNightSlot } from '../utils/nightDetection';
+import { getScoreColor, getSeeingColor } from '../utils/weatherColors';
 
 interface ForecastListProps {
     forecast: ForecastItem[];
@@ -12,25 +14,6 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
     const t = useI18n();
     const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // 실제 sunrise/sunset 기반 isNight 계산
-    const getIsNight = (isoString: string): boolean => {
-        const slotTime = new Date(isoString);
-
-        if (astronomy && astronomy.length > 0) {
-            const localDateStr = slotTime.toLocaleDateString('en-CA', { timeZone: tz });
-            const matchDay = astronomy.find(d => d.date === localDateStr);
-
-            if (matchDay?.sun?.sunrise && matchDay?.sun?.sunset) {
-                const sunrise = new Date(matchDay.sun.sunrise as string);
-                const sunset = new Date(matchDay.sun.sunset as string);
-                return slotTime < sunrise || slotTime > sunset;
-            }
-        }
-
-        const hour = parseInt(slotTime.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
-        return hour < 6 || hour > 18;
-    };
-
     const formatTime = (isoString: string) => {
         const date = new Date(isoString);
         const hour = parseInt(date.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
@@ -41,7 +24,6 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
     };
 
     // 날짜별 그룹핑
-    const nowMs = Date.now();
     const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz });
     const grouped = React.useMemo(() => {
         const map: { dateKey: string; label: string; dateDisplay: string; points: ForecastItem[] }[] = [];
@@ -65,31 +47,15 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
 
     // Find closest slot to now (for NOW indicator)
     const closestNowIdx = React.useMemo(() => {
+        const now = Date.now();
         let minDiff = Infinity;
         let idx = -1;
         forecast.forEach((f, i) => {
-            const diff = Math.abs(new Date(f.time).getTime() - nowMs);
+            const diff = Math.abs(new Date(f.time).getTime() - now);
             if (diff < minDiff) { minDiff = diff; idx = i; }
         });
         return idx;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [forecast]);
-
-    const getScoreColor = (score: number): string => {
-        if (score >= 85) return 'var(--seeing-exceptional)';
-        if (score >= 70) return 'var(--seeing-excellent)';
-        if (score >= 55) return 'var(--seeing-good)';
-        if (score >= 40) return 'var(--seeing-fair)';
-        if (score >= 25) return 'var(--seeing-poor)';
-        return 'var(--seeing-very-poor)';
-    };
-
-    const getSeeingColor = (s: number): string => {
-        if (s <= 2) return 'var(--seeing-exceptional)';
-        if (s <= 4) return 'var(--seeing-good)';
-        if (s <= 6) return 'var(--seeing-fair)';
-        return 'var(--seeing-very-poor)';
-    };
 
     return (
         <div className="glass-card w-full p-5 sm:p-6 mt-6 animate-fade-in-up delay-2" style={{ animationFillMode: 'backwards' }}>
@@ -99,7 +65,7 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
                         {t.forecastList.title}
                     </h3>
                     <p className="text-xs lg:text-sm font-data text-[var(--text-tertiary)] uppercase tracking-wider mt-0.5">
-                        {t.forecastList.subtitle} &middot; {forecast.length} {t.forecastList.datapoints}
+                        {t.forecastList.subtitle} &middot; {new Date().toLocaleString(undefined, { timeZone: tz, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
                     </p>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-surface)] border border-[var(--glass-border)]">
@@ -128,11 +94,11 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
                             const globalIdx = forecast.indexOf(point);
                             const isNow = globalIdx === closestNowIdx;
                             const { day, time } = formatTime(point.time);
-                            const isNight = getIsNight(point.time);
+                            const isNight = isNightSlot(point.time, astronomy, tz);
                             const s = point.scores.seeing;
                             const seeingColor = getSeeingColor(s);
                             const scoreColor = getScoreColor(point.score);
-                            const confidence = point.raw?.confidence || 70;
+                            const confidence = point.raw?.confidence ?? 70;
 
                             return (
                                 <div
@@ -148,7 +114,10 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
                                     ) : (
                                         <span className="text-xs text-[var(--text-secondary)] font-medium">{day}</span>
                                     )}
-                                    <span className={`text-[11px] font-data mb-3 ${isNow ? 'text-emerald-400/70 font-bold' : 'text-[var(--text-tertiary)]'}`}>{time}</span>
+                                    <span className={`text-[11px] font-data ${isNow ? '' : 'mb-3'} ${isNow ? 'text-emerald-400/70 font-bold' : 'text-[var(--text-tertiary)]'}`}>{time}</span>
+                                    {isNow && (
+                                        <span className="text-[9px] font-data text-[var(--text-tertiary)] mb-2">{t.forecastList.forecast}</span>
+                                    )}
 
                                     {/* Score */}
                                     <span

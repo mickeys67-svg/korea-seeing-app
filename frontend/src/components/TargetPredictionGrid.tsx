@@ -3,19 +3,12 @@ import { predictTargets } from '../utils/targetPrediction';
 import type { TargetId } from '../utils/targetPrediction';
 import type { ForecastItem } from '../types/weather';
 import useI18n from '../hooks/useI18n';
+import { getScoreColor } from '../utils/weatherColors';
 
 interface Props {
     forecast: ForecastItem;
     moonFraction: number;
 }
-
-const getScoreColor = (score: number): string => {
-    if (score >= 85) return 'var(--seeing-exceptional)';
-    if (score >= 70) return 'var(--seeing-excellent)';
-    if (score >= 55) return 'var(--seeing-good)';
-    if (score >= 40) return 'var(--seeing-fair)';
-    return 'var(--seeing-very-poor)';
-};
 
 const TargetPredictionGrid: React.FC<Props> = ({ forecast, moonFraction }) => {
     const t = useI18n();

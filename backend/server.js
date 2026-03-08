@@ -14,8 +14,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const weatherController = require('./controllers/weatherController');
 
 // Import Models
-require('./models/User');
-require('./models/WeatherData');
+require('./models/TrainingData');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -50,7 +49,7 @@ app.use(cors({
         }
     }
 }));
-app.use(express.json());
+app.use(express.json({ limit: '50kb' }));
 
 // Database Connection
 if (MONGODB_URI) {
@@ -82,12 +81,24 @@ app.get('/api/weather', weatherController.getWeatherAndSeeing);
 const clsRoutes = require('./routes/cls');
 app.use('/api/cls', clsRoutes);
 
+// Register Feedback routes
+const feedbackRoutes = require('./routes/feedback');
+app.use('/api', feedbackRoutes);
+
 // --- Static Asset Serving (Production) ---
 if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '../frontend/dist');
 
-    // 1. Serve static files normally
-    app.use(express.static(distPath));
+    // 1. Serve static files — HTML no-cache, assets immutable (hashed filenames)
+    app.use(express.static(distPath, {
+        setHeaders: (res, filePath) => {
+            if (filePath.endsWith('.html')) {
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+        }
+    }));
 
     // 2. Catch-all for SPA - Must be the LAST route
     // Use regex to avoid string parsing issues in Express 5

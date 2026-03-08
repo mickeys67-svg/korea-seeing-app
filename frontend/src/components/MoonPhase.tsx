@@ -16,7 +16,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
     const t = useI18n();
     const [activeTab, setActiveTab] = useState<'moon' | 'sun' | 'optimal' | 'planets'>('moon');
     const today = data && data.length > 0 ? data[0] : null;
-    const currentPhase = today ? getPhaseDef(today.moon.phase) : { name: '', class: '', icon: '' };
+    const currentPhase = today ? getPhaseDef(today.moon.phase, today.moon.fraction) : { name: '', class: '', icon: '' };
 
     if (!today) return null;
 
@@ -59,7 +59,8 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                             </div>
                             <div className="moon-visual">
                                 <div className="moon-glow" style={{ '--glow-opacity': today.moon.fraction } as React.CSSProperties} />
-                                <div className={`moon-sphere ${currentPhase.class}`}>
+                                <div className={`moon-photo-wrap ${currentPhase.class}`}>
+                                    <img src="/moon.jpg" alt="Moon" className="moon-photo-img" />
                                     <div className="moon-shadow" />
                                 </div>
                             </div>
@@ -69,7 +70,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                             {data.map((day, idx) => (
                                 <div key={day.date} className="glass-card-inner p-3 sm:p-3.5">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3">
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx)}</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx, { today: t.forecastList.today, tomorrow: t.forecastList.tomorrow, dayAfter: t.forecastList.dayAfter })}</span>
                                         <div className="text-xs sm:text-sm text-[var(--text-secondary)] font-data">
                                             {(() => {
                                                 const isNextDay = (timeStr: string | null, baseDateStr: string) => {
@@ -126,7 +127,7 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                             {data.map((day, idx) => (
                                 <div key={day.date} className="glass-card-inner p-3 sm:p-3.5">
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 mb-1">
-                                        <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx)}</span>
+                                        <span className="text-xs sm:text-sm font-medium text-[var(--accent)] shrink-0">{formatDate(day.date, idx, { today: t.forecastList.today, tomorrow: t.forecastList.tomorrow, dayAfter: t.forecastList.dayAfter })}</span>
                                         <div className="text-xs sm:text-sm text-[var(--text-secondary)] font-data flex items-center gap-2 sm:gap-3">
                                             <span>{t.moonPhase.rise} <strong className="text-[var(--text-primary)]">{formatTime(day.sun.sunrise, timezone)}</strong></span>
                                             <span className="text-[var(--glass-border)]">|</span>
@@ -157,14 +158,14 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                         <div className="space-y-4">
                             {data.map((day, idx) => {
                                 const nextDay = data[idx + 1];
-                                const windows = calculateObservationWindows(day, nextDay);
+                                const windows = calculateObservationWindows(day, nextDay, t.moonPhase.observationLabels);
                                 const totalMins = windows.reduce((acc, w) => acc + w.duration, 0);
                                 const totalTimeStr = totalMins > 0 ? formatDurationMins(totalMins) : t.moonPhase.noDarkTime;
 
                                 return (
                                     <div key={day.date} className="glass-card-inner p-4">
                                         <div className="flex justify-between items-center mb-3 pb-2 border-b border-[var(--glass-border)]">
-                                            <span className="text-sm font-semibold text-[var(--accent)]">{formatDate(day.date, idx)}</span>
+                                            <span className="text-sm font-semibold text-[var(--accent)]">{formatDate(day.date, idx, { today: t.forecastList.today, tomorrow: t.forecastList.tomorrow, dayAfter: t.forecastList.dayAfter })}</span>
                                             <span className="text-xs font-data" style={{ color: totalMins > 0 ? 'var(--seeing-exceptional)' : 'var(--text-tertiary)' }}>
                                                 {totalMins > 0 ? `${t.moonPhase.totalTime} ${totalTimeStr}` : totalTimeStr}
                                             </span>

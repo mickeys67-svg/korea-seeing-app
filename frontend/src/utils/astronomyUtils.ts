@@ -1,21 +1,26 @@
 import type { AstronomyDay } from '../types/weather';
 
-export const getPhaseDef = (phase: number) => {
+export const getPhaseDef = (phase: number, fraction?: number) => {
+    // 조명률 98% 이상 → 보름달 비주얼 (phase가 0.5 부근일 때 그림자 방지)
+    if (fraction != null && fraction >= 0.98) return { name: 'Full Moon', class: 'moon-phase-full', icon: '🌕' };
+    // 조명률 2% 이하 → 삭 비주얼
+    if (fraction != null && fraction <= 0.02) return { name: 'New Moon', class: 'moon-phase-new', icon: '🌑' };
+
     if (phase === 0 || phase === 1) return { name: 'New Moon', class: 'moon-phase-new', icon: '🌑' };
     if (phase < 0.25) return { name: 'Waxing Crescent', class: 'moon-phase-waxing-crescent', icon: '🌒' };
-    if (phase === 0.25) return { name: 'First Quarter', class: 'moon-phase-first-quarter', icon: '🌓' };
+    if (phase < 0.27) return { name: 'First Quarter', class: 'moon-phase-first-quarter', icon: '🌓' };
     if (phase < 0.5) return { name: 'Waxing Gibbous', class: 'moon-phase-waxing-gibbous', icon: '🌔' };
-    if (phase === 0.5) return { name: 'Full Moon', class: 'moon-phase-full', icon: '🌕' };
+    if (phase < 0.52) return { name: 'Full Moon', class: 'moon-phase-full', icon: '🌕' };
     if (phase < 0.75) return { name: 'Waning Gibbous', class: 'moon-phase-waning-gibbous', icon: '🌖' };
-    if (phase === 0.75) return { name: 'Last Quarter', class: 'moon-phase-last-quarter', icon: '🌗' };
+    if (phase < 0.77) return { name: 'Last Quarter', class: 'moon-phase-last-quarter', icon: '🌗' };
     return { name: 'Waning Crescent', class: 'moon-phase-waning-crescent', icon: '🌘' };
 };
 
-export const formatDate = (dateStr: string, index: number) => {
+export const formatDate = (dateStr: string, index: number, labels?: { today: string; tomorrow: string; dayAfter: string }) => {
     const d = new Date(dateStr);
     const mm = d.getMonth() + 1;
     const dd = d.getDate();
-    const label = index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : 'Day after';
+    const label = index === 0 ? (labels?.today ?? 'Today') : index === 1 ? (labels?.tomorrow ?? 'Tomorrow') : (labels?.dayAfter ?? 'Day after');
     return `${label} (${mm}/${dd})`;
 };
 
@@ -80,7 +85,16 @@ export interface ObservationWindow {
     tip: string;
 }
 
-export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: AstronomyDay | undefined): ObservationWindow[] => {
+export interface ObservationLabels {
+    beforeMoonrise: string;
+    afterMoonset: string;
+    darkSky: string;
+    optimalDark: string;
+    shortWindow: string;
+    longDark: string;
+}
+
+export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: AstronomyDay | undefined, labels?: ObservationLabels): ObservationWindow[] => {
     const windows: ObservationWindow[] = [];
 
     if (!currentDay.sun.sunset) return windows;
@@ -142,15 +156,29 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
     const isMoonSuperBright = moonIllumination > 70;
 
     // Determine "Moon Up" status at the start of the night (obsStart)
-    // Heuristic: If Moon Set is before Rise, Moon is Up at start.
+    // Must consider whether rise/set happened BEFORE or AFTER obsStart
     let isMoonUpAtStart = false;
-    if (moonSet !== null && (moonRise === null || moonSet < moonRise)) {
+    const riseBeforeObs = moonRise !== null && moonRise <= obsStart;
+    const setBeforeObs = moonSet !== null && moonSet <= obsStart;
+
+    if (riseBeforeObs && !setBeforeObs) {
+        // Moon rose before observation window and hasn't set yet → UP
         isMoonUpAtStart = true;
-    } else if (moonRise !== null && (moonSet === null || moonRise < moonSet)) {
+    } else if (setBeforeObs && !riseBeforeObs) {
+        // Moon set before observation and hasn't risen yet → DOWN
         isMoonUpAtStart = false;
+    } else if (riseBeforeObs && setBeforeObs) {
+        // Both happened before observation → last event determines state
+        isMoonUpAtStart = moonRise! > moonSet!; // rose after set → UP
     } else if (moonRise === null && moonSet === null) {
-        // No proximity events. Use illumination as a fallback proxy for "Always Up/Down"
+        // No proximity events → use illumination as fallback
         isMoonUpAtStart = moonIllumination > 50;
+    } else if (moonSet !== null && (moonRise === null || moonSet < moonRise)) {
+        // Both after obsStart: set comes first → was already up
+        isMoonUpAtStart = true;
+    } else {
+        // Both after obsStart: rise comes first → was down
+        isMoonUpAtStart = false;
     }
 
     const windowsList: { start: number, end: number, type: 'dark' | 'moon' }[] = [];
@@ -193,8 +221,8 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
         let quality: 'excellent' | 'good' | 'fair' = 'excellent';
         let score = 100;
         let icon = '🌆';
-        let tip = 'Optimal dark conditions.';
-        let condition = 'Dark Sky';
+        let tip = labels?.optimalDark ?? 'Optimal dark conditions.';
+        let condition = labels?.darkSky ?? 'Dark Sky';
 
         // Degrade based on general moon phase even if "down" (scattered light)? 
         // Actually, if moon is down, it's pretty good.
@@ -206,10 +234,10 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
         // "Scenario B: Moon Sets... Observed after".
 
         if (w.start <= obsStart + 30) {
-            condition = 'Before Moonrise';
+            condition = labels?.beforeMoonrise ?? 'Before Moonrise';
             icon = '🌆';
         } else {
-            condition = 'After Moonset';
+            condition = labels?.afterMoonset ?? 'After Moonset';
             icon = '🌙';
         }
 
@@ -225,11 +253,11 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
         if (duration < 60) {
             score -= 10;
             quality = 'fair';
-            tip = 'Short observation window.';
+            tip = labels?.shortWindow ?? 'Short observation window.';
         } else if (duration > 240) {
             score = 100;
             quality = 'excellent';
-            tip = 'Long, dark night.';
+            tip = labels?.longDark ?? 'Long, dark night.';
         } else {
             score = 85;
             quality = 'good';

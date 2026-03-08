@@ -53,7 +53,9 @@ const USPModel = {
      * @returns {number} Airmass
      */
     airmass: (altitudeDeg) => {
-        const z = (90 - altitudeDeg) * (Math.PI / 180); // Zenith angle in radians
+        // Guard against near-horizon: cap at 5° to avoid extreme/infinite values
+        const safeDeg = Math.max(5, altitudeDeg);
+        const z = (90 - safeDeg) * (Math.PI / 180); // Zenith angle in radians
         return 1 / Math.cos(z);
     },
 
@@ -65,7 +67,8 @@ const USPModel = {
     seeingWithAirmass: (seeing, altitudeDeg) => {
         if (altitudeDeg >= 90) return seeing;
         if (altitudeDeg <= 0) return 5.0; // Horizon is always bad
-        return seeing * Math.pow(USPModel.airmass(altitudeDeg), 3 / 5);
+        // Cap at 5.0 arcsec — beyond this is "observation impossible" territory
+        return Math.min(5.0, seeing * Math.pow(USPModel.airmass(altitudeDeg), 3 / 5));
     },
 
     /**
@@ -74,30 +77,37 @@ const USPModel = {
     environmentFactor: (data) => {
         let factor = 1.0;
         if (data.urban) factor *= 1.15;      // Urban Heat Island (+15%)
-        if (data.nearWater) factor *= 0.95;   // Stable water (-5%)
         if (data.elevation > 1000) factor *= 0.8; // High altitude improvement
 
         // Active Humidity Penalty (Scattering/Absorption)
         if (data.humidity > 85) factor *= 1.15;
         else if (data.humidity > 70) factor *= 1.05;
 
-        // Optical/Air quality factors
-        if (data.aod > 0.25) factor *= 1.12;
-        if (data.pm25 > 30) factor *= 1.08;
+        // Optical/Air quality factors (null = no data → no penalty)
+        if (data.aod != null && data.aod > 0.25) factor *= 1.12;
+        if (data.pm25 != null && data.pm25 > 30) factor *= 1.08;
 
         return factor;
     },
 
     /**
-     * Seeing score (0-10)
+     * Seeing score (0-10) from arcseconds
+     * <0.5" = 10 (Exceptional), <0.8" = 9-10, <1.2" = 7-9, <1.8" = 5-7,
+     * <2.5" = 3-5, <4.0" = 1-3, <5.0" = 0-1, ≥5.0" = 0 (Extreme turbulence/typhoon)
+     * @param {number} arcsec - Seeing in arcseconds
+     * @returns {number} Score 0-10 (higher = better)
      */
     seeingScore: (arcsec) => {
-        if (arcsec < 0.5) return 10;
-        if (arcsec < 0.8) return 9 + (0.8 - arcsec) * 3.3;
-        if (arcsec < 1.2) return 7 + (1.2 - arcsec) * 5;
-        if (arcsec < 1.8) return 5 + (1.8 - arcsec) * 3.3;
-        if (arcsec < 2.5) return 3 + (2.5 - arcsec) * 2.8;
-        return 2;
+        let score;
+        if (arcsec < 0.5) score = 10;
+        else if (arcsec < 0.8) score = 9 + (0.8 - arcsec) * 3.3;
+        else if (arcsec < 1.2) score = 7 + (1.2 - arcsec) * 5;
+        else if (arcsec < 1.8) score = 5 + (1.8 - arcsec) * 3.3;
+        else if (arcsec < 2.5) score = 3 + (2.5 - arcsec) * 2.8;
+        else if (arcsec < 4.0) score = 1 + (4.0 - arcsec) * 1.3;
+        else if (arcsec < 5.0) score = (5.0 - arcsec) * 1.0;
+        else score = 0;
+        return Math.min(10, Math.max(0, score));
     },
 
     /**
@@ -110,7 +120,7 @@ const USPModel = {
         if (data.layers && Array.isArray(data.layers) && data.layers.length > 0) {
             data.layers.forEach(layer => {
                 const cn2 = USPModel.cn2Proxy(
-                    layer.tke || 0.08, // Base turbulence floor
+                    layer.tke || 0.15, // Base turbulence floor
                     layer.windShear || 0,
                     layer.ri || 0
                 );
@@ -118,11 +128,12 @@ const USPModel = {
                 cn2Integral += cn2 * dz;
             });
         } else {
-            // Simplified Fallback
-            const baseCn2 = 4.5e-13;
+            // Simplified Fallback — adjust baseCn2 by elevation/humidity
+            let baseCn2 = 4.5e-13;
+            if (data.elevation > 1000) baseCn2 *= 0.5;      // high altitude = cleaner air
+            if (data.humidity != null && data.humidity < 50) baseCn2 *= 0.8; // dry air = less turbulence
             const windImpact = 1 + Math.pow(data.surfaceWind || 0, 1.2) * 0.05;
-            const jetKt = data.jetStreamSpeed || 40;
-            const jetImpact = 1 + Math.log1p(jetKt / 80) * 0.6;
+            const jetImpact = 1 + (data.jetStreamSpeed ?? 25) / 100;
             cn2Integral = baseCn2 * windImpact * jetImpact;
         }
 
@@ -142,13 +153,13 @@ const USPModel = {
         if ((data.variance || 0) > 1.5) confidence -= 0.15;
 
         return {
-            seeing: parseFloat(Math.max(0.35, finalSeeing).toFixed(2)),
+            seeing: parseFloat(Math.min(5.0, Math.max(0.35, finalSeeing)).toFixed(2)),
             score: parseFloat(score.toFixed(1)),
             confidence: Math.max(10, Math.round(confidence * 100)),
             details: {
                 r0: parseFloat((r0 * 100).toFixed(1)),
                 stability: data.layers && data.layers.length > 0 ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Mixed',
-                jetStream: (data.jetStreamSpeed || 0) > 70 ? 'Extreme' : (data.jetStreamSpeed > 40 ? 'Active' : 'Stable')
+                jetStream: (data.jetStreamSpeed ?? 0) > 70 ? 'Extreme' : ((data.jetStreamSpeed ?? 0) > 40 ? 'Active' : 'Stable')
             }
         };
     }

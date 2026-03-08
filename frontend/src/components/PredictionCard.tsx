@@ -27,6 +27,8 @@ interface PredictionResultProps {
     };
     hasPrev: boolean;
     hasNext: boolean;
+    onPrev?: () => void;
+    onNext?: () => void;
     targetTime?: string;
 }
 
@@ -37,6 +39,8 @@ const PredictionCard: React.FC<PredictionResultProps> = ({
     details,
     hasPrev,
     hasNext,
+    onPrev,
+    onNext,
     targetTime
 }) => {
     const t = useI18n();
@@ -84,14 +88,30 @@ const PredictionCard: React.FC<PredictionResultProps> = ({
             </div>
 
             <div className="flex items-center justify-center gap-3 mb-3">
-                {hasPrev && <ChevronLeft className="w-4 h-4 text-[var(--text-tertiary)]" />}
+                {hasPrev && (
+                    <button
+                        onClick={onPrev}
+                        className="p-1.5 rounded-lg hover:bg-[var(--bg-surface)] transition-colors active:scale-90"
+                        aria-label="Previous slot"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]" />
+                    </button>
+                )}
                 <div className="flex items-baseline">
                     <span className="text-5xl font-data font-bold" style={{ color: valueColor }}>
                         {displayValue}
                     </span>
                     <span className="text-lg font-data font-bold text-[var(--text-tertiary)]">{displayMax}</span>
                 </div>
-                {hasNext && <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />}
+                {hasNext && (
+                    <button
+                        onClick={onNext}
+                        className="p-1.5 rounded-lg hover:bg-[var(--bg-surface)] transition-colors active:scale-90"
+                        aria-label="Next slot"
+                    >
+                        <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]" />
+                    </button>
+                )}
             </div>
 
             <p className="text-[15px] text-[var(--text-secondary)] leading-relaxed mb-5 max-w-sm mx-auto">

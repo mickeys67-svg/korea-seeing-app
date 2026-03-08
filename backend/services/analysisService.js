@@ -53,10 +53,19 @@ const AnalysisService = {
     },
 
     /**
+     * Get local hour from UTC date + offset (server-timezone-agnostic).
+     */
+    _localHour(date, utcOffsetSeconds = 0) {
+        const utcH = date.getUTCHours();
+        const offsetH = utcOffsetSeconds / 3600; // Support half-hour timezones (India +5:30)
+        return ((utcH + Math.floor(offsetH)) % 24 + 24) % 24;
+    },
+
+    /**
      * Format hour as Korean-friendly time string.
      */
-    _formatHourKo(date) {
-        const h = date.getHours();
+    _formatHourKo(date, utcOffsetSeconds = 0) {
+        const h = this._localHour(date, utcOffsetSeconds);
         if (h === 0) return '자정';
         if (h < 6) return `새벽 ${h}시`;
         if (h < 12) return `오전 ${h}시`;
@@ -66,8 +75,8 @@ const AnalysisService = {
         return `밤 ${h - 12}시`;
     },
 
-    _formatHourEn(date) {
-        const h = date.getHours();
+    _formatHourEn(date, utcOffsetSeconds = 0) {
+        const h = this._localHour(date, utcOffsetSeconds);
         const suffix = h >= 12 ? 'PM' : 'AM';
         const h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
         return `${h12}${suffix}`;
@@ -143,7 +152,7 @@ const AnalysisService = {
      * @param {string} targetLang - 'ko' or 'en'
      * @returns {string} Insight text (1-2 sentences)
      */
-    getActiveInsight(data, forecastList = [], targetLang = 'ko') {
+    getActiveInsight(data, forecastList = [], targetLang = 'ko', utcOffsetSeconds = 0) {
         if (!data || data.score == null) return null;
 
         try {
@@ -163,8 +172,8 @@ const AnalysisService = {
                 if (trend && !trend.isBestNow && trend.bestBlock.score >= score + 15) {
                     const bestTime = trend.bestTime;
                     cloudMsg += isKo
-                        ? ` ${this._formatHourKo(bestTime)}경 개선 가능성.`
-                        : ` May improve around ${this._formatHourEn(bestTime)}.`;
+                        ? ` ${this._formatHourKo(bestTime, utcOffsetSeconds)}경 개선 가능성.`
+                        : ` May improve around ${this._formatHourEn(bestTime, utcOffsetSeconds)}.`;
                 }
                 return cloudMsg;
             }
@@ -193,8 +202,8 @@ const AnalysisService = {
                     const betterTime = trend.nextBlock ? new Date(trend.nextBlock.time) : null;
                     if (betterTime) {
                         context = isKo
-                            ? ` ${this._formatHourKo(betterTime)} 이후 조건 개선 예상.`
-                            : ` Conditions improving after ${this._formatHourEn(betterTime)}.`;
+                            ? ` ${this._formatHourKo(betterTime, utcOffsetSeconds)} 이후 조건 개선 예상.`
+                            : ` Conditions improving after ${this._formatHourEn(betterTime, utcOffsetSeconds)}.`;
                     }
                 }
                 // Case C: Better time available later
@@ -202,8 +211,8 @@ const AnalysisService = {
                     const bestTime = trend.bestTime;
                     const bestGrade = trend.bestBlock.grade;
                     context = isKo
-                        ? ` ${this._formatHourKo(bestTime)}경 ${bestGrade}등급(${trend.bestBlock.score}점) 예상.`
-                        : ` ${bestGrade}-grade(${trend.bestBlock.score}) expected around ${this._formatHourEn(bestTime)}.`;
+                        ? ` ${this._formatHourKo(bestTime, utcOffsetSeconds)}경 ${bestGrade}등급(${Math.round(trend.bestBlock.score)}점) 예상.`
+                        : ` ${bestGrade}-grade(${Math.round(trend.bestBlock.score)}) expected around ${this._formatHourEn(bestTime, utcOffsetSeconds)}.`;
                 }
                 // Case D: Conditions worsening
                 else if (trend.trend === 'worsening' && score >= 50) {

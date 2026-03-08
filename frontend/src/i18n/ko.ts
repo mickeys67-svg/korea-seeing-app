@@ -33,7 +33,7 @@ const ko: Translations = {
             transparency: '하늘 투명도',
             cloud: '구름 덮임',
             wind: '지상 풍속',
-            jetStream: '제트기류 (250hPa)',
+            jetStream: '제트기류',
             convection: '대기 대류',
         },
         modalDescs: {
@@ -42,7 +42,7 @@ const ko: Translations = {
             cloud: '구름에 의한 하늘 가림. 낮을수록 관측 가능 시간이 많습니다. 0(구름 없음) ~ 8(완전 흐림).',
             wind: '망원경 안정성에 영향을 주는 지상 풍속. 낮을수록 좋습니다. 0(무풍) ~ 8(강풍).',
             jetStream: '고고도 난류를 유발하는 상층 기류. 낮을수록 고고도 왜곡이 적습니다. 고도 약 10km 기준.',
-            convection: '수직 대기 불안정도(CAPE). 낮을수록 대기가 안정적이고 열 왜곡이 적습니다.',
+            convection: '수직 대기 불안정도. 낮을수록 대기가 안정적이고 열 왜곡이 적습니다.',
         },
         cloudLayers: { low: '하층 (0-2km)', mid: '중층 (2-6km)', high: '상층 (6km+)' },
     },
@@ -53,13 +53,14 @@ const ko: Translations = {
         live: '실시간',
         see: '시잉',
         now: '현재',
+        forecast: '예보',
         today: '오늘',
         tomorrow: '내일',
         dayAfter: '모레',
     },
     aiPrediction: {
         warpInsight: '워프 인사이트',
-        ensembleVersion: '앙상블 v2.0',
+        ensembleVersion: '앙상블 분석',
         warpScan: '워프 스캔',
         warpMessages: [
             '대기층을 워프 항법으로 탐색 중...',
@@ -81,8 +82,8 @@ const ko: Translations = {
         },
         observationScore: '관측 점수',
         atmStability: '대기 안정도',
-        seeingUsp: '시잉 (USP)',
-        friedR0: 'Fried (r₀)',
+        seeingUsp: '시잉 예측',
+        friedR0: '대기 코히런스',
         stability: '안정성',
         jetStream: '제트기류',
         cloud: '구름',
@@ -126,6 +127,14 @@ const ko: Translations = {
         belowHorizon: '지평선 아래',
         planetsTip: '고도 30° 이상의 행성이 대기 왜곡이 적어 관측에 가장 좋습니다. 출몰 시간을 확인해 관측을 계획하세요.',
         planetNames: { mercury: '수성', venus: '금성', mars: '화성', jupiter: '목성', saturn: '토성' },
+        observationLabels: {
+            beforeMoonrise: '월출 전',
+            afterMoonset: '월몰 후',
+            darkSky: '어두운 하늘',
+            optimalDark: '최적의 어두운 조건.',
+            shortWindow: '짧은 관측 시간.',
+            longDark: '길고 어두운 밤.',
+        },
     },
     targets: {
         title: '대상별 관측 적합도',
@@ -183,15 +192,33 @@ const ko: Translations = {
             v3Title: 'v3.0 주요 업데이트',
             v3Features: [
                 { label: '대상별 관측 적합도', sub: '행성·은하수·성운·성단·은하' },
-                { label: '물리 모델 v4.0', sub: 'ESO·Peach·IDA 기준 재보정' },
+                { label: '예보 모델 강화', sub: '전문 관측 데이터 기반 보정' },
                 { label: '일출·일몰 자동 구분', sub: 'GPS 위치 기반 천문 일몰' },
-                { label: 'Warp AI 점수 정합', sub: 'USP + 종합 점수 통합' },
+                { label: 'Warp AI 점수 정합', sub: '예측 + 종합 점수 통합' },
             ],
             siteDesc: '무료 · PC/모바일 · 광고 없음 · GPS 자동 위치',
             hashtags: ['천문관측', '천체사진', '시잉예보', '행성관측', '딥스카이', 'ClearSkies', 'Astrophotography'],
         },
         news: {
             updates: [
+                {
+                    title: '예보 신뢰도 향상',
+                    items: [
+                        '관측지 고도·환경 자동 반영으로 예보 정확도 개선',
+                        '산악 관측지와 도시 지역 차이를 정밀하게 반영',
+                        '데이터 누락 시 안정적인 중립 처리로 오류 감소',
+                        '전체 예보 파이프라인 안정성 강화',
+                    ],
+                },
+                {
+                    title: '정밀 구름 모델 적용',
+                    items: [
+                        '기상청 실시간 구름 데이터 적용',
+                        '구름 관측 정밀도 대폭 향상',
+                        '30분 간격 자동 갱신으로 실시간 정확도 향상',
+                        '구름이 있는데 "관측 가능"으로 표시되던 문제 해결',
+                    ],
+                },
                 {
                     title: '낮/밤 자동 구분',
                     items: [
@@ -205,8 +232,8 @@ const ko: Translations = {
                     title: 'Warp AI 점수 정합',
                     items: [
                         '관측 품질 원형과 동일한 종합 점수 기준 통일',
-                        '대기 안정도(USP)는 서브 지표로 별도 표시',
-                        '구름·투명도 무시하던 구조적 불일치 해결',
+                        '대기 안정도는 서브 지표로 별도 표시',
+                        '구름·투명도가 반영되지 않던 문제 해결',
                     ],
                 },
                 {
@@ -215,12 +242,12 @@ const ko: Translations = {
                         '행성 🪐 · 은하수 🌌 · 성운 ✨ · 성단 🔭 · 은하 🌀',
                         '0–100점 실시간 산출 + S/A/B/C/D 등급',
                         '제한 원인 표시 (시잉/제트기류/달빛 등)',
-                        'ESO Paranal · Damian Peach 기준 v4.0 재보정',
-                        '250hPa 제트기류 · CAPE 대류불안정 반영',
+                        '전문 관측소 데이터 기반 정밀 보정',
+                        '제트기류 · 대기 안정도 반영',
                     ],
                 },
             ],
-            dataSourceNote: '다중 기상 데이터 기반 정밀 분석',
+            dataSourceNote: 'GFS · ECMWF · 7Timer · Open-Meteo · Met.no 기반',
             dataSourceFree: '무료 · 광고 없음 · $0 AI 비용',
         },
         guide: {
@@ -229,12 +256,29 @@ const ko: Translations = {
             cards: [
                 { title: '관측 품질 원형', desc: '현재 시간 기준 종합 대기 점수 (0–100). 시잉·구름·제트기류·투명도 등 6개 지표를 가중 평균으로 산출합니다.', badge: '85+', badgeLabel: 'S등급 = 최상' },
                 { title: '대상별 적합도', desc: '5가지 천체 대상별로 현재 대기 조건의 적합도를 독립 모델로 계산합니다. 각 대상의 광학적 특성에 맞는 가중치가 적용됩니다.', badge: '점수', badgeLabel: '낮을수록 제한 원인 표시' },
-                { title: 'Warp AI 스캔', desc: '최대 24시간 타임슬라이더로 미래 시점을 선택하고 스캔하면 해당 시각의 관측 가능성을 분석합니다. 밤 슬롯(🔵)을 선택하세요.', badge: 'AI', badgeLabel: '다중 데이터 분석' },
+                { title: 'Warp AI 스캔', desc: '최대 72시간(3일) 타임슬라이더로 미래 시점을 선택하고 스캔하면 해당 시각의 관측 가능성을 분석합니다. 밤 슬롯(🔵)을 선택하세요.', badge: 'GFS', badgeLabel: '+ ECMWF + 7Timer' },
                 { title: '달 위상 예보', desc: '3일간 월출·월몰·달 조명률을 확인하세요. 딥스카이 관측은 달 조명률 20% 이하인 날이 이상적입니다.', badge: '<20%', badgeLabel: '딥스카이 최적' },
                 { title: 'GPS 위치 인식', desc: 'GPS를 허용하면 현재 위치 기준 정밀 예보가 제공됩니다. 거부 시 서울 기본값으로 표시됩니다.', badge: 'AUTO', badgeLabel: '또는 도시 선택' },
             ],
             contactObservatory: 'Forme Observatory · 강화도',
         },
+    },
+    apiHealth: {
+        ok: '데이터 정상',
+        recovering: '데이터 복구중',
+    },
+    feedback: {
+        question: '오늘 관측은 어떠셨나요?',
+        thankYou: '피드백 감사합니다!',
+        ratingLabels: ['매우 나쁨', '나쁨', '보통', '좋음', '매우 좋음'] as readonly string[],
+        commentPlaceholder: '코멘트를 남겨주세요 (선택)',
+        submit: '제출',
+    },
+    updatePopup: {
+        badge: 'v3.4 업데이트',
+        title: '예보 신뢰도 향상',
+        desc: '관측지 고도와 환경을 자동 반영하여 예보 정확도가 개선되었습니다. 산악·도시 지역 차이를 정밀하게 반영하고, 데이터 누락 시에도 안정적으로 동작합니다.',
+        dismiss: '확인',
     },
 };
 

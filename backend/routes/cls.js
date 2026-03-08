@@ -53,7 +53,7 @@ router.get('/cities/search', (req, res) => {
             if (!aName.startsWith(query) && bName.startsWith(query)) return 1;
             return 0;
         })
-        .slice(0, parseInt(limit, 10))
+        .slice(0, Math.min(50, Math.max(1, parseInt(limit, 10) || 10)))
         .map(city => ({
             id: city.id,
             name: city.name,
@@ -71,7 +71,7 @@ router.get('/cities/search', (req, res) => {
  * Fallback to OpenStreetMap Nominatim for Reverse Geocoding
  */
 router.get('/geocoding/reverse', async (req, res) => {
-    const { lat, lng } = req.query;
+    const { lat, lng, lang } = req.query;
 
     if (!lat || !lng) {
         return res.status(400).json({ error: 'Lat and Lng are required' });
@@ -83,11 +83,14 @@ router.get('/geocoding/reverse', async (req, res) => {
         return res.status(400).json({ error: 'Invalid coordinates' });
     }
 
+    // Accept language from query param, default to 'en'
+    const acceptLang = ['ko', 'en', 'ja', 'zh'].includes(lang) ? lang : 'en';
+
     try {
         // Note: In real production, use an API key or respect Nominatim's usage policy.
         // Here we use it as a simple proxy.
         const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${parsedLat}&lon=${parsedLng}&accept-language=ko`,
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${parsedLat}&lon=${parsedLng}&accept-language=${acceptLang}`,
             {
                 headers: {
                     'User-Agent': 'ClearSky-App/1.0'

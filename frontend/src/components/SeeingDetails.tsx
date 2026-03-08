@@ -2,8 +2,10 @@ import React from 'react';
 import { Eye, Cloud, Wind, Droplets, Plane, ThermometerSun, ChevronRight } from 'lucide-react';
 import InfoModal from './InfoModal';
 import TargetPredictionGrid from './TargetPredictionGrid';
+import FeedbackButton from './FeedbackButton';
 import type { ForecastItem } from '../types/weather';
 import useI18n from '../hooks/useI18n';
+import { getScoreColor, getSeeingColor } from '../utils/weatherColors';
 
 interface SeeingProps {
     data: ForecastItem;
@@ -11,32 +13,21 @@ interface SeeingProps {
     isDaytime?: boolean;
     sunsetTime?: string | null;
     timezone?: string;
+    lat?: number;
+    lon?: number;
 }
 
-const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDaytime = false, sunsetTime, timezone }) => {
+const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDaytime = false, sunsetTime, timezone, lat, lon }) => {
     const t = useI18n();
-    const [selectedMetric, setSelectedMetric] = React.useState<{ title: string; desc: string; ranges?: any[] } | null>(null);
+    const [selectedMetric, setSelectedMetric] = React.useState<{ title: string; desc: string; ranges?: { label: string; value: string }[] } | null>(null);
     const scores = data.scores;
 
-    const getScoreColor = React.useCallback((score: number): string => {
-        if (score >= 85) return 'var(--seeing-exceptional)';
-        if (score >= 70) return 'var(--seeing-excellent)';
-        if (score >= 55) return 'var(--seeing-good)';
-        if (score >= 40) return 'var(--seeing-fair)';
-        if (score >= 25) return 'var(--seeing-poor)';
-        return 'var(--seeing-very-poor)';
-    }, []);
-
-    const getComponentColor = React.useCallback((value: number): string => {
-        if (value <= 2) return 'var(--seeing-exceptional)';
-        if (value <= 4) return 'var(--seeing-good)';
-        if (value <= 6) return 'var(--seeing-fair)';
-        return 'var(--seeing-very-poor)';
-    }, []);
+    // getComponentColor = getSeeingColor from shared utils
+    const getComponentColor = getSeeingColor;
 
     const getGradeLabel = (grade: string) => {
         const map: Record<string, keyof typeof t.seeingDetails.grades> = {
-            S: 'S', A: 'A', B: 'B', C: 'C',
+            S: 'S', A: 'A', B: 'B', C: 'C', D: 'D',
         };
         return t.seeingDetails.grades[map[grade] || 'D'];
     };
@@ -299,6 +290,11 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDayt
 
                 {/* Target Suitability Grid */}
                 <TargetPredictionGrid forecast={data} moonFraction={moonFraction} />
+
+                {/* User Feedback */}
+                {lat != null && lon != null && (
+                    <FeedbackButton lat={lat} lon={lon} timestamp={data.time} />
+                )}
             </div>
 
             <InfoModal

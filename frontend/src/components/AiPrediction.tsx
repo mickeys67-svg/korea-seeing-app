@@ -6,27 +6,13 @@ import TimeSlider from './TimeSlider';
 import PredictionCard from './PredictionCard';
 import LiveClock from './LiveClock';
 import useI18n from '../hooks/useI18n';
+import { isNightSlot } from '../utils/nightDetection';
 
 interface Props {
     forecastList: ForecastItem[];
     timezone?: string;
     aiSummary?: string | null;
     astronomy?: AstronomyDay[];
-}
-
-// 슬롯 시간이 밤인지 판별 (실제 sunrise/sunset 기반)
-function isNightSlot(isoString: string, astronomy: AstronomyDay[] | undefined, tz: string): boolean {
-    const slotTime = new Date(isoString);
-    if (astronomy?.length) {
-        const localDateStr = slotTime.toLocaleDateString('en-CA', { timeZone: tz });
-        const matchDay = astronomy.find(d => d.date === localDateStr);
-        if (matchDay?.sun?.sunrise && matchDay?.sun?.sunset) {
-            return slotTime < new Date(matchDay.sun.sunrise as string) || slotTime > new Date(matchDay.sun.sunset as string);
-        }
-    }
-    // fallback
-    const hour = parseInt(slotTime.toLocaleString('en-US', { timeZone: tz, hour: 'numeric', hour12: false }), 10);
-    return hour < 6 || hour > 18;
 }
 
 const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astronomy }) => {
@@ -52,6 +38,15 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astr
     const [loadingMsg, setLoadingMsg] = useState(t.aiPrediction.warpMessages[0]);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Reset selectedIndex when forecast data changes (GPS change, new data load)
+    useEffect(() => {
+        const flags = availableForecasts.map(f => isNightSlot(f.time, astronomy, resolvedTz));
+        const firstNight = flags.findIndex(n => n);
+        setSelectedIndex(prev => prev < availableForecasts.length ? prev : (firstNight >= 0 ? firstNight : 0));
+        setPrediction(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [forecastList]);
+
     // Cleanup timer on unmount
     useEffect(() => {
         return () => {
@@ -63,7 +58,8 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astr
     const isCurrentDaytime = !nightFlags[selectedIndex];
 
     // ──── 날짜/시간 포맷 유틸 ────
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: resolvedTz });
+    // Memoize todayStr — only changes when timezone changes, not every render
+    const todayStr = useMemo(() => new Date().toLocaleDateString('en-CA', { timeZone: resolvedTz }), [resolvedTz]);
 
     const getDayLabel = (isoString: string): string => {
         const date = new Date(isoString);
@@ -367,6 +363,9 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astr
                             <span className="relative z-10">{t.aiPrediction.warpScan}</span>
                             <Sparkles className="w-4 h-4 relative z-10 opacity-70" />
                         </button>
+                        <p className="text-xs text-[var(--text-tertiary)] mt-3 font-data uppercase tracking-[0.12em]">
+                            GFS / ECMWF / 7Timer Ensemble
+                        </p>
                     </div>
                 )}
 
@@ -397,6 +396,8 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astr
                         details={predictionDetails}
                         hasPrev={selectedIndex > 0}
                         hasNext={selectedIndex < availableForecasts.length - 1}
+                        onPrev={() => { setSelectedIndex(i => Math.max(0, i - 1)); setPrediction(null); }}
+                        onNext={() => { setSelectedIndex(i => Math.min(availableForecasts.length - 1, i + 1)); setPrediction(null); }}
                         targetTime={selectedFullLabel}
                     />
                 )}

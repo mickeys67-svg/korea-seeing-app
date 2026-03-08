@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     X, Sparkles, BookOpen, Star, Heart, ChevronRight,
-    Zap, Target, Sun, Rocket, Globe, ExternalLink, Mail, Radio,
+    Zap, Target, Sun, Rocket, Globe, ExternalLink, Mail, Radio, Cloud, Shield,
 } from 'lucide-react';
 import useI18n from '../hooks/useI18n';
 
@@ -49,6 +49,50 @@ const starSeed = Array.from({ length: 32 }, (_, i) => ({
     delay: `${i * 0.22}s`,
 }));
 
+/* ───────── shooting star (random spawn) ───────── */
+
+interface ShootingStar { id: number; top: number; left: number; angle: number; }
+
+const ShootingStars: React.FC = () => {
+    const [star, setStar] = useState<ShootingStar | null>(null);
+
+    useEffect(() => {
+        const spawn = () => {
+            setStar({
+                id: Date.now(),
+                top: Math.random() * 30,
+                left: 40 + Math.random() * 55,
+                angle: 135 + Math.random() * 20,
+            });
+            setTimeout(() => setStar(null), 1200);
+        };
+
+        // 첫 별똥별: 2~4초 후
+        const first = setTimeout(spawn, 2000 + Math.random() * 2000);
+        // 이후 4~7초 간격으로 반복
+        const iv = setInterval(spawn, 4000 + Math.random() * 3000);
+        return () => { clearTimeout(first); clearInterval(iv); };
+    }, []);
+
+    if (!star) return null;
+    return (
+        <div
+            key={star.id}
+            className="absolute"
+            style={{
+                top: `${star.top}%`,
+                left: `${star.left}%`,
+                height: '2px',
+                borderRadius: '1px',
+                background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.5), rgba(255,255,255,0.9))',
+                boxShadow: '0 0 6px 1px rgba(167,139,250,0.3)',
+                transform: `rotate(${star.angle}deg)`,
+                animation: 'shooting-star 1s ease-out forwards',
+            }}
+        />
+    );
+};
+
 const Starfield = React.memo(() => (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         {starSeed.map((s, i) => (
@@ -65,6 +109,9 @@ const Starfield = React.memo(() => (
                 }}
             />
         ))}
+
+        <ShootingStars />
+
         {/* nebula glow */}
         <div
             className="absolute w-[280px] h-[280px] rounded-full"
@@ -169,6 +216,8 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
     /* ── static data ── */
 
     const updatesMeta = [
+        { version: 'v3.4', date: '2026.03.04', tag: 'FIX', tagColor: 'var(--seeing-good)', icon: Shield },
+        { version: 'v3.3', date: '2026.03.04', tag: 'NEW', tagColor: 'var(--cyan)', icon: Cloud },
         { version: 'v3.2', date: '2026.03.01', tag: 'NEW', tagColor: 'var(--seeing-exceptional)', icon: Sun },
         { version: 'v3.1', date: '2026.03.01', tag: 'FIX', tagColor: 'var(--seeing-fair)', icon: Rocket },
         { version: 'v3.0', date: '2026.02.28', tag: 'MAJOR', tagColor: 'var(--warp-purple)', icon: Target },
@@ -183,7 +232,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
         'var(--seeing-good)',
     ];
 
-    const v3Emojis = ['🎯', '🌍', '☀️', '🚀'];
+    const v3Emojis = ['🛡️', '🎯', '🌍', '☀️', '🚀'];
 
     const tabs: { id: Tab; icon: typeof Star; label: string }[] = [
         { id: 'about', icon: Heart, label: ip.tabs.about },
@@ -235,7 +284,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                     <Starfield />
 
                     {/* ── Header ── */}
-                    <div className="relative z-10 flex items-center justify-between px-5 sm:px-6 pt-5 pb-3">
+                    <div className="relative z-10 flex items-center justify-between px-5 sm:px-6 pt-7 sm:pt-6 pb-3">
                         <div className="flex items-center gap-3">
                             <img
                                 src="/logo.jpg"
@@ -519,16 +568,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                         <Mail className="w-3 h-3" />
                                         mickeys67@gmail.com
                                     </a>
-                                </div>
-
-                                {/* ── Dedication ── */}
-                                <div className="mt-5 pt-4 text-center" style={{ borderTop: '1px solid var(--glass-border)' }}>
-                                    <p className="text-[11px] italic" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
-                                        "나의 사랑스러운 개 포미를 생각하며"
-                                    </p>
-                                    <p className="text-[10px] mt-1 font-data" style={{ color: 'var(--text-tertiary)', opacity: 0.5 }}>
-                                        2025.7.30
-                                    </p>
                                 </div>
                             </div>
                         )}

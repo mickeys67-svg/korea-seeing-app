@@ -292,6 +292,13 @@
   100% { opacity: 0.2; stroke-dashoffset: 0; }
 }
 
+@keyframes shooting-star {
+  0% { opacity: 0; width: 0; translate: 0 0; }
+  10% { opacity: 1; width: 80px; }
+  50% { opacity: 0.5; width: 50px; }
+  100% { opacity: 0; width: 0; translate: -180px 150px; }
+}
+
 /* ========== Dot Grid Background Pattern ========== */
 .bg-dot-pattern {
   background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
@@ -332,4 +339,14 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   border: none;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ========== Footer Moon Aurora Backlight ========== */
+.footer-moon-aurora {
+  animation: footerMoonAurora 5s ease-in-out infinite;
+}
+
+@keyframes footerMoonAurora {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
 }

@@ -33,7 +33,7 @@ export interface ForecastItem {
         };
     };
     raw?: {
-        jetStreamSpeed: number;
+        jetStreamSpeed: number | null;
         cape: number;
         confidence?: number;
     };
@@ -83,4 +83,5 @@ export interface WeatherData {
     forecast: ForecastItem[];
     astronomy: AstronomyDay[];
     aiSummary?: string | null;
+    apiHealth?: Record<string, boolean> | null;
 }

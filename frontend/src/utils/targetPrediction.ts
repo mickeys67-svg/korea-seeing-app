@@ -105,10 +105,11 @@ const TARGETS: TargetModel[] = [
         id: 'planet',
         emoji: '🪐',
         moonSensitivity: 0.10,
-        weights:     { seeing: 0.39, transparency: 0.02, cloudCover: 0.25, wind: 0.10, jetStream: 0.18, convection: 0.06 },
-        sensitivity: { seeing: 0.40, transparency: 0.15, cloudCover: 0.55, wind: 0.30, jetStream: 0.38, convection: 0.30 },
+        // Cloud removed from weights — applied as probability multiplier in predictTargets()
+        weights:     { seeing: 0.52, transparency: 0.03, wind: 0.13, jetStream: 0.24, convection: 0.08 },
+        sensitivity: { seeing: 0.40, transparency: 0.15, wind: 0.30, jetStream: 0.38, convection: 0.30 },
         //            ─────────────────────────────────────────────────────────────
-        //            weights sum: 0.39+0.02+0.25+0.10+0.18+0.06 = 1.00 ✓
+        //            weights sum: 0.52+0.03+0.13+0.24+0.08 = 1.00 ✓
         //
         //  v4 changes vs v2:
         //   jetStream weight  0.15 → 0.18  (planetary killer; dominates on jet=6 nights)
@@ -153,9 +154,10 @@ const TARGETS: TargetModel[] = [
         id: 'milkyway',
         emoji: '🌌',
         moonSensitivity: 1.3,
-        weights:     { seeing: 0.06, transparency: 0.40, cloudCover: 0.38, wind: 0.04, jetStream: 0.04, convection: 0.08 },
-        sensitivity: { seeing: 0.15, transparency: 0.50, cloudCover: 0.55, wind: 0.20, jetStream: 0.10, convection: 0.15 },
-        //            weights sum: 0.06+0.40+0.38+0.04+0.04+0.08 = 1.00 ✓
+        // Cloud removed — applied as probability multiplier
+        weights:     { seeing: 0.10, transparency: 0.64, wind: 0.06, jetStream: 0.07, convection: 0.13 },
+        sensitivity: { seeing: 0.15, transparency: 0.50, wind: 0.20, jetStream: 0.10, convection: 0.15 },
+        //            weights sum: 0.10+0.64+0.06+0.07+0.13 = 1.00 ✓
         //
         //  v4 changes vs v2:
         //   moonSensitivity   1.5  → 1.3   (thin crescent slightly more usable)
@@ -193,9 +195,10 @@ const TARGETS: TargetModel[] = [
         id: 'nebula',
         emoji: '💫',
         moonSensitivity: 0.70,
-        weights:     { seeing: 0.22, transparency: 0.32, cloudCover: 0.26, wind: 0.07, jetStream: 0.10, convection: 0.03 },
-        sensitivity: { seeing: 0.30, transparency: 0.50, cloudCover: 0.55, wind: 0.20, jetStream: 0.28, convection: 0.20 },
-        //            weights sum: 0.22+0.32+0.26+0.07+0.10+0.03 = 1.00 ✓
+        // Cloud removed — applied as probability multiplier
+        weights:     { seeing: 0.30, transparency: 0.43, wind: 0.09, jetStream: 0.14, convection: 0.04 },
+        sensitivity: { seeing: 0.30, transparency: 0.50, wind: 0.20, jetStream: 0.28, convection: 0.20 },
+        //            weights sum: 0.30+0.43+0.09+0.14+0.04 = 1.00 ✓
         //
         //  v4 changes vs v2:
         //   seeing w          0.20 → 0.22  (filamentary structure resolution)
@@ -227,9 +230,10 @@ const TARGETS: TargetModel[] = [
         id: 'cluster',
         emoji: '✨',
         moonSensitivity: 0.25,
-        weights:     { seeing: 0.28, transparency: 0.18, cloudCover: 0.33, wind: 0.10, jetStream: 0.08, convection: 0.03 },
-        sensitivity: { seeing: 0.30, transparency: 0.35, cloudCover: 0.55, wind: 0.25, jetStream: 0.20, convection: 0.20 },
-        //            weights sum: 0.28+0.18+0.33+0.10+0.08+0.03 = 1.00 ✓
+        // Cloud removed — applied as probability multiplier
+        weights:     { seeing: 0.42, transparency: 0.27, wind: 0.15, jetStream: 0.12, convection: 0.04 },
+        sensitivity: { seeing: 0.30, transparency: 0.35, wind: 0.25, jetStream: 0.20, convection: 0.20 },
+        //            weights sum: 0.42+0.27+0.15+0.12+0.04 = 1.00 ✓
         //
         //  v4 changes vs v2:
         //   moonSensitivity   0.30 → 0.25  (M13/M45/M44 clearly visible with moon)
@@ -267,9 +271,10 @@ const TARGETS: TargetModel[] = [
         id: 'galaxy',
         emoji: '🔭',
         moonSensitivity: 1.0,
-        weights:     { seeing: 0.20, transparency: 0.40, cloudCover: 0.22, wind: 0.07, jetStream: 0.08, convection: 0.03 },
-        sensitivity: { seeing: 0.35, transparency: 0.58, cloudCover: 0.55, wind: 0.20, jetStream: 0.28, convection: 0.20 },
-        //            weights sum: 0.20+0.40+0.22+0.07+0.08+0.03 = 1.00 ✓
+        // Cloud removed — applied as probability multiplier
+        weights:     { seeing: 0.26, transparency: 0.51, wind: 0.09, jetStream: 0.10, convection: 0.04 },
+        sensitivity: { seeing: 0.35, transparency: 0.58, wind: 0.20, jetStream: 0.28, convection: 0.20 },
+        //            weights sum: 0.26+0.51+0.09+0.10+0.04 = 1.00 ✓
         //
         //  v4 changes vs v2:
         //   transparency w    0.38 → 0.40  (primary factor: low SB dominance)
@@ -319,58 +324,66 @@ function getMoonMultiplier(moonFraction: number, sensitivity: number): number {
 /**
  * Predict observation suitability for all 5 target types.
  *
+ * 1→2→3 Probability Model:
+ *   1. Cloud check — what fraction of sky is open? (cloud = AVAILABILITY)
+ *   2. Atmospheric quality — how good is the air? (seeing/jet/etc = QUALITY)
+ *   3. Final score = quality × moon × cloud_probability
+ *
+ * Cloud is fundamentally different from atmospheric factors:
+ *   - Seeing/transparency/jet stream degrade the IMAGE when you CAN see
+ *   - Cloud blocks the SKY — determines IF you can see at all
+ *   - cloud 4/8 = 50% of time you can observe, quality unchanged in clear patches
+ *
  * @param forecast      ForecastItem for the selected time window
  * @param moonFraction  0 = new moon (ideal) … 1 = full moon (worst)
  * @returns             Array of TargetResult, one per target type
  */
 export function predictTargets(forecast: ForecastItem, moonFraction: number): TargetResult[] {
     const { scores } = forecast;
+    const cloudVal = (scores as Record<string, number>).cloudCover ?? 0;
+
+    // ══════ Step 1: Cloud check — 하늘이 열렸나? ══════════════════════════
+    if (cloudVal >= 7) {
+        // 구름 ≥7 (87%+): 하늘 완전 차단 → 0점, 분석 자체를 스킵
+        return TARGETS.map(model => ({
+            id: model.id,
+            emoji: model.emoji,
+            score: 0,
+            grade: 'D' as TargetGrade,
+            limitingFactor: 'cloudCover' as LimitingFactor,
+        }));
+    }
+
+    // Cloud availability: 0/8 → 100%, 4/8 → 50%, 7/8 → 12.5%
+    const cloudMultiplier = (8 - cloudVal) / 8;
 
     return TARGETS.map(model => {
-        // ── Step 1: Exponential quality per atmospheric factor ────────────────
-        // quality(val) = exp(−val × k)  →  1.0 when perfect, approaches 0 when terrible
+        // ══════ Step 2: Atmospheric quality (cloud excluded) ══════════════
+        // quality(val) = exp(−val × k)  →  1.0 when perfect, ~0 when terrible
         const qualityMap: Record<string, number> = {};
         for (const [key, k] of Object.entries(model.sensitivity)) {
             const val = (scores as Record<string, number>)[key] ?? 0;
             qualityMap[key] = Math.exp(-val * k);
         }
 
-        // ── Step 2: Weighted atmospheric score (0–1, weights sum to 1.0) ─────
+        // Weighted atmospheric score (0–1, weights sum to 1.0, cloud excluded)
         let atmosphericScore = 0;
         for (const [key, weight] of Object.entries(model.weights)) {
             atmosphericScore += weight * (qualityMap[key] ?? 1);
         }
 
-        // ── Step 3: Moon multiplier ───────────────────────────────────────────
+        // Moon multiplier
         const moonMult = getMoonMultiplier(moonFraction, model.moonSensitivity);
 
-        // ── Step 4: Final score (atmospheric × moon gate) ────────────────────
-        let score = Math.min(100, Math.max(0, Math.round(atmosphericScore * moonMult * 100)));
+        // ══════ Step 3: Final = atmospheric × moon × cloud probability ═══
+        const score = Math.min(100, Math.max(0,
+            Math.round(atmosphericScore * moonMult * cloudMultiplier * 100)));
 
-        // ── Step 4.5: Cloud gate — 하늘이 가리면 별이 안 보임 ────────────────
-        const cloudVal = (scores as Record<string, number>).cloudCover ?? 0;
-
-        if (cloudVal >= 7) {
-            // 구름 ≥7: 하늘 완전 차단 → 0점, 분석 무의미
-            return {
-                id: model.id,
-                emoji: model.emoji,
-                score: 0,
-                grade: 'D' as TargetGrade,
-                limitingFactor: 'cloudCover' as LimitingFactor,
-            };
-        }
-
-        if (cloudVal >= 5) {
-            // 구름 5-6: 간헐적 관측 → 감소된 점수, 제한요인 = 구름
-            score = Math.round(score * 0.5);
-        }
-
-        // ── Step 5: Primary limiting factor (하늘이 열렸을 때만) ────────────
-        // Metric: (1 – quality) × weight  =  weighted quality loss per factor
-        let limitingFactor: LimitingFactor = 'cloudCover';
+        // ── Limiting factor: which single factor reduces score the most? ──
+        let limitingFactor: LimitingFactor = 'seeing';
         let maxDrop = 0;
 
+        // Atmospheric factors: (1 – quality) × weight
         for (const [key, weight] of Object.entries(model.weights)) {
             if (weight <= 0) continue;
             const q = qualityMap[key] ?? 1;
@@ -381,17 +394,18 @@ export function predictTargets(forecast: ForecastItem, moonFraction: number): Ta
             }
         }
 
-        // Compare moon's contribution against atmospheric limiting factors.
-        // Normalisation factor 0.4 keeps moon comparable to atmospheric weights.
+        // Moon: compare against atmospheric factors
         if (model.moonSensitivity > 0) {
             const moonDrop = (1 - moonMult) * model.moonSensitivity * 0.4;
             if (moonDrop > maxDrop) {
+                maxDrop = moonDrop;
                 limitingFactor = 'moon';
             }
         }
 
-        // 구름 5-6: 간헐적이므로 제한요인은 무조건 구름
-        if (cloudVal >= 5) {
+        // Cloud: fraction of sky blocked (cloudVal/8)
+        const cloudDrop = cloudVal / 8;
+        if (cloudDrop > maxDrop) {
             limitingFactor = 'cloudCover';
         }
 

@@ -31,7 +31,7 @@ const en = {
             transparency: 'Sky Transparency',
             cloud: 'Cloud Cover',
             wind: 'Surface Wind',
-            jetStream: 'Jet Stream (250hPa)',
+            jetStream: 'Jet Stream',
             convection: 'Atmospheric Convection',
         },
         modalDescs: {
@@ -40,7 +40,7 @@ const en = {
             cloud: 'Sky obstruction by clouds. Lower = clearer viewing windows. Scale: 0 (cloudless) to 8 (overcast).',
             wind: 'Ground-level wind affecting telescope stability. Lower = calmer conditions. Scale: 0 (calm) to 8 (strong gusts).',
             jetStream: 'High-altitude winds causing upper-atmosphere turbulence. Lower = less high-altitude distortion. Measured at ~10km altitude.',
-            convection: 'Vertical air instability (CAPE). Lower = more stable atmosphere, less thermal distortion.',
+            convection: 'Vertical air instability. Lower = more stable atmosphere, less thermal distortion.',
         },
         cloudLayers: { low: 'Low (0-2km)', mid: 'Mid (2-6km)', high: 'High (6km+)' },
     },
@@ -51,13 +51,14 @@ const en = {
         live: 'Live',
         see: 'SEE',
         now: 'NOW',
+        forecast: 'forecast',
         today: 'Today',
         tomorrow: 'Tomorrow',
         dayAfter: 'Day 3',
     },
     aiPrediction: {
         warpInsight: 'Warp Insight',
-        ensembleVersion: 'Ensemble v2.0',
+        ensembleVersion: 'Ensemble Analysis',
         warpScan: 'Warp Scan',
         warpMessages: [
             'Warping through atmospheric layers...',
@@ -79,8 +80,8 @@ const en = {
         },
         observationScore: 'Observation Score',
         atmStability: 'Atm. Stability',
-        seeingUsp: 'Seeing (USP)',
-        friedR0: 'Fried (r₀)',
+        seeingUsp: 'Seeing Prediction',
+        friedR0: 'Atm. Coherence',
         stability: 'Stability',
         jetStream: 'Jet Stream',
         cloud: 'Cloud',
@@ -124,6 +125,14 @@ const en = {
         belowHorizon: 'Below Horizon',
         planetsTip: 'Planets above 30° altitude offer the best viewing with less atmospheric distortion. Check rise/set times to plan your session.',
         planetNames: { mercury: 'Mercury', venus: 'Venus', mars: 'Mars', jupiter: 'Jupiter', saturn: 'Saturn' },
+        observationLabels: {
+            beforeMoonrise: 'Before Moonrise',
+            afterMoonset: 'After Moonset',
+            darkSky: 'Dark Sky',
+            optimalDark: 'Optimal dark conditions.',
+            shortWindow: 'Short observation window.',
+            longDark: 'Long, dark night.',
+        },
     },
     targets: {
         title: 'Target Suitability',
@@ -181,15 +190,33 @@ const en = {
             v3Title: 'v3.0 Key Updates',
             v3Features: [
                 { label: 'Target Suitability', sub: 'Planets·Milky Way·Nebulae·Clusters·Galaxies' },
-                { label: 'Physics Model v4.0', sub: 'ESO·Peach·IDA calibrated' },
+                { label: 'Forecast Model Enhanced', sub: 'Professional observation data calibrated' },
                 { label: 'Sunrise/Sunset Auto', sub: 'GPS-based astronomical twilight' },
-                { label: 'Warp AI Score Sync', sub: 'USP + combined score unified' },
+                { label: 'Warp AI Score Sync', sub: 'Prediction + combined score unified' },
             ],
             siteDesc: 'Free · PC/Mobile · No ads · GPS auto-location',
             hashtags: ['Astronomy', 'Astrophotography', 'SeeingForecast', 'Planetary', 'DeepSky', 'ClearSkies', 'Stargazing'],
         },
         news: {
             updates: [
+                {
+                    title: 'Forecast Reliability Upgrade',
+                    items: [
+                        'Auto-detection of site elevation & environment for better accuracy',
+                        'Mountain observatories vs. urban sites precisely differentiated',
+                        'Stable neutral handling when data is unavailable',
+                        'Overall forecast pipeline stability improved',
+                    ],
+                },
+                {
+                    title: 'Precision Cloud Model',
+                    items: [
+                        'Real-time meteorological cloud data applied',
+                        'Cloud observation precision significantly improved',
+                        'Auto-refresh every 30 minutes for real-time accuracy',
+                        'Fixed false "observable" reports when clouds are present',
+                    ],
+                },
                 {
                     title: 'Day/Night Auto Detection',
                     items: [
@@ -203,8 +230,8 @@ const en = {
                     title: 'Warp AI Score Alignment',
                     items: [
                         'Unified scoring standard matching observation quality dial',
-                        'Atmospheric stability (USP) shown as separate sub-metric',
-                        'Resolved structural inconsistency ignoring cloud/transparency',
+                        'Atmospheric stability shown as separate sub-metric',
+                        'Fixed scoring inconsistency with cloud/transparency',
                     ],
                 },
                 {
@@ -213,12 +240,12 @@ const en = {
                         'Planets 🪐 · Milky Way 🌌 · Nebulae ✨ · Clusters 🔭 · Galaxies 🌀',
                         '0–100 real-time scoring + S/A/B/C/D grades',
                         'Limiting factor display (seeing/jet stream/moonlight etc.)',
-                        'ESO Paranal · Damian Peach calibrated v4.0',
-                        '250hPa jet stream · CAPE convective instability applied',
+                        'Calibrated against professional observatory data',
+                        'Jet stream · atmospheric stability applied',
                     ],
                 },
             ],
-            dataSourceNote: 'Multi-source atmospheric data analysis',
+            dataSourceNote: 'Based on GFS · ECMWF · 7Timer · Open-Meteo · Met.no',
             dataSourceFree: 'Free · No ads · $0 AI cost',
         },
         guide: {
@@ -227,12 +254,29 @@ const en = {
             cards: [
                 { title: 'Observation Quality Dial', desc: 'Overall atmospheric score (0–100) at current time. Calculated as weighted average of 6 metrics: seeing, clouds, jet stream, transparency, etc.', badge: '85+', badgeLabel: 'S grade = Best' },
                 { title: 'Target Suitability', desc: 'Independently calculates suitability for 5 celestial target types using current atmospheric conditions. Each target has optical-specific weight factors.', badge: 'Score', badgeLabel: 'Low score shows limiting factors' },
-                { title: 'Warp AI Scan', desc: 'Select a future time point up to 24h ahead with the time slider and scan to analyze observation potential. Choose a night slot (🔵).', badge: 'AI', badgeLabel: 'Multi-source analysis' },
+                { title: 'Warp AI Scan', desc: 'Select a future time point up to 72h (3 days) ahead with the time slider and scan to analyze observation potential. Choose a night slot (🔵).', badge: 'GFS', badgeLabel: '+ ECMWF + 7Timer' },
                 { title: 'Moon Phase Forecast', desc: 'Check moonrise/moonset and illumination for 3 days. Deep-sky observation is ideal when moon illumination is below 20%.', badge: '<20%', badgeLabel: 'Deep-sky optimal' },
                 { title: 'GPS Location Detection', desc: 'Allow GPS for precise location-based forecasts. If denied, Seoul defaults will be shown.', badge: 'AUTO', badgeLabel: 'Or select city' },
             ],
             contactObservatory: 'Forme Observatory · Ganghwado',
         },
+    },
+    apiHealth: {
+        ok: 'Data OK',
+        recovering: 'Recovering...',
+    },
+    feedback: {
+        question: 'How was your observation tonight?',
+        thankYou: 'Thank you for your feedback!',
+        ratingLabels: ['Very Poor', 'Poor', 'Fair', 'Good', 'Excellent'] as readonly string[],
+        commentPlaceholder: 'Any comments? (optional)',
+        submit: 'Submit',
+    },
+    updatePopup: {
+        badge: 'v3.4 UPDATE',
+        title: 'Forecast Reliability Upgrade',
+        desc: 'Site elevation and environment are now auto-detected for better accuracy. Mountain vs. urban differences are precisely reflected, with stable handling when data is unavailable.',
+        dismiss: 'Got it',
     },
 };
 

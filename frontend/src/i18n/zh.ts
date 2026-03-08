@@ -33,7 +33,7 @@ const zh: Translations = {
             transparency: '天空透明度',
             cloud: '云量',
             wind: '地面风速',
-            jetStream: '急流 (250hPa)',
+            jetStream: '急流',
             convection: '大气对流',
         },
         modalDescs: {
@@ -42,7 +42,7 @@ const zh: Translations = {
             cloud: '云层遮蔽程度。越低观测窗口越多。0（无云）～ 8（全阴）。',
             wind: '影响望远镜稳定性的地面风速。越低越平静。0（无风）～ 8（强风）。',
             jetStream: '引起高空大气湍流的高空气流。越低高空畸变越小。测量高度约10km。',
-            convection: '垂直大气不稳定度（CAPE）。越低大气越稳定，热畸变越小。',
+            convection: '垂直大气不稳定度。越低大气越稳定，热畸变越小。',
         },
         cloudLayers: { low: '低层 (0-2km)', mid: '中层 (2-6km)', high: '高层 (6km+)' },
     },
@@ -53,13 +53,14 @@ const zh: Translations = {
         live: '实时',
         see: '视宁',
         now: '当前',
+        forecast: '预报',
         today: '今天',
         tomorrow: '明天',
         dayAfter: '后天',
     },
     aiPrediction: {
         warpInsight: '翘曲洞察',
-        ensembleVersion: '集成 v2.0',
+        ensembleVersion: '集成分析',
         warpScan: '翘曲扫描',
         warpMessages: [
             '正在翘曲穿越大气层...',
@@ -81,8 +82,8 @@ const zh: Translations = {
         },
         observationScore: '观测得分',
         atmStability: '大气稳定度',
-        seeingUsp: '视宁度 (USP)',
-        friedR0: 'Fried (r₀)',
+        seeingUsp: '视宁度预测',
+        friedR0: '大气相干性',
         stability: '稳定性',
         jetStream: '急流',
         cloud: '云量',
@@ -126,6 +127,14 @@ const zh: Translations = {
         belowHorizon: '地平线以下',
         planetsTip: '高度30°以上的行星大气畸变较小，观测效果最佳。查看升落时间来规划观测计划。',
         planetNames: { mercury: '水星', venus: '金星', mars: '火星', jupiter: '木星', saturn: '土星' },
+        observationLabels: {
+            beforeMoonrise: '月出前',
+            afterMoonset: '月落后',
+            darkSky: '暗夜',
+            optimalDark: '最佳暗夜条件。',
+            shortWindow: '观测窗口较短。',
+            longDark: '漫长的暗夜。',
+        },
     },
     targets: {
         title: '目标天体适合度',
@@ -183,15 +192,33 @@ const zh: Translations = {
             v3Title: 'v3.0 主要更新',
             v3Features: [
                 { label: '目标天体适合度', sub: '行星·银河·星云·星团·星系' },
-                { label: '物理模型 v4.0', sub: 'ESO·Peach·IDA标准重新校准' },
+                { label: '预报模型强化', sub: '专业观测数据校准' },
                 { label: '日出/日落自动判别', sub: 'GPS位置天文暮光' },
-                { label: 'Warp AI评分统一', sub: 'USP + 综合评分整合' },
+                { label: 'Warp AI评分统一', sub: '预测 + 综合评分整合' },
             ],
             siteDesc: '免费 · 电脑/手机 · 无广告 · GPS自动定位',
             hashtags: ['天文观测', '天文摄影', '视宁度预报', '行星观测', '深空', 'ClearSkies', 'Astrophotography'],
         },
         news: {
             updates: [
+                {
+                    title: '预报可靠性提升',
+                    items: [
+                        '自动检测观测点海拔和环境，提升预报准确度',
+                        '精确区分山地观测站与城市地区差异',
+                        '数据缺失时稳定的中性处理，减少错误',
+                        '整体预报流程稳定性增强',
+                    ],
+                },
+                {
+                    title: '精密云模型应用',
+                    items: [
+                        '应用气象厅实时云数据',
+                        '云观测精度大幅提升',
+                        '每30分钟自动刷新，提升实时准确度',
+                        '修复有云时仍显示"可观测"的问题',
+                    ],
+                },
                 {
                     title: '昼/夜自动判别',
                     items: [
@@ -205,8 +232,8 @@ const zh: Translations = {
                     title: 'Warp AI评分对齐',
                     items: [
                         '与观测质量表盘统一综合评分标准',
-                        '大气稳定度(USP)作为子指标单独显示',
-                        '解决了忽略云量·透明度的结构性不一致',
+                        '大气稳定度作为子指标单独显示',
+                        '修复了云量·透明度未反映的问题',
                     ],
                 },
                 {
@@ -215,12 +242,12 @@ const zh: Translations = {
                         '行星 🪐 · 银河 🌌 · 星云 ✨ · 星团 🔭 · 星系 🌀',
                         '0–100实时评分 + S/A/B/C/D等级',
                         '限制因素显示（视宁度/急流/月光等）',
-                        'ESO Paranal · Damian Peach标准 v4.0重新校准',
-                        '250hPa急流 · CAPE对流不稳定性应用',
+                        '基于专业天文台数据精密校准',
+                        '急流·大气稳定度反映',
                     ],
                 },
             ],
-            dataSourceNote: '多源气象数据精密分析',
+            dataSourceNote: '基于 GFS · ECMWF · 7Timer · Open-Meteo · Met.no',
             dataSourceFree: '免费 · 无广告 · AI费用$0',
         },
         guide: {
@@ -229,12 +256,29 @@ const zh: Translations = {
             cards: [
                 { title: '观测质量表盘', desc: '当前时间的大气综合评分（0–100）。基于视宁度、云量、急流、透明度等6项指标加权平均计算。', badge: '85+', badgeLabel: 'S级 = 最佳' },
                 { title: '目标适合度', desc: '独立计算5种天体目标在当前大气条件下的适合度。针对每种目标的光学特性应用不同权重。', badge: '评分', badgeLabel: '分数越低显示限制因素' },
-                { title: 'Warp AI扫描', desc: '使用时间滑块选择最多24小时后的时间点进行扫描，分析该时刻的观测可能性。请选择夜间时段（🔵）。', badge: 'AI', badgeLabel: '多源数据分析' },
+                { title: 'Warp AI扫描', desc: '使用时间滑块选择最多72小时（3天）后的时间点进行扫描，分析该时刻的观测可能性。请选择夜间时段（🔵）。', badge: 'GFS', badgeLabel: '+ ECMWF + 7Timer' },
                 { title: '月相预报', desc: '查看3天的月出·月落·月光照明率。深空观测在月光照明率低于20%时最为理想。', badge: '<20%', badgeLabel: '深空最佳' },
                 { title: 'GPS位置识别', desc: '允许GPS可获得当前位置的精确预报。拒绝则显示首尔默认值。', badge: 'AUTO', badgeLabel: '或选择城市' },
             ],
             contactObservatory: 'Forme Observatory · 江华岛',
         },
+    },
+    apiHealth: {
+        ok: '数据正常',
+        recovering: '数据恢复中',
+    },
+    feedback: {
+        question: '今晚的观测怎么样？',
+        thankYou: '感谢您的反馈！',
+        ratingLabels: ['非常差', '较差', '一般', '良好', '非常好'] as readonly string[],
+        commentPlaceholder: '留下您的评论（可选）',
+        submit: '提交',
+    },
+    updatePopup: {
+        badge: 'v3.4 更新',
+        title: '预报可靠性提升',
+        desc: '自动检测观测点海拔和环境，预报准确度得到提升。精确反映山地与城市差异，数据缺失时也能稳定运行。',
+        dismiss: '确认',
     },
 };
 

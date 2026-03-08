@@ -1,107 +1,97 @@
-const SunCalc = require('suncalc');
+/**
+ * AstronomyService — Powered by astronomy-engine (VSOP87)
+ * High-precision astronomical calculations (+/-1 arcminute, JPL-validated)
+ * Replaces SunCalc for more accurate moonrise/moonset/sunrise/sunset times.
+ * Cost: $0 | Dependencies: astronomy-engine (MIT, zero-dep)
+ */
+const Astronomy = require('astronomy-engine');
 
 const AstronomyService = {
-    getMoonData: (date, lat, lon) => {
-        const moonIllumination = SunCalc.getMoonIllumination(date);
-        const moonTimes = SunCalc.getMoonTimes(date, lat, lon);
-        const moonPosition = SunCalc.getMoonPosition(date, lat, lon);
-
-        return {
-            phase: moonIllumination.phase, // 0.0 - 1.0 (New Moon -> Full Moon -> New Moon)
-            fraction: moonIllumination.fraction, // Illuminated fraction
-            angle: moonIllumination.angle,
-            rise: moonTimes.rise,
-            set: moonTimes.set,
-            alwaysUp: moonTimes.alwaysUp || false,
-            alwaysDown: moonTimes.alwaysDown || false,
-            altitude: moonPosition.altitude,
-            azimuth: moonPosition.azimuth
-        };
-    },
-
-    getAstronomyForecast: (startDate, days, lat, lon) => {
+    /**
+     * 3-day astronomy forecast: moon phase, rise/set, sun rise/set, observable hours.
+     * All times are GPS-location-aware via utcOffsetSeconds.
+     */
+    getAstronomyForecast(startDate, days, lat, lon, utcOffsetSeconds = 0) {
+        const observer = new Astronomy.Observer(lat, lon, 0);
+        const offsetMs = utcOffsetSeconds * 1000;
         const forecast = [];
+
+        // Convert startDate to local calendar date
+        const localRef = new Date(startDate.getTime() + offsetMs);
+
         for (let i = 0; i < days; i++) {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() + i);
+            // Midnight in LOCAL time for day i (expressed as UTC timestamp)
+            const localMidnightMs = Date.UTC(
+                localRef.getUTCFullYear(),
+                localRef.getUTCMonth(),
+                localRef.getUTCDate() + i,
+                0, 0, 0, 0
+            );
+            const midnightUTC = new Date(localMidnightMs - offsetMs);
 
-            // Adjust calculation for mid-day to ensure correct phase/times for that calendar day
-            const noonDate = new Date(date);
-            noonDate.setHours(12, 0, 0, 0);
+            // Noon in LOCAL time (for phase calculation — middle of the day)
+            const noonUTC = new Date(localMidnightMs + 12 * 3600000 - offsetMs);
 
-            const moonIllumination = SunCalc.getMoonIllumination(noonDate);
-            const moonTimes = SunCalc.getMoonTimes(noonDate, lat, lon);
-            const sunTimes = SunCalc.getTimes(noonDate, lat, lon);
+            // Date label: local calendar date
+            const localDayDate = new Date(localMidnightMs);
+            const dateStr = localDayDate.toISOString().split('T')[0];
 
-            // Calculate observable night duration (Sunset to Next Sunrise)
-            let uniqueSunrise = sunTimes.sunrise;
-            let uniqueSunset = sunTimes.sunset;
+            // ═══ Moon Phase & Illumination (at local noon) ═══
+            const phaseAngle = Astronomy.MoonPhase(noonUTC);    // 0-360 degrees
+            const illum = Astronomy.Illumination('Moon', noonUTC);
+            const phase = phaseAngle / 360;                      // convert to 0-1 for frontend
+            const fraction = illum.phase_fraction;               // 0.0 - 1.0
 
-            // For duration, we ideally want time between sunset and *next* sunrise
-            // But for simple "Observable" display on that day card: we can just use (24h - dayLength) or Sunset->Sunrise diff
-            // If sunset is 18:00 and sunrise is 06:00, night is 12h.
+            // ═══ Moon Rise/Set (search from midnight local, up to 2 days forward) ═══
+            const moonRiseResult = Astronomy.SearchRiseSet('Moon', observer, +1, midnightUTC, 2);
+            const moonSetResult  = Astronomy.SearchRiseSet('Moon', observer, -1, midnightUTC, 2);
+
+            // Determine alwaysUp / alwaysDown if no events found
+            let alwaysUp = false;
+            let alwaysDown = false;
+            if (!moonRiseResult && !moonSetResult) {
+                // Check moon altitude at noon to determine state
+                const equ = Astronomy.Equator('Moon', noonUTC, observer, true, true);
+                const hor = Astronomy.Horizon(noonUTC, observer, equ.ra, equ.dec, 'normal');
+                alwaysUp = hor.altitude > 0;
+                alwaysDown = hor.altitude <= 0;
+            }
+
+            // ═══ Sun Rise/Set (search from midnight local) ═══
+            const sunRiseResult = Astronomy.SearchRiseSet('Sun', observer, +1, midnightUTC, 2);
+            const sunSetResult  = Astronomy.SearchRiseSet('Sun', observer, -1, midnightUTC, 2);
+
+            // ═══ Observable Night Duration (Sunset → Next Sunrise) ═══
             let observableHours = 0;
-            if (uniqueSunset && uniqueSunrise) {
-                // Check if valid dates
-                if (!isNaN(uniqueSunset) && !isNaN(uniqueSunrise)) {
-                    // Simple approximation: 24 - (Sunset - Sunrise in hours) ? 
-                    // No, simpler: Next Morning Sunrise - This Evening Sunset.
-                    // We need next day's sunrise for precise diff.
-                    const nextDay = new Date(noonDate);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    const nextSunTimes = SunCalc.getTimes(nextDay, lat, lon);
-                    if (nextSunTimes.sunrise) {
-                        observableHours = (nextSunTimes.sunrise - uniqueSunset) / (1000 * 60 * 60);
-                    }
+            if (sunSetResult) {
+                const nextSunrise = Astronomy.SearchRiseSet('Sun', observer, +1, sunSetResult.date, 1);
+                if (nextSunrise) {
+                    observableHours = (nextSunrise.date.getTime() - sunSetResult.date.getTime()) / 3600000;
                 }
             }
 
             forecast.push({
-                date: date.toISOString().split('T')[0],
+                date: dateStr,
                 moon: {
-                    phase: moonIllumination.phase,
-                    fraction: moonIllumination.fraction,
-                    rise: moonTimes.rise || null,
-                    set: moonTimes.set || null,
-                    alwaysUp: moonTimes.alwaysUp,
-                    alwaysDown: moonTimes.alwaysDown
+                    phase,
+                    fraction,
+                    rise: moonRiseResult ? moonRiseResult.date.toISOString() : null,
+                    set:  moonSetResult  ? moonSetResult.date.toISOString()  : null,
+                    alwaysUp,
+                    alwaysDown,
                 },
                 sun: {
-                    sunrise: uniqueSunrise || null,
-                    sunset: uniqueSunset || null,
-                    observableHours: observableHours > 0 ? observableHours : 0
-                }
+                    sunrise: sunRiseResult ? sunRiseResult.date.toISOString() : null,
+                    sunset:  sunSetResult  ? sunSetResult.date.toISOString()  : null,
+                    observableHours: observableHours > 0 ? observableHours : 0,
+                },
             });
-
-            // Post-processing: Handle missing or "crossed" rise/set times
-            const currentItem = forecast[i];
-            if (!currentItem.moon.alwaysUp && !currentItem.moon.alwaysDown) {
-                // If Set is missing OR occurs before Rise (implies set belongs to previous cycle), check neighbors
-                if (!currentItem.moon.set || (currentItem.moon.rise && currentItem.moon.set < currentItem.moon.rise)) {
-                    // Look ahead 24h
-                    const tomorrow = new Date(noonDate);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    const nextMoodTimes = SunCalc.getMoonTimes(tomorrow, lat, lon);
-                    if (nextMoodTimes.set && (!currentItem.moon.set || nextMoodTimes.set > currentItem.moon.rise)) {
-                        currentItem.moon.set = nextMoodTimes.set;
-                    }
-                }
-
-                // If Rise is missing OR occurs far after Set, look backwards 24h
-                if (!currentItem.moon.rise || (currentItem.moon.set && currentItem.moon.rise > currentItem.moon.set)) {
-                    const yesterday = new Date(noonDate);
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    const prevMoonTimes = SunCalc.getMoonTimes(yesterday, lat, lon);
-                    if (prevMoonTimes.rise && (!currentItem.moon.rise || prevMoonTimes.rise < currentItem.moon.set)) {
-                        currentItem.moon.rise = prevMoonTimes.rise;
-                    }
-                }
-            }
         }
+
         return forecast;
     },
 
-    getMoonPhaseName: (phase) => {
+    getMoonPhaseName(phase) {
         if (phase === 0 || phase === 1) return 'New Moon';
         if (phase < 0.25) return 'Waxing Crescent';
         if (phase === 0.25) return 'First Quarter';

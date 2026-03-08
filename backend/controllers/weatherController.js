@@ -17,7 +17,7 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
 
         // 1. Determine language BEFORE fetching data (needed by analysisService)
         let targetLang = req.query.lang || 'en';
-        if (!req.query.lang && (lat >= 33 && lat <= 39) && (lon >= 124 && lon <= 132)) {
+        if (!req.query.lang && (lat >= 33 && lat <= 39) && (lon >= 124 && lon <= 131)) {
             targetLang = 'ko';
         } else if (!req.query.lang && (lat >= 24 && lat <= 46) && (lon >= 127 && lon <= 146) && targetLang === 'en') {
             targetLang = 'ja';
@@ -33,9 +33,10 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
             processedSeeing = TranslationService.translateForecastBatch(processedSeeing, targetLang);
         }
 
-        // 3. Astronomy Data (Moon & Sun for 3 days)
+        // 4. Astronomy Data (Moon & Sun for 3 days) — pass timezone offset for correct local dates
         const startDate = (processedSeeing && processedSeeing.length > 0) ? new Date(processedSeeing[0].time) : new Date();
-        const astronomy = AstronomyService.getAstronomyForecast(startDate, 3, lat, lon);
+        const utcOffset = meta ? meta.timezoneOffset : 0;
+        const astronomy = AstronomyService.getAstronomyForecast(startDate, 3, lat, lon, utcOffset);
 
         res.json({
             location: {
@@ -46,7 +47,8 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
             },
             forecast: processedSeeing || [],
             aiSummary: aiSummary || null,
-            astronomy: astronomy
+            astronomy: astronomy,
+            apiHealth: meta?.apiHealth ?? null
         });
 
     } catch (error) {
