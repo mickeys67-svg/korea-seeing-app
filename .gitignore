@@ -17,3 +17,11 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Legacy/backup files
+server-3-4/
+*.zip
+*.backup
+
+# Claude
+.claude/
