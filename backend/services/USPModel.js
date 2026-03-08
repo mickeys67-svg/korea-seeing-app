@@ -120,7 +120,7 @@ const USPModel = {
         if (data.layers && Array.isArray(data.layers) && data.layers.length > 0) {
             data.layers.forEach(layer => {
                 const cn2 = USPModel.cn2Proxy(
-                    layer.tke || 0.15, // Base turbulence floor
+                    layer.tke || 0.08, // Base turbulence floor (lowered for stable night)
                     layer.windShear || 0,
                     layer.ri || 0
                 );
@@ -133,7 +133,8 @@ const USPModel = {
             if (data.elevation > 1000) baseCn2 *= 0.5;      // high altitude = cleaner air
             if (data.humidity != null && data.humidity < 50) baseCn2 *= 0.8; // dry air = less turbulence
             const windImpact = 1 + Math.pow(data.surfaceWind || 0, 1.2) * 0.05;
-            const jetImpact = 1 + (data.jetStreamSpeed ?? 25) / 100;
+            const jetKt = data.jetStreamSpeed ?? 25;
+            const jetImpact = 1 + Math.log1p(jetKt / 80) * 0.6;
             cn2Integral = baseCn2 * windImpact * jetImpact;
         }
 

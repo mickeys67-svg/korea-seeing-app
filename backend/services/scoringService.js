@@ -7,10 +7,10 @@ const ScoringService = {
         if (speedMs == null) return 3; // Unknown = neutral-conservative (consistent with USP fallback 25kt)
         const speedKt = speedMs * 1.94384; // m/s to knots
 
-        if (speedKt < 50) return 0;
-        if (speedKt < 80) return 2;
-        if (speedKt < 120) return 4;
-        if (speedKt < 150) return 6;
+        if (speedKt < 60) return 0;
+        if (speedKt < 100) return 2;
+        if (speedKt < 140) return 4;
+        if (speedKt < 180) return 6;
         return 8;
     },
 

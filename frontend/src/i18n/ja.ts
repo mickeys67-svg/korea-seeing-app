@@ -247,7 +247,7 @@ const ja: Translations = {
                     ],
                 },
             ],
-            dataSourceNote: 'GFS · ECMWF · 7Timer · Open-Meteo · Met.no ベース',
+            dataSourceNote: 'マルチソース大気データ',
             dataSourceFree: '無料 · 広告なし · AI費用$0',
         },
         guide: {
@@ -256,7 +256,7 @@ const ja: Translations = {
             cards: [
                 { title: '観測品質ダイヤル', desc: '現在時刻基準の総合大気スコア（0–100）。シーイング・雲・ジェット気流・透明度など6つの指標を加重平均で算出します。', badge: '85+', badgeLabel: 'S等級 = 最高' },
                 { title: '天体別適合度', desc: '5種類の天体対象ごとに現在の大気条件の適合度を独立モデルで計算。各対象の光学特性に合わせた重みが適用されます。', badge: 'スコア', badgeLabel: '低いほど制限要因を表示' },
-                { title: 'Warp AIスキャン', desc: '最大72時間（3日間）のタイムスライダーで未来の時点を選択してスキャンすると、その時刻の観測可能性を分析。夜スロット（🔵）を選択してください。', badge: 'GFS', badgeLabel: '+ ECMWF + 7Timer' },
+                { title: 'Warp AIスキャン', desc: '最大72時間（3日間）のタイムスライダーで未来の時点を選択してスキャンすると、その時刻の観測可能性を分析。夜スロット（🔵）を選択してください。', badge: 'AI', badgeLabel: 'マルチソース' },
                 { title: '月の位相予報', desc: '3日間の月の出・月の入り・照明率を確認。ディープスカイ観測は月の照明率20%以下の日が理想的です。', badge: '<20%', badgeLabel: 'ディープスカイ最適' },
                 { title: 'GPS位置検出', desc: 'GPSを許可すると現在位置基準の精密予報が提供されます。拒否するとソウルのデフォルト値が表示されます。', badge: 'AUTO', badgeLabel: 'または都市選択' },
             ],

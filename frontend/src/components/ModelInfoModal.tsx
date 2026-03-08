@@ -35,7 +35,7 @@ const ModelInfoModal: React.FC<ModelInfoModalProps> = ({ isOpen, onClose }) => {
             feature3_title: "Atmospheric Coherence",
             feature3_text: "Calculates the coherence length that determines the effective resolution limit of your telescope under current atmospheric conditions.",
             feature4_title: "Ensemble Analysis",
-            feature4_text: "Cross-references multiple global weather data sources for higher confidence predictions.",
+            feature4_text: "Cross-references multiple atmospheric data sources for higher confidence predictions.",
             guide_title: "Observation Guide",
             guide_high: "Golden Hour: Extremely stable atmosphere. Perfect for high-resolution planetary imaging.",
             guide_mid: "Good Conditions: Sharp views overall. High magnification recommended.",

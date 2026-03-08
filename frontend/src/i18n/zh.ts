@@ -247,7 +247,7 @@ const zh: Translations = {
                     ],
                 },
             ],
-            dataSourceNote: '基于 GFS · ECMWF · 7Timer · Open-Meteo · Met.no',
+            dataSourceNote: '多源大气数据',
             dataSourceFree: '免费 · 无广告 · AI费用$0',
         },
         guide: {
@@ -256,7 +256,7 @@ const zh: Translations = {
             cards: [
                 { title: '观测质量表盘', desc: '当前时间的大气综合评分（0–100）。基于视宁度、云量、急流、透明度等6项指标加权平均计算。', badge: '85+', badgeLabel: 'S级 = 最佳' },
                 { title: '目标适合度', desc: '独立计算5种天体目标在当前大气条件下的适合度。针对每种目标的光学特性应用不同权重。', badge: '评分', badgeLabel: '分数越低显示限制因素' },
-                { title: 'Warp AI扫描', desc: '使用时间滑块选择最多72小时（3天）后的时间点进行扫描，分析该时刻的观测可能性。请选择夜间时段（🔵）。', badge: 'GFS', badgeLabel: '+ ECMWF + 7Timer' },
+                { title: 'Warp AI扫描', desc: '使用时间滑块选择最多72小时（3天）后的时间点进行扫描，分析该时刻的观测可能性。请选择夜间时段（🔵）。', badge: 'AI', badgeLabel: '多源' },
                 { title: '月相预报', desc: '查看3天的月出·月落·月光照明率。深空观测在月光照明率低于20%时最为理想。', badge: '<20%', badgeLabel: '深空最佳' },
                 { title: 'GPS位置识别', desc: '允许GPS可获得当前位置的精确预报。拒绝则显示首尔默认值。', badge: 'AUTO', badgeLabel: '或选择城市' },
             ],
