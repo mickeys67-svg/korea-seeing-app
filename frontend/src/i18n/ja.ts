@@ -249,6 +249,7 @@ const ja: Translations = {
             ],
             dataSourceNote: 'マルチソース大気データ',
             dataSourceFree: '無料 · 広告なし · AI費用$0',
+            pomiMemorial: '愛しい私の犬ポミを偲んで',
         },
         guide: {
             intro: ['Clear Skiesは天体写真家とアマチュア天文家のための', '精密シーイング予報', 'アプリです。大気条件を多層分析して今夜の観測可能性をお知らせします。'],

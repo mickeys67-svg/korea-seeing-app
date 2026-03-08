@@ -247,6 +247,7 @@ const en = {
             ],
             dataSourceNote: 'Multi-source atmospheric data',
             dataSourceFree: 'Free · No ads · $0 AI cost',
+            pomiMemorial: 'In loving memory of my dear dog, Pomi',
         },
         guide: {
             intro: ['Clear Skies is a ', 'precision seeing forecast', ' app for astrophotographers and amateur astronomers. It analyzes atmospheric conditions in multiple layers to tell you tonight\'s observation potential.'],

@@ -576,7 +576,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                     style={{ borderTop: '1px solid var(--glass-border)' }}
                                 >
                                     <p className="text-[11px] italic" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
-                                        "사랑스러운 나의 개 포미를 추억하며"
+                                        {`"${ip.about.pomiMemorial}"`}
                                     </p>
                                     <p className="text-[10px] mt-1 font-data" style={{ color: 'var(--text-tertiary)', opacity: 0.5 }}>
                                         2025.7.30

@@ -249,6 +249,7 @@ const zh: Translations = {
             ],
             dataSourceNote: '多源大气数据',
             dataSourceFree: '免费 · 无广告 · AI费用$0',
+            pomiMemorial: '怀念我可爱的狗狗Pomi',
         },
         guide: {
             intro: ['Clear Skies是为天文摄影师和业余天文爱好者打造的', '精密视宁度预报', '应用。通过多层分析大气条件，告知您今晚的观测可能性。'],

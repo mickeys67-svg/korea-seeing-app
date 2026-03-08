@@ -249,6 +249,7 @@ const ko: Translations = {
             ],
             dataSourceNote: '다중 대기 데이터 기반',
             dataSourceFree: '무료 · 광고 없음 · $0 AI 비용',
+            pomiMemorial: '사랑스러운 나의 개 포미를 추억하며',
         },
         guide: {
             intro: ['Clear Skies는 천체사진가와 아마추어 천문가를 위한 ', '정밀 시잉 예보', ' 앱입니다. 대기 조건을 다층 분석해 오늘 밤 관측 가능성을 알려드립니다.'],
