@@ -364,7 +364,7 @@ const AiPrediction: React.FC<Props> = ({ forecastList, timezone, aiSummary, astr
                             <Sparkles className="w-4 h-4 relative z-10 opacity-70" />
                         </button>
                         <p className="text-xs text-[var(--text-tertiary)] mt-3 font-data uppercase tracking-[0.12em]">
-                            Multi-Source Ensemble
+                            Striving for Accuracy
                         </p>
                     </div>
                 )}
