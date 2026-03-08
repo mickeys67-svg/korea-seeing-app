@@ -1,20 +1,14 @@
 console.log("Starting Server...");
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
+const { Firestore } = require('@google-cloud/firestore');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
-// Database Connection String
-const MONGODB_URI = process.env.MONGODB_URI;
-
 // Import Controllers
 const weatherController = require('./controllers/weatherController');
-
-// Import Models
-require('./models/TrainingData');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -51,26 +45,25 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50kb' }));
 
-// Database Connection
-if (MONGODB_URI) {
-    mongoose.connect(MONGODB_URI, {
-        serverSelectionTimeoutMS: 5000, // Fail fast for health checks
-        connectTimeoutMS: 10000
-    })
-        .then(() => console.log('MongoDB Connected'))
-        .catch(err => {
-            console.error('MongoDB Connection Error:', err.message);
-            // Don't exit here, still serve static files if possible (or fail health check)
-        });
-}
+// Firestore Database
+const db = new Firestore({ databaseId: 'koreaseeingapp1' });
+app.locals.db = db;
+console.log('Firestore initialized (database: koreaseeingapp1)');
 
 // --- Health Check (for Cloud Run / Load Balancers) ---
-app.get('/health', (req, res) => {
-    const dbState = mongoose.connection.readyState; // 0=disconnected, 1=connected, 2=connecting
-    res.status(dbState === 1 || !MONGODB_URI ? 200 : 503).json({
-        status: dbState === 1 || !MONGODB_URI ? 'ok' : 'degraded',
+app.get('/health', async (req, res) => {
+    let dbStatus = 'unknown';
+    try {
+        await db.collection('_health').doc('ping').set({ ts: Date.now() });
+        dbStatus = 'connected';
+    } catch (err) {
+        console.warn('[Health] Firestore ping failed:', err.message);
+        dbStatus = 'unreachable';
+    }
+    res.status(200).json({
+        status: 'ok',
         uptime: Math.round(process.uptime()),
-        db: MONGODB_URI ? (dbState === 1 ? 'connected' : 'disconnected') : 'not configured',
+        db: dbStatus,
     });
 });
 

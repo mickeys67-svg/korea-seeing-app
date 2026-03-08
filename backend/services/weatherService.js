@@ -4,8 +4,16 @@ const USPModel = require('./USPModel');
 const AnalysisService = require('./analysisService');
 const KmaService = require('./kmaService');
 const EnsembleService = require('./ensembleService');
-let TrainingData;
-try { TrainingData = require('../models/TrainingData'); } catch { TrainingData = null; }
+let _firestoreDb = null;
+function _getDb() {
+    if (!_firestoreDb) {
+        try {
+            const { Firestore } = require('@google-cloud/firestore');
+            _firestoreDb = new Firestore({ databaseId: 'koreaseeingapp1' });
+        } catch { _firestoreDb = null; }
+    }
+    return _firestoreDb;
+}
 
 // ═══ Last-Known-Good Cache — serves stale data when all APIs fail ═══
 // In-memory, resets on container restart (which is fine — natural cleanup)
@@ -486,29 +494,35 @@ const WeatherService = {
         });
 
         // ═══ Training Data Collection (fire-and-forget, no await) ═══
-        if (TrainingData && mappedForecast.length > 0) {
+        const db = _getDb();
+        if (db && mappedForecast.length > 0) {
             try {
-                const trainingDocs = mappedForecast.map(f => ({
-                    timestamp: new Date(f.time),
-                    lat, lon, elevation: siteElevation, isUrban,
-                    inputs: {
-                        seeing: f.usp?.seeing, transparency: f.scores?.transparency,
-                        cloudScore: f.scores?.cloudCover, wind: f.wind10m?.speed,
-                        jetStream: f.raw?.jetStreamSpeed, cape: f.raw?.cape,
-                        humidity: f.rh2m, temp: f.temp2m,
-                        pm25: null, aod: null,  // filled if AQ available
-                        moonPhase: 0, moonFraction: 0, // filled below if astronomy available
-                    },
-                    layers: f.cloudLayers || {},
-                    predicted: {
-                        score: f.score, grade: f.grade,
-                        uspSeeing: f.usp?.seeing, uspConfidence: f.usp?.confidence,
-                        r0: f.usp?.details?.r0,
-                    },
-                    apiSources: apiHealth,
-                    actual: null,
-                }));
-                TrainingData.insertMany(trainingDocs, { ordered: false }).catch(err => console.warn('[Training] insertMany partial fail:', err.message));
+                const col = db.collection('trainingData');
+                const batch = db.batch();
+                mappedForecast.forEach(f => {
+                    batch.set(col.doc(), {
+                        timestamp: new Date(f.time),
+                        lat, lon, elevation: siteElevation, isUrban,
+                        inputs: {
+                            seeing: f.usp?.seeing ?? null, transparency: f.scores?.transparency ?? null,
+                            cloudScore: f.scores?.cloudCover ?? null, wind: f.wind10m?.speed ?? null,
+                            jetStream: f.raw?.jetStreamSpeed ?? null, cape: f.raw?.cape ?? null,
+                            humidity: f.rh2m ?? null, temp: f.temp2m ?? null,
+                            pm25: null, aod: null,
+                            moonPhase: 0, moonFraction: 0,
+                        },
+                        layers: f.cloudLayers || {},
+                        predicted: {
+                            score: f.score ?? null, grade: f.grade ?? null,
+                            uspSeeing: f.usp?.seeing ?? null, uspConfidence: f.usp?.confidence ?? null,
+                            r0: f.usp?.details?.r0 ?? null,
+                        },
+                        apiSources: apiHealth,
+                        actual: null,
+                        createdAt: new Date(),
+                    });
+                });
+                batch.commit().catch(err => console.warn('[Training] Firestore batch fail:', err.message));
             } catch { /* silent — training data is optional */ }
         }
 

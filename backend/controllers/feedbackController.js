@@ -1,8 +1,6 @@
-const mongoose = require('mongoose');
-
 /**
  * POST /api/feedback
- * Receive user observation feedback and update matching TrainingData
+ * Receive user observation feedback and update matching TrainingData in Firestore
  */
 const submitFeedback = async (req, res) => {
     try {
@@ -41,29 +39,33 @@ const submitFeedback = async (req, res) => {
             return res.status(400).json({ error: 'Comment must be under 500 characters' });
         }
 
-        let TrainingData;
-        try {
-            TrainingData = mongoose.model('TrainingData');
-        } catch {
-            return res.status(503).json({ error: 'Training data model not available' });
+        const db = req.app.locals.db;
+        if (!db) {
+            return res.status(503).json({ error: 'Database not available' });
         }
 
         // Find the closest matching TrainingData document
-        // Search within ±0.5° lat/lon and ±3 hours of the given timestamp
+        // Search within ±3 hours of the given timestamp, then filter ±0.5° lat/lon in code
         const targetTime = new Date(timestamp);
         const timeWindow = 3 * 60 * 60 * 1000; // 3 hours in ms
+        const startTime = new Date(targetTime.getTime() - timeWindow);
+        const endTime = new Date(targetTime.getTime() + timeWindow);
 
-        const doc = await TrainingData.findOne({
-            lat: { $gte: parsedLat - 0.5, $lte: parsedLat + 0.5 },
-            lon: { $gte: parsedLon - 0.5, $lte: parsedLon + 0.5 },
-            timestamp: {
-                $gte: new Date(targetTime.getTime() - timeWindow),
-                $lte: new Date(targetTime.getTime() + timeWindow),
-            },
-        }).sort({ timestamp: -1 }); // Most recent match
+        const snapshot = await db.collection('trainingData')
+            .where('timestamp', '>=', startTime)
+            .where('timestamp', '<=', endTime)
+            .orderBy('timestamp', 'desc')
+            .limit(50)
+            .get();
 
-        if (!doc) {
-            // No matching prediction found, but still record as standalone feedback
+        // Filter by lat/lon in application code (Firestore single-field inequality optimization)
+        const matchDoc = snapshot.docs.find(d => {
+            const data = d.data();
+            return Math.abs(data.lat - parsedLat) <= 0.5
+                && Math.abs(data.lon - parsedLon) <= 0.5;
+        });
+
+        if (!matchDoc) {
             return res.status(200).json({
                 success: true,
                 matched: false,
@@ -72,19 +74,20 @@ const submitFeedback = async (req, res) => {
         }
 
         // Update the actual feedback fields
-        doc.actual = {
-            rating: r,
-            actualSeeing: actualSeeing != null ? parseFloat(actualSeeing) : undefined,
-            comment: comment || undefined,
-            feedbackAt: new Date(),
-        };
+        await matchDoc.ref.update({
+            actual: {
+                rating: r,
+                actualSeeing: actualSeeing != null ? parseFloat(actualSeeing) : null,
+                comment: comment || null,
+                feedbackAt: new Date(),
+            },
+        });
 
-        await doc.save();
-
+        const matchData = matchDoc.data();
         res.status(200).json({
             success: true,
             matched: true,
-            predictedScore: doc.predicted?.score,
+            predictedScore: matchData.predicted?.score,
             message: 'Feedback recorded successfully',
         });
     } catch (err) {
