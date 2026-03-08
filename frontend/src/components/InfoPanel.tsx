@@ -520,6 +520,16 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                                         mickeys67@gmail.com
                                     </a>
                                 </div>
+
+                                {/* ── Dedication ── */}
+                                <div className="mt-5 pt-4 text-center" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                                    <p className="text-[11px] italic" style={{ color: 'var(--text-tertiary)', opacity: 0.7 }}>
+                                        "나의 사랑스러운 개 포미를 생각하며"
+                                    </p>
+                                    <p className="text-[10px] mt-1 font-data" style={{ color: 'var(--text-tertiary)', opacity: 0.5 }}>
+                                        2025.7.30
+                                    </p>
+                                </div>
                             </div>
                         )}
 
