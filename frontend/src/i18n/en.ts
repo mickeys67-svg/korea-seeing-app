@@ -200,7 +200,7 @@ const en = {
         news: {
             updates: [
                 {
-                    title: 'Performance & Stability Improvements (2026.03.14)',
+                    title: 'Performance & Stability Improvements (2026.3.14)',
                     items: [
                         'Significantly faster loading under concurrent access',
                         'Satellite data reception stability improved',
