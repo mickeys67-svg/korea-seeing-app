@@ -17,6 +17,10 @@ const CACHE_FRESH = 3 * 60 * 1000;     // 3 minutes — serve fresh without API 
 const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours — stale fallback when APIs fail
 const CACHE_MAX = 50;                  // max entries (~2.5MB)
 
+// ═══ Request Coalescing — 동일 지역 동시 요청 합치기 ═══
+// 같은 캐시키(0.1° ≈ 11km) 요청이 동시에 오면 API 호출 1회만 수행, Promise 공유
+const _pendingRequests = new Map();
+
 function _cacheKey(lat, lon, lang) {
     return `${lat.toFixed(1)},${lon.toFixed(1)},${lang}`;
 }
@@ -318,7 +322,7 @@ const WeatherService = {
             if (gk2aData.opticalDepth != null) values.gk2aOpticalDepth = gk2aData.opticalDepth;
         }
 
-        const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+        const avg = (arr) => { const valid = arr.filter(v => !isNaN(v)); return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null; };
 
         // ═══ 3-Layer Cloud Scoring ═══
         // When layer data is available, use weighted sum instead of total cloud.
@@ -450,7 +454,7 @@ const WeatherService = {
         return {
             temp: avgTemp, humidity: avg(values.humidities), cloudScore: parseFloat(Math.min(8, Math.max(0, isNaN(cloudScore) ? 4 : cloudScore)).toFixed(1)),
             wind: avg(values.winds), jetStream: avg(values.jetStreams), cape: avg(values.capes),
-            tempMin: values.temps.length ? Math.min(...values.temps) : 0, tempMax: values.temps.length ? Math.max(...values.temps) : 0,
+            tempMin: values.temps.length ? Math.min(...values.temps.filter(t => !isNaN(t))) || 0 : 0, tempMax: values.temps.length ? Math.max(...values.temps.filter(t => !isNaN(t))) || 0 : 0,
             pm25: pm25, aod: aod,
             cloudLow: values.cloudLow ?? null, cloudMid: values.cloudMid ?? null, cloudHigh: values.cloudHigh ?? null,
             dewPointSpread: dewPointSpread, dewPoint: values.dewPoint ?? null,
@@ -479,9 +483,16 @@ const WeatherService = {
             const z2 = WeatherService.PRESSURE_LEVEL_HEIGHTS[level2];
             const dz = z2 - z1;
             const windShear = (v2 - v1) / dz;
-            const dT = t2 - t1;
-            const avgT = (t1 + t2) / 2 + 273.15;
-            const ri = (9.8 / avgT) * (dT / dz) / Math.pow(windShear || 0.001, 2);
+            // Potential temperature: θ = T(K) × (1000/P)^0.286
+            // Must use θ (not T) for Richardson number — T always decreases with altitude
+            // but θ increases in stable air, which is the physically correct stability measure
+            const p1 = parseFloat(level1);  // e.g. "850hPa" → 850
+            const p2 = parseFloat(level2);
+            const theta1 = (t1 + 273.15) * Math.pow(1000 / p1, 0.286);
+            const theta2 = (t2 + 273.15) * Math.pow(1000 / p2, 0.286);
+            const dTheta = theta2 - theta1;
+            const avgTheta = (theta1 + theta2) / 2;
+            const ri = (9.8 / avgTheta) * (dTheta / dz) / Math.pow(windShear || 0.001, 2);
             // TKE estimation from wind shear + Richardson number (replaces hardcoded 0.5)
             const shearTKE = Math.pow(Math.abs(windShear) * dz, 2) * 0.1;
             let stabilityFactor;
@@ -504,6 +515,21 @@ const WeatherService = {
                 return freshCached;
             }
         }
+
+        // ═══ Request Coalescing — 같은 지역 동시 요청 시 API 호출 1회만 ═══
+        const coalKey = _cacheKey(lat, lon, targetLang);
+        let pending = _pendingRequests.get(coalKey);
+        if (pending) {
+            console.log(`[Coalesce] Joining existing request for ${coalKey}`);
+            return pending;
+        }
+        const fetchPromise = WeatherService._doAggregatedForecast(lat, lon, targetLang);
+        _pendingRequests.set(coalKey, fetchPromise);
+        fetchPromise.catch(() => {}).finally(() => _pendingRequests.delete(coalKey));
+        return fetchPromise;
+    },
+
+    _doAggregatedForecast: async (lat, lon, targetLang = 'en') => {
 
         // Fetch all data sources in parallel (8 API calls)
         // Ensemble + METAR + GK2A 추가 — 실패해도 null 반환으로 안전

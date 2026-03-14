@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const compression = require('compression');
 
 // Import Controllers & Services
 const weatherController = require('./controllers/weatherController');
@@ -14,6 +15,9 @@ const WeatherService = require('./services/weatherService');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// gzip compression — egress 60-70% 절감
+app.use(compression());
+
 // Security headers
 app.use(helmet({
     contentSecurityPolicy: false, // Allow inline styles/scripts for SPA
@@ -21,6 +25,8 @@ app.use(helmet({
 }));
 
 // Rate limiting for API routes
+// Cloud Run sets X-Forwarded-For — trust proxy to get real client IP
+app.set('trust proxy', 1);
 const apiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 30, // 30 requests per minute per IP
@@ -53,20 +59,9 @@ WeatherService.setDb(db);
 console.log('Firestore initialized (database: koreaseeingapp1)');
 
 // --- Health Check (for Cloud Run / Load Balancers) ---
-app.get('/health', async (req, res) => {
-    let dbStatus = 'unknown';
-    try {
-        await db.collection('_health').doc('ping').set({ ts: Date.now() });
-        dbStatus = 'connected';
-    } catch (err) {
-        console.warn('[Health] Firestore ping failed:', err.message);
-        dbStatus = 'unreachable';
-    }
-    res.status(200).json({
-        status: 'ok',
-        uptime: Math.round(process.uptime()),
-        db: dbStatus,
-    });
+// Firestore write 제거 — Cloud Run은 HTTP 200만 필요, DB 확인은 실제 API 호출에서 수행
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: Math.round(process.uptime()) });
 });
 
 // --- API Routes ---
@@ -86,8 +81,11 @@ if (process.env.NODE_ENV === 'production') {
 
     // 1. Serve static files — HTML no-cache, assets immutable (hashed filenames)
     app.use(express.static(distPath, {
+        maxAge: '1y',      // 해시된 에셋(JS/CSS): 1년 캐시 (파일명에 해시 포함)
+        immutable: true,   // 브라우저가 재검증 요청 안 보냄
         setHeaders: (res, filePath) => {
             if (filePath.endsWith('.html')) {
+                // HTML은 항상 최신 버전 제공
                 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');

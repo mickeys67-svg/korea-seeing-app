@@ -434,10 +434,16 @@ async function parseHDF5(buf, lat, lon, area) {
                 const attrKeys = Object.keys(attrs || {});
                 console.log(`[GK2A] HDF5 projection attrs: ${attrKeys.join(', ')}`);
                 // GK2A 표준 속성명 + 변형 시도
-                const cfac = attrs?.column_scaling_factor?.value ?? attrs?.cfac?.value ?? attrs?.CFAC?.value;
-                const lfac = attrs?.line_scaling_factor?.value ?? attrs?.lfac?.value ?? attrs?.LFAC?.value;
-                const coff = attrs?.column_offset?.value ?? attrs?.coff?.value ?? attrs?.COFF?.value;
-                const loff = attrs?.line_offset?.value ?? attrs?.loff?.value ?? attrs?.LOFF?.value;
+                // h5wasm attrs.value 는 TypedArray(e.g. Float64Array([81057024]))/BigInt일 수 있으므로 스칼라 추출
+                const _n = v => {
+                    if (v == null) return null;
+                    if (typeof v === 'object' && v.length !== undefined) return Number(v[0]); // TypedArray → first element
+                    return Number(v);
+                };
+                const cfac = _n(attrs?.column_scaling_factor?.value ?? attrs?.column_scale_factor?.value ?? attrs?.cfac?.value ?? attrs?.CFAC?.value);
+                const lfac = _n(attrs?.line_scaling_factor?.value ?? attrs?.line_scale_factor?.value ?? attrs?.lfac?.value ?? attrs?.LFAC?.value);
+                const coff = _n(attrs?.column_offset?.value ?? attrs?.coff?.value ?? attrs?.COFF?.value);
+                const loff = _n(attrs?.line_offset?.value ?? attrs?.loff?.value ?? attrs?.LOFF?.value);
                 if (cfac && lfac && coff != null && loff != null) {
                     // latLonToGeos()와 동일한 정확한 GEOS 수식 사용
                     const DEG2RAD = Math.PI / 180;
@@ -469,7 +475,7 @@ async function parseHDF5(buf, lat, lon, area) {
 
         // GK2A LE2: 데이터 변수 탐색
         let dataVar = null;
-        const candidateNames = ['image_pixel_values', 'Data', 'data', 'CLD', 'NCOT', 'APPS', 'CI'];
+        const candidateNames = ['image_pixel_values', 'Data', 'data', 'CLD', 'NCOT', 'APPS', 'AOD', 'CI'];
         for (const name of candidateNames) {
             if (keys.includes(name)) {
                 dataVar = file.get(name);
@@ -497,15 +503,22 @@ async function parseHDF5(buf, lat, lon, area) {
         const ncols = dataVar.shape[1];
         console.log(`[GK2A] HDF5 data shape: ${nlines}x${ncols}, pos: col=${pos.col}, line=${pos.line}`);
 
+        // HDF5 투영이 Full Disk 기준이라 ELA 서브셋 범위 밖일 수 있음 → hardcoded fallback
         if (pos.line < 0 || pos.line >= nlines || pos.col < 0 || pos.col >= ncols) {
-            file.close();
-            FS.unlink(tmpPath);
-            return null;
+            const fallbackPos = latLonToGeos(lat, lon, area);
+            if (fallbackPos && fallbackPos.line >= 0 && fallbackPos.line < nlines && fallbackPos.col >= 0 && fallbackPos.col < ncols) {
+                console.log(`[GK2A] HDF5 projection out of bounds → fallback: col=${fallbackPos.col}, line=${fallbackPos.line}`);
+                pos = fallbackPos;
+            } else {
+                file.close();
+                FS.unlink(tmpPath);
+                return null;
+            }
         }
 
         const data = dataVar.value;
         const idx = pos.line * ncols + pos.col;
-        let value = data[idx];
+        let value = Number(data[idx]); // h5wasm TypedArray → plain Number 변환
 
         // NODATA 체크 — scale 적용 전에 원본값으로 검사
         const rawValue = value;
@@ -520,8 +533,13 @@ async function parseHDF5(buf, lat, lon, area) {
 
         // scale_factor / add_offset 속성 적용
         try {
-            const sf = dataVar.attrs?.scale_factor?.value ?? dataVar.attrs?.slope?.value;
-            const ao = dataVar.attrs?.add_offset?.value ?? dataVar.attrs?.intercept?.value ?? 0;
+            const _nv = v => { // h5wasm attr value → scalar Number
+                if (v == null) return null;
+                if (typeof v === 'object' && v.length !== undefined) return Number(v[0]);
+                return Number(v);
+            };
+            const sf = _nv(dataVar.attrs?.scale_factor?.value ?? dataVar.attrs?.slope?.value);
+            const ao = _nv(dataVar.attrs?.add_offset?.value ?? dataVar.attrs?.intercept?.value) ?? 0;
             if (sf && sf !== 1) {
                 value = value * sf + ao;
                 console.log(`[GK2A] HDF5 scale: raw=${rawValue} → ${value.toFixed(3)} (sf=${sf}, ao=${ao})`);
@@ -622,16 +640,44 @@ function claToCloudFraction(value) {
 
 // ═══ 메인 API: 위성 구름 데이터 조회 ═══
 
-/**
- * GK2A 위성 데이터에서 특정 좌표의 구름/대기 정보 조회
- * @param {number} lat
- * @param {number} lon
- * @returns {object|null} { cloudScore, opticalDepth, transparencyPenalty, aod, source }
- */
+// ═══ HDF5 다운로드 공유 ═══
+// 같은 product/area/obsDate → 같은 27MB HDF5 파일
+// 여러 좌표 요청이 동시에 오면 다운로드 1회만 수행, 버퍼 공유
+const _pendingDownloads = new Map(); // key: `${product}_${area}_${obsDate}` → Promise<Buffer|null>
+
+async function _sharedDownload(product, area, obsDate, apiKey) {
+    const dlKey = `${product}_${area}_${obsDate}`;
+    let dlPromise = _pendingDownloads.get(dlKey);
+    if (!dlPromise) {
+        dlPromise = (async () => {
+            const url = `${GK2A_BASE}/LE2/${product}/${area}/data?date=${obsDate}&authKey=${apiKey}`;
+            try {
+                const res = await axios.get(url, {
+                    timeout: 45000,
+                    responseType: 'arraybuffer',
+                    validateStatus: s => s < 400
+                });
+                const buf = Buffer.from(res.data);
+                if (buf.length < 100) {
+                    console.warn(`[GK2A] ${product}: response too small (${buf.length}B)`);
+                    return null;
+                }
+                console.log(`[GK2A] ${product}/${area}: ${buf.length} bytes received`);
+                return buf;
+            } catch (err) {
+                console.warn(`[GK2A] ${product} fetch error: ${err.message}`);
+                return null;
+            }
+        })();
+        _pendingDownloads.set(dlKey, dlPromise);
+        dlPromise.catch(() => {}).finally(() => _pendingDownloads.delete(dlKey));
+    }
+    return dlPromise;
+}
+
 // ═══ 백그라운드 프리페치 ═══
-// GK2A HDF5(54MB) 다운로드는 느리므로 캐시 미스 시 백그라운드에서 다운로드
-// 현재 요청은 null 반환 → 다음 요청에서 캐시 히트
-const _pendingFetches = new Set();
+// GK2A HDF5(27MB) 다운로드 공유 — 같은 파일을 좌표별 중복 다운로드 방지
+const _pendingFetches = new Map();
 
 async function fetchSatelliteData(lat, lon) {
     const apiKey = process.env.GK2A_API_KEY;
@@ -656,12 +702,12 @@ async function fetchSatelliteData(lat, lon) {
     const prevKey = `gk2a_${roundLat}_${roundLon}_${prevObs}`;
     const prevCached = _cacheGet(prevKey);
 
-    // 3) 백그라운드 프리페치 시작
-    let fetchPromise = null;
-    if (!_pendingFetches.has(cacheKey)) {
-        _pendingFetches.add(cacheKey);
+    // 3) 백그라운드 프리페치 시작 또는 기존 Promise 공유
+    let fetchPromise = _pendingFetches.get(cacheKey);
+    if (!fetchPromise) {
         // Use rounded coords for pixel extraction — must match cache key
         fetchPromise = _backgroundFetch(parseFloat(roundLat), parseFloat(roundLon), obsDate, area, cacheKey);
+        _pendingFetches.set(cacheKey, fetchPromise);
         fetchPromise.catch(() => {}).finally(() => {
             _pendingFetches.delete(cacheKey);
         });
@@ -671,20 +717,16 @@ async function fetchSatelliteData(lat, lon) {
     if (prevCached !== undefined) return prevCached;
 
     // 5) 캐시가 전혀 없으면 최대 20초 대기 (US→Korea HDF5 7MB + parse 시간)
-    if (fetchPromise) {
-        try {
-            const result = await Promise.race([
-                fetchPromise,
-                new Promise(resolve => setTimeout(() => resolve(null), 20000))
-            ]);
-            return result;
-        } catch (err) {
-            console.warn(`[GK2A] fetchSatelliteData wait error: ${err.message}`);
-            return null;
-        }
+    try {
+        const result = await Promise.race([
+            fetchPromise,
+            new Promise(resolve => setTimeout(() => resolve(null), 20000))
+        ]);
+        return result;
+    } catch (err) {
+        console.warn(`[GK2A] fetchSatelliteData wait error: ${err.message}`);
+        return null;
     }
-
-    return null;
 }
 
 async function _backgroundFetch(lat, lon, obsDate, area, cacheKey) {
@@ -696,34 +738,13 @@ async function _backgroundFetch(lat, lon, obsDate, area, cacheKey) {
     const kstHour = (obsUtcHour + 9) % 24;
     const isNight = kstHour >= 18 || kstHour < 6;
 
-    // 병렬 API 호출: CLD + (야간: NCOT) + (주간: APPS)
-    const fetchProduct = async (product) => {
-        const url = `${GK2A_BASE}/LE2/${product}/${area}/data?date=${obsDate}&authKey=${apiKey}`;
-        try {
-            const res = await axios.get(url, {
-                timeout: 45000,  // 백그라운드 — HDF5 최대 54MB 다운로드
-                responseType: 'arraybuffer',
-                validateStatus: s => s < 400
-            });
-            const buf = Buffer.from(res.data);
-            if (buf.length < 100) {
-                console.warn(`[GK2A] ${product}: response too small (${buf.length}B)`);
-                return null;
-            }
-            console.log(`[GK2A] ${product}/${area}: ${buf.length} bytes received`);
-            return buf;
-        } catch (err) {
-            console.warn(`[GK2A] ${product} fetch error: ${err.message}`);
-            return null;
-        }
-    };
-
     // ═══ v3.3: CLD/EA(54MB) 제거 — US서버에서 다운로드 불가 ═══
     // 야간: NCOT/ELA(~7MB) → 구름 점수 + 광학두께 + 투명도
     // 주간: APPS/ELA(~수MB) → AOD (구름은 KMA/METAR 지상관측 사용)
     const products = isNight ? ['NCOT'] : ['APPS'];
 
-    const buffers = await Promise.all(products.map(p => fetchProduct(p)));
+    // _sharedDownload: 같은 product/area/obsDate면 다운로드 1회만 수행 (27MB 중복 방지)
+    const buffers = await Promise.all(products.map(p => _sharedDownload(p, area, obsDate, apiKey)));
 
     const result = {
         cloudScore: null,
