@@ -202,6 +202,16 @@ const zh: Translations = {
         news: {
             updates: [
                 {
+                    title: '服务器性能优化 (2024.03.14)',
+                    items: [
+                        '请求合并 — 同一区域的并发请求共享单次API调用',
+                        '按API空间分辨率匹配的网格缓存（5km–55km粒度）',
+                        'GK2A卫星HDF5下载共享 — 消除27MB重复下载',
+                        '7个bug修复：NaN传播阻断、null缓存污染防止、评分稳定化',
+                        'Circuit Breaker模式自动隔离故障API并恢复',
+                    ],
+                },
+                {
                     title: '预报可靠性提升',
                     items: [
                         '自动检测观测点海拔和环境，提升预报准确度',

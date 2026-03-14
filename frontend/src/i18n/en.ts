@@ -200,6 +200,16 @@ const en = {
         news: {
             updates: [
                 {
+                    title: 'Server Performance Optimization (2024.03.14)',
+                    items: [
+                        'Request Coalescing — concurrent requests for same area share a single API call',
+                        'Per-API spatial grid cache matching native resolution (5km–55km granularity)',
+                        'GK2A satellite HDF5 download sharing — eliminates duplicate 27MB downloads',
+                        '7 bug fixes: NaN propagation blocked, null cache poisoning prevented, scoring stabilized',
+                        'Circuit Breaker pattern for automatic fault isolation and recovery',
+                    ],
+                },
+                {
                     title: 'Forecast Reliability Upgrade',
                     items: [
                         'Auto-detection of site elevation & environment for better accuracy',

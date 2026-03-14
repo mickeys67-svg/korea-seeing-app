@@ -202,6 +202,16 @@ const ko: Translations = {
         news: {
             updates: [
                 {
+                    title: '서버 성능 최적화 (2024.03.14)',
+                    items: [
+                        '동시 접속 시 API 중복 호출 방지 — 요청 병합(Request Coalescing) 적용',
+                        'API별 공간 해상도에 맞춘 그리드 캐시 도입 (5km~55km 단위)',
+                        'GK2A 위성 HDF5 다운로드 공유 — 같은 파일 중복 다운로드 제거',
+                        '7개 버그 수정: NaN 전파 차단, null 캐시 오염 방지, 스코어링 안정성 강화',
+                        'Circuit Breaker 패턴으로 장애 API 자동 격리 및 복구',
+                    ],
+                },
+                {
                     title: '예보 신뢰도 향상',
                     items: [
                         '관측지 고도·환경 자동 반영으로 예보 정확도 개선',
