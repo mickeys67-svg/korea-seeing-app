@@ -99,15 +99,12 @@ const AnalysisService = {
 
         if (upcoming.length < 2) return null;
 
-        // Find best block in 24h
-        let bestBlock = upcoming[0];
-        for (const block of upcoming) {
+        // Find best block in 24h (skip blocks with undefined/NaN scores)
+        const scored = upcoming.filter(b => b.score != null && !isNaN(b.score));
+        let bestBlock = scored[0] || upcoming[0];
+        let worstBlock = scored[0] || upcoming[0];
+        for (const block of scored) {
             if (block.score > bestBlock.score) bestBlock = block;
-        }
-
-        // Find worst block in 24h
-        let worstBlock = upcoming[0];
-        for (const block of upcoming) {
             if (block.score < worstBlock.score) worstBlock = block;
         }
 

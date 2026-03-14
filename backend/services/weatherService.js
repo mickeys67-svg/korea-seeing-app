@@ -353,7 +353,7 @@ const WeatherService = {
             // Blend with non-OM sources (7Timer, Met.no) — no double-counting
             if (values.clouds.length > 0) {
                 const otherAvg = avg(values.clouds);
-                baseCloudScore = layerNorm * 0.6 + otherAvg * 0.4;
+                baseCloudScore = otherAvg != null ? layerNorm * 0.6 + otherAvg * 0.4 : layerNorm;
             } else {
                 baseCloudScore = layerNorm;
             }
@@ -454,7 +454,7 @@ const WeatherService = {
         return {
             temp: avgTemp, humidity: avg(values.humidities), cloudScore: parseFloat(Math.min(8, Math.max(0, isNaN(cloudScore) ? 4 : cloudScore)).toFixed(1)),
             wind: avg(values.winds), jetStream: avg(values.jetStreams), cape: avg(values.capes),
-            tempMin: values.temps.length ? Math.min(...values.temps.filter(t => !isNaN(t))) || 0 : 0, tempMax: values.temps.length ? Math.max(...values.temps.filter(t => !isNaN(t))) || 0 : 0,
+            tempMin: (() => { const v = values.temps.filter(t => !isNaN(t)); return v.length ? Math.min(...v) : 0; })(), tempMax: (() => { const v = values.temps.filter(t => !isNaN(t)); return v.length ? Math.max(...v) : 0; })(),
             pm25: pm25, aod: aod,
             cloudLow: values.cloudLow ?? null, cloudMid: values.cloudMid ?? null, cloudHigh: values.cloudHigh ?? null,
             dewPointSpread: dewPointSpread, dewPoint: values.dewPoint ?? null,
@@ -562,7 +562,7 @@ const WeatherService = {
         const isKR = KmaService.isKorea(lat, lon);
         const apiHealth = {
             timer: !!(timerData && timerData.dataseries && timerData.dataseries.length > 0),
-            openmeteo: !!omData,
+            openmeteo: !!(omData && omData.hourly),
             metno: !!metData,
             airquality: !!aqData,
             kma: isKR ? !!kmaData : null,  // null = not applicable (non-Korea)
@@ -662,7 +662,7 @@ const WeatherService = {
                     jetStreamSpeed: jetKt,
                     targetAltitude: 90, urban: isUrban, elevation: siteElevation,
                     aod: mapped.aod, pm25: mapped.pm25,
-                    variance: mapped.tempMax - mapped.tempMin,
+                    variance: (mapped.tempMax != null && mapped.tempMin != null) ? mapped.tempMax - mapped.tempMin : null,
                     humidity: mapped.humidity,
                     isCoastal: isCoastal
                 });
@@ -674,7 +674,7 @@ const WeatherService = {
                     jetStreamSpeed: jetKt,
                     targetAltitude: 90, urban: isUrban, elevation: siteElevation,
                     aod: mapped.aod, pm25: mapped.pm25,
-                    variance: mapped.tempMax - mapped.tempMin,
+                    variance: (mapped.tempMax != null && mapped.tempMin != null) ? mapped.tempMax - mapped.tempMin : null,
                     humidity: mapped.humidity,
                     isCoastal: isCoastal
                 });

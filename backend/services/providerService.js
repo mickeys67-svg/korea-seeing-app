@@ -59,9 +59,9 @@ function _gridFetch(apiName, lat, lon, fetchFn) {
         if (pending) return pending;
     }
 
-    // 3. 새 요청 시작
+    // 3. 새 요청 시작 — null(실패)은 캐시하지 않음 (재시도 허용)
     const promise = fetchFn().then(result => {
-        _gridSet(apiName, lat, lon, result);
+        if (result != null) _gridSet(apiName, lat, lon, result);
         return result;
     });
     if (key) {

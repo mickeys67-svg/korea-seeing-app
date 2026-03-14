@@ -414,7 +414,7 @@ async function parseHDF5(buf, lat, lon, area) {
     if (!h5wasm) return null;
 
     const FS = h5wasm.FS;
-    const tmpPath = '/tmp_gk2a_' + Date.now() + '.h5';
+    const tmpPath = '/tmp_gk2a_' + Date.now() + '_' + (Math.random() * 0xFFFFFF | 0).toString(36) + '.h5';
     let file = null;
 
     try {
@@ -744,57 +744,59 @@ async function _backgroundFetch(lat, lon, obsDate, area, cacheKey) {
     const products = isNight ? ['NCOT'] : ['APPS'];
 
     // _sharedDownload: 같은 product/area/obsDate면 다운로드 1회만 수행 (27MB 중복 방지)
-    const buffers = await Promise.all(products.map(p => _sharedDownload(p, area, obsDate, apiKey)));
+    try {
+        const buffers = await Promise.all(products.map(p => _sharedDownload(p, area, obsDate, apiKey)));
 
-    const result = {
-        cloudScore: null,
-        opticalDepth: null,
-        ncotCloudScore: null,
-        transparencyPenalty: 0,
-        aod: null,
-        obsTime: obsDate,
-        source: 'GK2A',
-    };
+        const result = {
+            cloudScore: null,
+            opticalDepth: null,
+            ncotCloudScore: null,
+            transparencyPenalty: 0,
+            aod: null,
+            obsTime: obsDate,
+            source: 'GK2A',
+        };
 
-    if (buffers[0]) {
-        if (isNight) {
-            const tau = await extractPointValue(buffers[0], lat, lon, area);
-            if (tau != null && tau >= 0) {
-                // 구름 있음: NCOT 광학두께 → 구름 점수
-                result.opticalDepth = parseFloat(tau.toFixed(2));
-                result.ncotCloudScore = ncotToCloudScore(tau);
-                result.cloudScore = result.ncotCloudScore;
-                result.transparencyPenalty = ncotToTransparencyPenalty(tau);
-                console.log(`[GK2A] NCOT at (${lat},${lon}): τ=${tau.toFixed(2)} → cloud=${result.ncotCloudScore?.toFixed(1)}, transPenalty=${result.transparencyPenalty}`);
-            } else if (tau === null) {
-                // ★ NODATA(65535) = 위성이 구름을 감지하지 못함 = 맑은 하늘
-                // NCOT은 구름이 있는 픽셀만 광학두께 산출 → NODATA = clear sky
-                result.opticalDepth = 0;
-                result.ncotCloudScore = 0.3; // 거의 맑음 (완전 0은 과도)
-                result.cloudScore = 0.3;
-                result.transparencyPenalty = 0;
-                console.log(`[GK2A] NCOT at (${lat},${lon}): NODATA → interpreted as CLEAR SKY (cloud=0.3)`);
-            }
-        } else {
-            const aodVal = await extractPointValue(buffers[0], lat, lon, area);
-            result.aod = appsToAOD(aodVal);
-            if (result.aod != null) {
-                console.log(`[GK2A] APPS at (${lat},${lon}): AOD=${result.aod.toFixed(3)}`);
+        if (buffers[0]) {
+            if (isNight) {
+                const tau = await extractPointValue(buffers[0], lat, lon, area);
+                if (tau != null && tau >= 0) {
+                    result.opticalDepth = parseFloat(tau.toFixed(2));
+                    result.ncotCloudScore = ncotToCloudScore(tau);
+                    result.cloudScore = result.ncotCloudScore;
+                    result.transparencyPenalty = ncotToTransparencyPenalty(tau);
+                    console.log(`[GK2A] NCOT at (${lat},${lon}): τ=${tau.toFixed(2)} → cloud=${result.ncotCloudScore?.toFixed(1)}, transPenalty=${result.transparencyPenalty}`);
+                } else if (tau === null) {
+                    result.opticalDepth = 0;
+                    result.ncotCloudScore = 0.3;
+                    result.cloudScore = 0.3;
+                    result.transparencyPenalty = 0;
+                    console.log(`[GK2A] NCOT at (${lat},${lon}): NODATA → interpreted as CLEAR SKY (cloud=0.3)`);
+                }
+            } else {
+                const aodVal = await extractPointValue(buffers[0], lat, lon, area);
+                result.aod = appsToAOD(aodVal);
+                if (result.aod != null) {
+                    console.log(`[GK2A] APPS at (${lat},${lon}): AOD=${result.aod.toFixed(3)}`);
+                }
             }
         }
-    }
 
-    // 결과 캐싱 (NODATA도 캐싱하여 반복 다운로드 방지)
-    const hasData = result.cloudScore != null || result.opticalDepth != null || result.aod != null;
-    console.log(`[GK2A] _backgroundFetch result: hasData=${hasData}, cloud=${result.cloudScore}, tau=${result.opticalDepth}, aod=${result.aod}`);
-    _cacheSet(cacheKey, hasData ? result : null);
-    if (hasData) {
-        console.log(`[GK2A] Background fetch complete → cached (${cacheKey})`);
-        return result;
-    }
+        const hasData = result.cloudScore != null || result.opticalDepth != null || result.aod != null;
+        console.log(`[GK2A] _backgroundFetch result: hasData=${hasData}, cloud=${result.cloudScore}, tau=${result.opticalDepth}, aod=${result.aod}`);
+        _cacheSet(cacheKey, hasData ? result : null);
+        if (hasData) {
+            console.log(`[GK2A] Background fetch complete → cached (${cacheKey})`);
+            return result;
+        }
 
-    console.warn('[GK2A] No valid data extracted from any product');
-    return null;
+        console.warn('[GK2A] No valid data extracted from any product');
+        return null;
+    } catch (err) {
+        console.warn(`[GK2A] _backgroundFetch error: ${err.message}`);
+        _cacheSet(cacheKey, null);
+        return null;
+    }
 }
 
 module.exports = {

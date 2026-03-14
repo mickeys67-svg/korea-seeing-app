@@ -177,7 +177,7 @@ const USPModel = {
             confidence: Math.max(10, Math.round(confidence * 100)),
             details: {
                 r0: parseFloat((r0 * 100).toFixed(1)),
-                stability: data.layers && data.layers.length > 0 ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Mixed',
+                stability: data.layers && data.layers.length > 0 && data.layers[0].ri != null ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Mixed',
                 jetStream: (data.jetStreamSpeed ?? 0) > 70 ? 'Extreme' : ((data.jetStreamSpeed ?? 0) > 40 ? 'Active' : 'Stable'),
                 tau0: parseFloat(Math.max(0.5, Math.min(50, tau0)).toFixed(1)) // ms, clamped
             }
