@@ -108,7 +108,7 @@ const Dashboard: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                     {data?.apiHealth && (() => {
-                        const vals = Object.values(data.apiHealth);
+                        const vals = Object.values(data.apiHealth).filter(v => v !== null); // null = 해당 지역 미적용
                         const healthy = vals.length > 0 && vals.every(Boolean);
                         return (
                             <div className="flex items-center gap-1.5">

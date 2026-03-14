@@ -34,11 +34,9 @@ gcloud services enable run.googleapis.com
 ```
 
 ### 3. 프로젝트 ID 설정
-`[YOUR_PROJECT_ID]`를 실제 구글 클라우드 프로젝트 ID로 바꿔서 입력하세요.
-(예: `korea-sky-app-12345`)
 
 ```bash
-gcloud config set project [koreaseeing_koreaseeing]
+gcloud config set project mickey-485213
 ```
 
 ### 4. 컨테이너 빌드 및 업로드 (Build)
@@ -46,7 +44,7 @@ gcloud config set project [koreaseeing_koreaseeing]
 *Docker가 내 컴퓨터에 설치되어 있지 않아도, 구글 서버에서 빌드하므로 상관없습니다.*
 
 ```bash
-gcloud builds submit --tag gcr.io/[YOUR_PROJECT_ID]/korea-sky-seeing
+gcloud builds submit --tag gcr.io/mickey-485213/korea-sky-seeing
 ```
 
 ### 5. Cloud Run으로 배포 (Deploy)
@@ -54,21 +52,19 @@ gcloud builds submit --tag gcr.io/[YOUR_PROJECT_ID]/korea-sky-seeing
 
 ```bash
 gcloud run deploy korea-sky-seeing \
-  --image gcr.io/[YOUR_PROJECT_ID]/korea-sky-seeing \
+  --image gcr.io/mickey-485213/korea-sky-seeing \
   --platform managed \
-  --region asia-northeast3 \
-  --allow-unauthenticated \
-  --set-env-vars NODE_ENV=production,MONGODB_URI=[YOUR_MONGODB_CONNECTION_STRING]
+  --region us-central1 \
+  --allow-unauthenticated
 ```
 
-*   **Region**: `asia-northeast3`는 서울 리전입니다.
-*   **MONGODB_URI**: 실제 몽고DB 접속 주소(비밀번호 포함)를 입력해야 합니다. 따옴표(`"`)로 감싸주는 것이 좋습니다.
-    * 예: `MONGODB_URI="mongodb+srv://user:pass@cluster..."`
+*   **Region**: `us-central1` (미국 중부). ⚠️ 한국 서버(asia-northeast3)는 폐기됨.
+*   **도메인**: https://www.clearsky.kr
+*   **환경변수**: Cloud Run 콘솔에서 `MONGODB_URI`, `NODE_ENV=production` 등 설정.
 *   현재 AI 분석과 번역은 **내장 규칙 기반**으로 작동하므로, 외부 API 키가 필요하지 않습니다.
 
 ### 6. 배포 확인
-배포가 완료되면 터미널에 **Service URL**이 출력됩니다 (예: `https://korea-sky-seeing-xyz.a.run.app`).
-해당 주소를 클릭하여 웹사이트가 잘 뜨는지 확인하세요.
+배포가 완료되면 https://www.clearsky.kr 에서 정상 작동 여부를 확인하세요.
 
 ## 팁 & 문제 해결
 

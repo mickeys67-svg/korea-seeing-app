@@ -144,10 +144,23 @@ const RadiosondeService = {
             const dz = upper.gh - lower.gh;
             if (dz <= 0) continue;
 
-            const windShear = (upper.ws - lower.ws) / dz;
-            const dT = upper.ta - lower.ta;
-            const avgT = (lower.ta + upper.ta) / 2 + 273.15;
-            const ri = (9.8 / avgT) * (dT / dz) / Math.pow(windShear || 0.001, 2);
+            // Vector wind shear: use u/v components from ws+wd (not scalar speed difference)
+            // Catches wind direction changes that scalar shear misses entirely
+            const toRad = Math.PI / 180;
+            const u1 = -(lower.ws || 0) * Math.sin((lower.wd || 0) * toRad);
+            const v1 = -(lower.ws || 0) * Math.cos((lower.wd || 0) * toRad);
+            const u2 = -(upper.ws || 0) * Math.sin((upper.wd || 0) * toRad);
+            const v2 = -(upper.ws || 0) * Math.cos((upper.wd || 0) * toRad);
+            const windShear = Math.sqrt(Math.pow((u2 - u1) / dz, 2) + Math.pow((v2 - v1) / dz, 2));
+
+            // Potential temperature: θ = T(K) × (1000/P)^0.286
+            // Must use θ (not T) for Richardson number — dT/dz is always negative in
+            // standard atmosphere, but dθ/dz is positive in stable conditions
+            const theta1 = (lower.ta + 273.15) * Math.pow(1000 / lower.pa, 0.286);
+            const theta2 = (upper.ta + 273.15) * Math.pow(1000 / upper.pa, 0.286);
+            const dTheta = theta2 - theta1;
+            const avgTheta = (theta1 + theta2) / 2;
+            const ri = (9.8 / avgTheta) * (dTheta / dz) / Math.pow(windShear || 0.001, 2);
 
             // TKE from shear + stability
             const shearTKE = Math.pow(Math.abs(windShear) * dz, 2) * 0.1;

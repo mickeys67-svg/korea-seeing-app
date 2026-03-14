@@ -242,7 +242,30 @@ const AnalysisService = {
                 }
             }
 
-            return status + context;
+            // v3.1: Dew point warning (Tier 1) — condensation risk on optics
+            let dewWarning = '';
+            if (data.dewPointSpread != null && data.dewPointSpread < 3) {
+                dewWarning = isKo
+                    ? ` ⚠️ 이슬점 경고(T-Td=${data.dewPointSpread.toFixed(1)}°C) — 결로 위험, 히터 필수.`
+                    : ` ⚠️ Dew risk(T-Td=${data.dewPointSpread.toFixed(1)}°C) — use dew heater.`;
+            }
+
+            // v3.1: τ₀ coherence time guidance (Tier 1) — planetary imaging exposure
+            let tau0Info = '';
+            const tau0 = data.usp?.details?.tau0;
+            if (tau0 != null && score >= 40) {
+                if (tau0 > 10) {
+                    tau0Info = isKo
+                        ? ` 🪐 τ₀=${Math.round(tau0)}ms, 행성 촬영 탁월.`
+                        : ` 🪐 τ₀=${Math.round(tau0)}ms, great for planets.`;
+                } else if (tau0 < 5) {
+                    tau0Info = isKo
+                        ? ` 📷 τ₀=${Math.round(tau0)}ms, 짧은 노출(1-5ms) 권장.`
+                        : ` 📷 τ₀=${Math.round(tau0)}ms, use short exposures.`;
+                }
+            }
+
+            return status + context + dewWarning + tau0Info;
         } catch (error) {
             console.error("[Analysis] Engine error:", error.message);
             return null;

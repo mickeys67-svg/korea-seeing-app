@@ -62,13 +62,20 @@ function isKorea(lat, lon) {
  * @param {number} pty - KMA PTY code (0=없음, 1=비, 2=비/눈, 3=눈)
  * @returns {number} cloudScore 0-8
  */
-function skyToCloudScore(sky, pty = 0) {
+function skyToCloudScore(sky, pty = 0, humidity = null) {
     // 강수 시 하늘 완전 차단
     if (pty > 0) return 7.5;
 
     switch (sky) {
         case 1: return 0.8;   // 맑음 → ~10%
-        case 3: return 5.2;   // 구름많음 → ~65%
+        case 3: {
+            // v3.1: 습도 기반 보간 — SKY=3 "구름많음"의 실제 두께 추정
+            // 건조 → 얇은 권운일 가능성, 습함 → 두꺼운 구름일 가능성
+            if (humidity == null || isNaN(humidity)) return 4.5; // null→중립
+            if (humidity < 50) return 3.5;   // 건조→얇은 구름
+            if (humidity < 70) return 4.5;   // 보통
+            return 5.5;                       // 습함→두꺼운 구름
+        }
         case 4: return 7.2;   // 흐림 → ~90%
         default: return null; // 알 수 없음
     }

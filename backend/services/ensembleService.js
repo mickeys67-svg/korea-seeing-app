@@ -51,10 +51,11 @@ async function fetchEnsembleCloud(lat, lon) {
         return null;
     }
 
-    // 시간별 max, mean, spread 계산
+    // 시간별 max, mean, spread, p75 계산
     const maxCloud = new Array(len).fill(0);
     const meanCloud = new Array(len).fill(0);
     const spread = new Array(len).fill(0);
+    const p75Cloud = new Array(len).fill(0);
 
     for (let i = 0; i < len; i++) {
         const vals = [];
@@ -66,11 +67,19 @@ async function fetchEnsembleCloud(lat, lon) {
             maxCloud[i] = null;
             meanCloud[i] = null;
             spread[i] = null;
+            p75Cloud[i] = null;
             continue;
         }
         maxCloud[i] = Math.max(...vals);
         meanCloud[i] = vals.reduce((a, b) => a + b, 0) / vals.length;
         spread[i] = maxCloud[i] - Math.min(...vals);
+        // p75: 75th percentile — less pessimistic than max, more conservative than mean
+        vals.sort((a, b) => a - b);
+        if (vals.length >= 10) {
+            p75Cloud[i] = vals[Math.floor(vals.length * 0.75)];
+        } else {
+            p75Cloud[i] = meanCloud[i]; // 멤버 적으면 평균 사용 (안전)
+        }
     }
 
     console.log(`[Ensemble] Parsed ${allKeys.length} members/models, ${len} time slots`);
@@ -80,6 +89,7 @@ async function fetchEnsembleCloud(lat, lon) {
         maxCloud,    // 비관적 (천문관측용)
         meanCloud,   // 평균
         spread,      // 불확실성 (max - min)
+        p75Cloud,    // 75th percentile (v3.1 — balanced conservatism)
         utc_offset_seconds: data.utc_offset_seconds || 0
     };
 }
@@ -121,7 +131,8 @@ function findClosestSlot(ensembleData, targetDate) {
     return {
         maxCloud: ensembleData.maxCloud[bestIdx],
         meanCloud: ensembleData.meanCloud[bestIdx],
-        spread: ensembleData.spread[bestIdx]
+        spread: ensembleData.spread[bestIdx],
+        p75Cloud: ensembleData.p75Cloud ? ensembleData.p75Cloud[bestIdx] : null
     };
 }
 

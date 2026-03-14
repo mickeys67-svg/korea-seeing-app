@@ -18,6 +18,9 @@ const USPModel = {
         else if (ri < 0) stability = 1.5;    // Unstable/Convective
 
         // Proxy scale to match typical Cn2 values (approx 10^-15 to 10^-17)
+        // v3.5: Kept at 5e-16 — Ri fix (θ-based potential temperature) corrected layer
+        // stability classification, so TKE/stability values are now physically accurate.
+        // Calibration test: SCALE=5e-16 → calm=1.21", avg=2.36" (matches observations)
         const SCALE = 5e-16;
         // C_n^2(h) = (0.6 * TKE + 0.3 * Shear) * Stability * SCALE
         return (0.6 * tke + 0.3 * Math.abs(windShear)) * stability * SCALE;
@@ -87,6 +90,10 @@ const USPModel = {
         if (data.aod != null && data.aod > 0.25) factor *= 1.12;
         if (data.pm25 != null && data.pm25 > 30) factor *= 1.08;
 
+        // v3.1: Coastal marine boundary layer stabilization
+        // Coastal sites with light wind benefit from laminar sea breeze
+        if (data.isCoastal && (data.surfaceWind || 0) < 8) factor *= 0.92;
+
         return factor;
     },
 
@@ -129,6 +136,7 @@ const USPModel = {
             });
         } else {
             // Simplified Fallback — adjust baseCn2 by elevation/humidity
+            // v3.5: Kept at 4.5e-13 — matches SCALE=5e-16 after Ri fix
             let baseCn2 = 4.5e-13;
             if (data.elevation > 1000) baseCn2 *= 0.5;      // high altitude = cleaner air
             if (data.humidity != null && data.humidity < 50) baseCn2 *= 0.8; // dry air = less turbulence
@@ -147,6 +155,13 @@ const USPModel = {
 
         const score = USPModel.seeingScore(finalSeeing);
 
+        // v3.1: τ₀ coherence time (Roddier 1981, TMT/ELT standard)
+        // τ₀ = 0.314 × r₀ / v_eff — determines planetary imaging exposure time
+        // v_eff = effective wind at turbulent layer ≈ jet stream × 0.4
+        const jetMs = (data.jetStreamSpeed ?? 25) * 0.5144; // kt → m/s
+        const vEff = Math.max(2, jetMs * 0.4); // effective wind (min 2 m/s)
+        const tau0 = r0 > 0 ? (0.314 * r0 / vEff) * 1000 : 5; // ms
+
         // Dynamic Confidence — reflects actual data quality & diversity
         let confidence = 0.50; // base
         if (data.layers && data.layers.length > 0) confidence += 0.25;  // has vertical profiles
@@ -163,7 +178,8 @@ const USPModel = {
             details: {
                 r0: parseFloat((r0 * 100).toFixed(1)),
                 stability: data.layers && data.layers.length > 0 ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Mixed',
-                jetStream: (data.jetStreamSpeed ?? 0) > 70 ? 'Extreme' : ((data.jetStreamSpeed ?? 0) > 40 ? 'Active' : 'Stable')
+                jetStream: (data.jetStreamSpeed ?? 0) > 70 ? 'Extreme' : ((data.jetStreamSpeed ?? 0) > 40 ? 'Active' : 'Stable'),
+                tau0: parseFloat(Math.max(0.5, Math.min(50, tau0)).toFixed(1)) // ms, clamped
             }
         };
     }
