@@ -200,13 +200,13 @@ const en = {
         news: {
             updates: [
                 {
-                    title: 'Server Performance Optimization (2024.03.14)',
+                    title: 'Performance & Stability Improvements (2024.03.14)',
                     items: [
-                        'Request Coalescing — concurrent requests for same area share a single API call',
-                        'Per-API spatial grid cache matching native resolution (5km–55km granularity)',
-                        'GK2A satellite HDF5 download sharing — eliminates duplicate 27MB downloads',
-                        '7 bug fixes: NaN propagation blocked, null cache poisoning prevented, scoring stabilized',
-                        'Circuit Breaker pattern for automatic fault isolation and recovery',
+                        'Significantly faster loading under concurrent access',
+                        'Satellite data (GK2A) reception stability improved',
+                        'Fixed intermittent data gaps during high traffic',
+                        'Forecast scoring accuracy improved (7 edge-case fixes)',
+                        'Automatic fault recovery for uninterrupted service',
                     ],
                 },
                 {
