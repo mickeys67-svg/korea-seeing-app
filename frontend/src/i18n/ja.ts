@@ -196,13 +196,13 @@ const ja: Translations = {
                 { label: '日の出/入り自動判別', sub: 'GPS位置基準の天文薄明' },
                 { label: 'Warp AIスコア統合', sub: '予測 + 総合スコア統一' },
             ],
-            siteDesc: '無料 · PC/モバイル · 広告なし · GPS自動位置',
+            siteDesc: '無料 · PC/モバイル · GPS自動位置',
             hashtags: ['天文観測', '天体写真', 'シーイング予報', '惑星観測', 'ディープスカイ', 'ClearSkies', 'Astrophotography'],
         },
         news: {
             updates: [
                 {
-                    title: 'サーバー性能・安定性の改善 (2026.3.14)',
+                    title: 'サーバー性能・安定性の改善',
                     items: [
                         '同時アクセス時の読み込み速度を大幅に改善',
                         '衛星データの受信安定性を強化',
@@ -258,7 +258,7 @@ const ja: Translations = {
                 },
             ],
             dataSourceNote: 'マルチソース大気データ',
-            dataSourceFree: '無料 · 広告なし · AI費用$0',
+            dataSourceFree: '無料 · AI費用$0',
             pomiMemorial: '愛しい私の犬ポミを偲んで',
         },
         guide: {
@@ -287,7 +287,7 @@ const ja: Translations = {
         error: '送信に失敗しました。もう一度お試しください。',
     },
     updatePopup: {
-        badge: 'v3.4 アップデート',
+        badge: 'v3.5 アップデート',
         title: '予報信頼性向上',
         desc: '観測地の標高と環境を自動反映し、予報精度が改善されました。山岳・都市部の違いを精密に反映し、データ欠損時も安定的に動作します。',
         dismiss: '確認',

@@ -196,13 +196,13 @@ const zh: Translations = {
                 { label: '日出/日落自动判别', sub: 'GPS位置天文暮光' },
                 { label: 'Warp AI评分统一', sub: '预测 + 综合评分整合' },
             ],
-            siteDesc: '免费 · 电脑/手机 · 无广告 · GPS自动定位',
+            siteDesc: '免费 · 电脑/手机 · GPS自动定位',
             hashtags: ['天文观测', '天文摄影', '视宁度预报', '行星观测', '深空', 'ClearSkies', 'Astrophotography'],
         },
         news: {
             updates: [
                 {
-                    title: '服务器性能与稳定性改进 (2026.3.14)',
+                    title: '服务器性能与稳定性改进',
                     items: [
                         '并发访问时加载速度大幅提升',
                         '卫星数据接收稳定性增强',
@@ -258,7 +258,7 @@ const zh: Translations = {
                 },
             ],
             dataSourceNote: '多源大气数据',
-            dataSourceFree: '免费 · 无广告 · AI费用$0',
+            dataSourceFree: '免费 · AI费用$0',
             pomiMemorial: '怀念我可爱的狗狗Pomi',
         },
         guide: {
@@ -287,7 +287,7 @@ const zh: Translations = {
         error: '提交失败，请重试。',
     },
     updatePopup: {
-        badge: 'v3.4 更新',
+        badge: 'v3.5 更新',
         title: '预报可靠性提升',
         desc: '自动检测观测点海拔和环境，预报准确度得到提升。精确反映山地与城市差异，数据缺失时也能稳定运行。',
         dismiss: '确认',

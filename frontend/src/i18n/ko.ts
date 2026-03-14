@@ -196,13 +196,13 @@ const ko: Translations = {
                 { label: '일출·일몰 자동 구분', sub: 'GPS 위치 기반 천문 일몰' },
                 { label: 'Warp AI 점수 정합', sub: '예측 + 종합 점수 통합' },
             ],
-            siteDesc: '무료 · PC/모바일 · 광고 없음 · GPS 자동 위치',
+            siteDesc: '무료 · PC/모바일 · GPS 자동 위치',
             hashtags: ['천문관측', '천체사진', '시잉예보', '행성관측', '딥스카이', 'ClearSkies', 'Astrophotography'],
         },
         news: {
             updates: [
                 {
-                    title: '서버 성능 및 안정성 개선 (2026.3.14)',
+                    title: '서버 성능 및 안정성 개선',
                     items: [
                         '동시 접속 시 로딩 속도 대폭 개선',
                         '위성 데이터 수신 안정성 강화',
@@ -258,7 +258,7 @@ const ko: Translations = {
                 },
             ],
             dataSourceNote: '다중 대기 데이터 기반',
-            dataSourceFree: '무료 · 광고 없음 · $0 AI 비용',
+            dataSourceFree: '무료 · $0 AI 비용',
             pomiMemorial: '사랑스러운 나의 개 포미를 추억하며',
         },
         guide: {
@@ -287,7 +287,7 @@ const ko: Translations = {
         error: '제출에 실패했습니다. 다시 시도해주세요.',
     },
     updatePopup: {
-        badge: 'v3.4 업데이트',
+        badge: 'v3.5 업데이트',
         title: '예보 신뢰도 향상',
         desc: '관측지 고도와 환경을 자동 반영하여 예보 정확도가 개선되었습니다. 산악·도시 지역 차이를 정밀하게 반영하고, 데이터 누락 시에도 안정적으로 동작합니다.',
         dismiss: '확인',

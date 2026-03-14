@@ -194,13 +194,13 @@ const en = {
                 { label: 'Sunrise/Sunset Auto', sub: 'GPS-based astronomical twilight' },
                 { label: 'Warp AI Score Sync', sub: 'Prediction + combined score unified' },
             ],
-            siteDesc: 'Free · PC/Mobile · No ads · GPS auto-location',
+            siteDesc: 'Free · PC/Mobile · GPS auto-location',
             hashtags: ['Astronomy', 'Astrophotography', 'SeeingForecast', 'Planetary', 'DeepSky', 'ClearSkies', 'Stargazing'],
         },
         news: {
             updates: [
                 {
-                    title: 'Performance & Stability Improvements (2026.3.14)',
+                    title: 'Performance & Stability Improvements',
                     items: [
                         'Significantly faster loading under concurrent access',
                         'Satellite data reception stability improved',
@@ -256,7 +256,7 @@ const en = {
                 },
             ],
             dataSourceNote: 'Multi-source atmospheric data',
-            dataSourceFree: 'Free · No ads · $0 AI cost',
+            dataSourceFree: 'Free · $0 AI cost',
             pomiMemorial: 'In loving memory of my dear dog, Pomi',
         },
         guide: {
@@ -285,7 +285,7 @@ const en = {
         error: 'Failed to submit. Please try again.',
     },
     updatePopup: {
-        badge: 'v3.4 UPDATE',
+        badge: 'v3.5 UPDATE',
         title: 'Forecast Reliability Upgrade',
         desc: 'Site elevation and environment are now auto-detected for better accuracy. Mountain vs. urban differences are precisely reflected, with stable handling when data is unavailable.',
         dismiss: 'Got it',

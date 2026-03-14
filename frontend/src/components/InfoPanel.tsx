@@ -216,6 +216,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
     /* ── static data ── */
 
     const updatesMeta = [
+        { version: 'v3.5', date: '2026.03.14', tag: 'FIX', tagColor: 'var(--seeing-good)', icon: Shield },
         { version: 'v3.4', date: '2026.03.04', tag: 'FIX', tagColor: 'var(--seeing-good)', icon: Shield },
         { version: 'v3.3', date: '2026.03.04', tag: 'NEW', tagColor: 'var(--cyan)', icon: Cloud },
         { version: 'v3.2', date: '2026.03.01', tag: 'NEW', tagColor: 'var(--seeing-exceptional)', icon: Sun },

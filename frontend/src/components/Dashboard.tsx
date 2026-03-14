@@ -290,7 +290,7 @@ const Dashboard: React.FC = () => {
             {/* Footer */}
             <footer className="mt-12 mb-8 text-center animate-fade-in">
                 <p className="text-xs lg:text-sm font-mono text-[var(--text-tertiary)] tracking-widest uppercase">
-                    Clear Skies v3.4 &middot; Forme Observatory &middot; Ganghwado Island, Republic of Korea
+                    Clear Skies v3.5 &middot; Forme Observatory &middot; Ganghwado Island, Republic of Korea
                 </p>
                 <p className="text-xs lg:text-sm text-[var(--text-tertiary)] mt-2">
                     {t.footer.feedback}{' '}
