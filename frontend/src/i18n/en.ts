@@ -203,7 +203,7 @@ const en = {
                     title: 'Performance & Stability Improvements (2024.03.14)',
                     items: [
                         'Significantly faster loading under concurrent access',
-                        'Satellite data (GK2A) reception stability improved',
+                        'Satellite data reception stability improved',
                         'Fixed intermittent data gaps during high traffic',
                         'Forecast scoring accuracy improved (7 edge-case fixes)',
                         'Automatic fault recovery for uninterrupted service',
