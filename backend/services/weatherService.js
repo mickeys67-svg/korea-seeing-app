@@ -4,7 +4,7 @@ const USPModel = require('./USPModel');
 const AnalysisService = require('./analysisService');
 const KmaService = require('./kmaService');
 const EnsembleService = require('./ensembleService');
-const GK2AService = require('./gk2aService');
+const { validatePastPredictions } = require('./autoValidationService');
 // Firestore reference — set by server.js via setDb() to avoid duplicate connections
 let _firestoreDb = null;
 function _getDb() { return _firestoreDb; }
@@ -211,7 +211,7 @@ const WeatherService = {
         return closestIndex !== -1 ? closestIndex : null;
     },
 
-    mapSourceData: (targetDate, item, omData, metData, aqData, kmaData, ensembleData, metarData, gk2aData) => {
+    mapSourceData: (targetDate, item, omData, metData, aqData, kmaData, ensembleData, metarData) => {
         // clouds: non-OM sources only (7Timer, Met.no) to avoid double-counting with 3-layer blend
         // omCloud: OM total cloud separately (used as fallback when layers unavailable)
         // kmaCloudScore: KMA 초단기예보 SKY 기반 (한국 좌표, 최우선 적용)
@@ -274,9 +274,9 @@ const WeatherService = {
         if (kmaData) {
             const kmaSlot = KmaService.findClosestSlot(kmaData, targetDate);
             if (kmaSlot) {
-                if (kmaSlot.t1h != null && !isNaN(kmaSlot.t1h)) values.temps.push(kmaSlot.t1h);
-                if (kmaSlot.reh != null && !isNaN(kmaSlot.reh)) values.humidities.push(kmaSlot.reh);
-                if (kmaSlot.wsd != null && !isNaN(kmaSlot.wsd)) values.winds.push(kmaSlot.wsd);
+                if (kmaSlot.t1h != null && !isNaN(kmaSlot.t1h) && kmaSlot.t1h > -50 && kmaSlot.t1h < 60) values.temps.push(kmaSlot.t1h);
+                if (kmaSlot.reh != null && !isNaN(kmaSlot.reh) && kmaSlot.reh >= 0 && kmaSlot.reh <= 100) values.humidities.push(kmaSlot.reh);
+                if (kmaSlot.wsd != null && !isNaN(kmaSlot.wsd) && kmaSlot.wsd >= 0 && kmaSlot.wsd < 100) values.winds.push(kmaSlot.wsd);
                 if (kmaSlot.sky != null) {
                     // v3.1: Pass humidity for SKY=3 interpolation
                     values.kmaCloudScore = KmaService.skyToCloudScore(kmaSlot.sky, kmaSlot.pty || 0, kmaSlot.reh);
@@ -308,18 +308,6 @@ const WeatherService = {
                     values.metarOktas = metarData.oktas;
                 }
             }
-        }
-
-        // ═══ GK2A 위성 실측 (East Asia — 10분/2분 갱신) ═══
-        // 위성 직접 관측: CLD(구름마스크), NCOT(야간 광학두께), APPS(위성AOD)
-        if (gk2aData) {
-            if (gk2aData.cloudScore != null) values.gk2aCloudScore = gk2aData.cloudScore;
-            if (gk2aData.ncotCloudScore != null) values.gk2aNcotScore = gk2aData.ncotCloudScore;
-            if (gk2aData.transparencyPenalty != null && gk2aData.transparencyPenalty > 0) {
-                values.gk2aTransPenalty = gk2aData.transparencyPenalty;
-            }
-            if (gk2aData.aod != null) values.gk2aAod = gk2aData.aod;
-            if (gk2aData.opticalDepth != null) values.gk2aOpticalDepth = gk2aData.opticalDepth;
         }
 
         const avg = (arr) => { const valid = arr.filter(v => !isNaN(v)); return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null; };
@@ -373,75 +361,34 @@ const WeatherService = {
         const hasKma = values.kmaCloudScore != null;
         const hasMetar = values.metarOktas != null;
         const hasEnsemble = values.ensembleCloud != null;
-        const hasGk2a = values.gk2aCloudScore != null || values.gk2aNcotScore != null;
-        // GK2A NCOT (night optical depth) is more precise than CLD mask — prefer when available
-        const gk2aCloud = values.gk2aNcotScore ?? values.gk2aCloudScore ?? null;
         const safeBase = baseCloudScore ?? 0; // 가중합 계산용 (null-safe)
 
-        // ═══ v3.3: 위성 실측 최우선 원칙 ═══
-        // GK2A는 10분마다 갱신되는 실측 → 예보 모델보다 항상 우선
-        // 지상 실측(KMA/METAR)만 위성과 동급 (저층운 보정), 나머지는 보조
-        if (hasGk2a) {
-            // ★ 위성 데이터 있으면 무조건 최우선
-            let groundObs = null;
-            if (hasKma && hasMetar) {
-                const diff = Math.abs(values.kmaCloudScore - values.metarOktas);
-                groundObs = diff >= 2 ? (values.kmaCloudScore + values.metarOktas) / 2 : values.kmaCloudScore;
-            } else if (hasKma) {
-                groundObs = values.kmaCloudScore;
-            } else if (hasMetar) {
-                groundObs = values.metarOktas;
-            }
+        // ═══ v4.1: 구름 블렌딩 3경로 (GK2A 제거, NWP 기반 단순화) ═══
+        // 경로 1: 실측(KMA/METAR) 있으면 실측 평균
+        // 경로 2: 실측 없으면 모델(NWP + Ensemble) 평균
+        // 경로 3: 아무것도 없으면 중립값 4
+        const observations = [];  // 실측 소스
+        if (hasKma) observations.push(values.kmaCloudScore);
+        if (hasMetar) observations.push(values.metarOktas);
 
-            if (groundObs != null && groundObs > gk2aCloud + 1.5) {
-                // 지상이 위성보다 구름 많이 봄 → 저층운 가능성 → 약간 반영
-                cloudScore = gk2aCloud * 0.65 + groundObs * 0.35;
+        const models = [];  // 모델 소스
+        if (hasBase) models.push(safeBase);
+        if (hasEnsemble) models.push(values.ensembleCloud);
+
+        if (observations.length > 0) {
+            // 경로 1: 실측 우선 (모델은 20% 보정만)
+            const obsAvg = observations.reduce((a, b) => a + b, 0) / observations.length;
+            if (models.length > 0) {
+                const modAvg = models.reduce((a, b) => a + b, 0) / models.length;
+                cloudScore = obsAvg * 0.8 + modAvg * 0.2;
             } else {
-                // 위성과 지상 일치 or 위성이 더 보수적 → 위성 신뢰
-                cloudScore = gk2aCloud;
+                cloudScore = obsAvg;
             }
-        } else if (hasKma) {
-            // ★ 위성 없을 때: KMA 실측 우선
-            let kmaCloud = values.kmaCloudScore;
-            if (hasMetar) {
-                const diff = Math.abs(kmaCloud - values.metarOktas);
-                if (diff >= 2) {
-                    kmaCloud = (kmaCloud + values.metarOktas) / 2;
-                }
-            }
-            if (hasEnsemble && hasBase) {
-                cloudScore = kmaCloud * 0.5 + values.ensembleCloud * 0.3 + safeBase * 0.2;
-            } else if (hasEnsemble) {
-                cloudScore = kmaCloud * 0.6 + values.ensembleCloud * 0.4;
-            } else if (hasBase) {
-                cloudScore = kmaCloud * 0.7 + safeBase * 0.3;
-            } else {
-                cloudScore = kmaCloud;
-            }
-        } else if (hasMetar && hasEnsemble) {
-            if (hasBase) {
-                cloudScore = values.metarOktas * 0.4 + values.ensembleCloud * 0.35 + safeBase * 0.25;
-            } else {
-                cloudScore = values.metarOktas * 0.55 + values.ensembleCloud * 0.45;
-            }
-        } else if (hasMetar) {
-            if (hasBase) {
-                cloudScore = values.metarOktas * 0.6 + safeBase * 0.4;
-            } else {
-                cloudScore = values.metarOktas;
-            }
-        } else if (hasEnsemble) {
-            if (hasBase) {
-                cloudScore = values.ensembleCloud * 0.6 + safeBase * 0.4;
-            } else {
-                cloudScore = values.ensembleCloud;
-            }
-        } else if (hasBase) {
-            // enhanced 없음, base만 있음
-            cloudScore = safeBase;
+        } else if (models.length > 0) {
+            // 경로 2: 모델만
+            cloudScore = models.reduce((a, b) => a + b, 0) / models.length;
         } else {
-            // ★ 모든 구름 데이터 없음 → 중립값 4 (거짓 맑음 방지)
-            // 0=맑음은 거짓, 8=흐림은 거짓 → 4=불확실(중립) 가장 안전
+            // 경로 3: 데이터 없음 → 중립값
             cloudScore = 4;
         }
 
@@ -458,10 +405,6 @@ const WeatherService = {
             pm25: pm25, aod: aod,
             cloudLow: values.cloudLow ?? null, cloudMid: values.cloudMid ?? null, cloudHigh: values.cloudHigh ?? null,
             dewPointSpread: dewPointSpread, dewPoint: values.dewPoint ?? null,
-            // v3.2: GK2A satellite data pass-through
-            gk2aAod: values.gk2aAod ?? null,
-            gk2aTransPenalty: values.gk2aTransPenalty ?? null,
-            gk2aOpticalDepth: values.gk2aOpticalDepth ?? null
         };
     },
 
@@ -492,7 +435,8 @@ const WeatherService = {
             const theta2 = (t2 + 273.15) * Math.pow(1000 / p2, 0.286);
             const dTheta = theta2 - theta1;
             const avgTheta = (theta1 + theta2) / 2;
-            const ri = (9.8 / avgTheta) * (dTheta / dz) / Math.pow(windShear || 0.001, 2);
+            if (!avgTheta || avgTheta <= 0 || !dz || dz <= 0) continue; // skip invalid layer
+            const ri = (9.8 / avgTheta) * (dTheta / dz) / Math.pow(Math.abs(windShear) || 0.001, 2);
             // TKE estimation from wind shear + Richardson number (replaces hardcoded 0.5)
             const shearTKE = Math.pow(Math.abs(windShear) * dz, 2) * 0.1;
             let stabilityFactor;
@@ -531,26 +475,17 @@ const WeatherService = {
 
     _doAggregatedForecast: async (lat, lon, targetLang = 'en') => {
 
-        // Fetch all data sources in parallel (8 API calls)
-        // Ensemble + METAR + GK2A 추가 — 실패해도 null 반환으로 안전
-        // GK2A 위성: 백그라운드 프리페치 방식 — 캐시 히트면 즉시, 미스면 null 반환 (다음 요청에서 사용)
-        // v3.3: GK2A는 비차단 — 콜드스타트 시 h5wasm 로딩 26초 → 전체 API 지연 방지
-        // 다른 7개 API 먼저 완료 후, GK2A는 최대 5초만 추가 대기
-        const gk2aPromise = ProviderService.fetchGK2A(lat, lon).catch(() => null);
+        // Fetch all data sources in parallel (7 API calls)
+        // v4.1: GK2A 위성 제거 — NWP 모델 기반 단순화 (Meteoblue/Astrospheric 동일 접근)
         const radiosondePromise = ProviderService.fetchRadiosonde(lat, lon).catch(() => null);
         let [timerData, omData, metData, aqData, kmaData, ensembleData, metarData] = await Promise.all([
-            ProviderService.fetch7Timer(lat, lon),
-            ProviderService.fetchOpenMeteo(lat, lon, ['best_match', 'gfs_seamless', 'ecmwf_ifs']),
-            ProviderService.fetchMetNo(lat, lon),
-            ProviderService.fetchAirQuality(lat, lon),
-            ProviderService.fetchKMA(lat, lon),
-            ProviderService.fetchEnsembleCloud(lat, lon),
-            ProviderService.fetchMetar(lat, lon)
-        ]);
-        // GK2A: 이미 완료됐으면 즉시, 아니면 최대 5초 추가 대기
-        let gk2aData = await Promise.race([
-            gk2aPromise,
-            new Promise(resolve => setTimeout(() => resolve(null), 5000))
+            ProviderService.fetch7Timer(lat, lon).catch(() => null),
+            ProviderService.fetchOpenMeteo(lat, lon, ['best_match', 'gfs_seamless', 'ecmwf_ifs']).catch(() => null),
+            ProviderService.fetchMetNo(lat, lon).catch(() => null),
+            ProviderService.fetchAirQuality(lat, lon).catch(() => null),
+            ProviderService.fetchKMA(lat, lon).catch(() => null),
+            ProviderService.fetchEnsembleCloud(lat, lon).catch(() => null),
+            ProviderService.fetchMetar(lat, lon).catch(() => null)
         ]);
         // 라디오존데: 이미 완료됐으면 즉시, 아니면 최대 3초 대기
         let radiosondeData = await Promise.race([
@@ -568,8 +503,7 @@ const WeatherService = {
             kma: isKR ? !!kmaData : null,  // null = not applicable (non-Korea)
             ensemble: !!ensembleData,
             metar: !!metarData,
-            gk2a: GK2AService.isInCoverage(lat, lon) ? !!gk2aData : null,  // null = outside coverage
-            radiosonde: isKR ? !!radiosondeData : null,  // null = non-Korea
+            radiosonde: null,  // 보조 소스 — apiHealth 판정에서 제외 (타임아웃 빈번)
         };
 
         // ═══ 3-Tier Timeline Fallback ═══
@@ -640,10 +574,7 @@ const WeatherService = {
             const hour = (targetDate.getUTCHours() + utcOffsetHours + 24) % 24;
 
             // 1. Data Blending (Baseline from 7Timer + Best Match + Met.no + AQ + KMA + Ensemble + METAR)
-            // v3.3: GK2A satellite snapshot valid only for near-term (≤6h forecast)
-            // 7Timer timepoints start at 3 (3h from now), so ≤6 covers first 2 slots
-            const gk2aForSlot = item.timepoint <= 6 ? gk2aData : null;
-            const mapped = WeatherService.mapSourceData(targetDate, item, omBest, metData, aqData, kmaData, ensembleData, metarData, gk2aForSlot);
+            const mapped = WeatherService.mapSourceData(targetDate, item, omBest, metData, aqData, kmaData, ensembleData, metarData);
 
             // 2. Ensemble USP Model Processing
             // v3.4: 라디오존데 실측 프로파일 블렌딩 (한국, 6시간 이내 관측)
@@ -726,19 +657,13 @@ const WeatherService = {
                 : finalUsp.seeing;
             const seeingScore = parseFloat(Math.min(8, Math.max(0, _seeingToScore(blendedSeeing))).toFixed(1));
             // Transparency: 7Timer when available, physics-derived fallback otherwise
-            // v3.2: GK2A satellite AOD overrides model AOD when available (direct observation)
-            const effectiveAod = mapped.gk2aAod ?? mapped.aod;
             let transparencyScore = item.transparency != null
                 ? parseFloat(Math.max(0, item.transparency - 1).toFixed(1))
                 : parseFloat(_deriveTransparency(
-                    mapped.humidity, effectiveAod, mapped.pm25, siteElevation,
+                    mapped.humidity, mapped.aod, mapped.pm25, siteElevation,
                     { low: mapped.cloudLow, mid: mapped.cloudMid, high: mapped.cloudHigh },
                     mapped.dewPointSpread
                 ).toFixed(1));
-            // v3.2: GK2A NCOT transparency penalty — satellite-measured cloud optical depth
-            if (mapped.gk2aTransPenalty != null && mapped.gk2aTransPenalty > 0) {
-                transparencyScore = parseFloat(Math.min(8, transparencyScore + mapped.gk2aTransPenalty).toFixed(1));
-            }
             const windScore = parseFloat(_windToScore(mapped.wind).toFixed(1));
             const jetStreamScore = parseFloat(ScoringService.calculateJetStreamScore(mapped.jetStream).toFixed(1));
             const convectionScore = parseFloat(ScoringService.calculateConvectionScore(mapped.cape, hour).toFixed(1));
@@ -748,9 +673,8 @@ const WeatherService = {
                 transparency: transparencyScore,
                 cloud: mapped.cloudScore,
                 wind: windScore,
-                jetstream: jetStreamScore,
+                // v4.0: jetstream 별도 가중치 제거 (USP seeing에 포함)
                 convection: convectionScore,
-                // v3.1: Extended parameters
                 cloudLayers: {
                     low: mapped.cloudLow != null ? Math.round(mapped.cloudLow) : null,
                     mid: mapped.cloudMid != null ? Math.round(mapped.cloudMid) : null,
@@ -831,6 +755,17 @@ const WeatherService = {
             } catch { /* silent — training data is optional */ }
         }
 
+        // ═══ Auto-Validation: 과거 예측 vs 현재 실측 자동 비교 (fire-and-forget) ═══
+        if (db && mappedForecast.length > 0) {
+            const cur = mappedForecast[0]; // 현재 시점 슬롯
+            validatePastPredictions(db, lat, lon, {
+                cloudScore: cur.scores?.cloudCover ?? null,
+                wind: cur.wind10m?.speed ?? null,
+                humidity: cur.rh2m ?? null,
+                temp: cur.temp2m ?? null,
+            }).catch(() => {}); // fire-and-forget
+        }
+
         // Timezone resolution: Open-Meteo > coordinate lookup > UTC
         let resolvedTz = omBest?.timezone || null;
         let resolvedOffset = omBest?.utc_offset_seconds || 0;
@@ -858,7 +793,7 @@ const WeatherService = {
                 timezone: resolvedTz,
                 timezoneOffset: resolvedOffset,
                 ensemble: ensembleModels.length,
-                sources: ['7Timer', 'Open-Meteo (Ensemble)', 'Met.no', 'Cloud-Ensemble', 'METAR', 'GK2A', 'Radiosonde'],
+                sources: ['7Timer', 'Open-Meteo (Ensemble)', 'Met.no', 'Cloud-Ensemble', 'METAR', 'Radiosonde'],
                 apiHealth
             }
         };
