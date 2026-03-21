@@ -11,7 +11,7 @@ const _GRID = {
     'ensemble':   { step: 0.2, ttl: 10 * 60 * 1000 },  // ~22km, 10분 (ECMWF 0.25°)
     'kma':        { step: 0.05, ttl: 3 * 60 * 1000 },  // ~5km,  3분  (5km LCC 격자)
     'metar':      { step: 0.2, ttl:  5 * 60 * 1000 },  // ~22km, 5분  (공항 기준)
-    // GK2A, Radiosonde: 자체 캐시 보유 — 여기서 중복 캐시 불필요
+    // Radiosonde: 자체 캐시 보유 — 여기서 중복 캐시 불필요
 };
 const _apiCache = new Map();   // key: `${apiName}_${gridLat}_${gridLon}` → { data, ts }
 const _API_CACHE_MAX = 200;
@@ -82,8 +82,6 @@ const _circuits = {
     'kma':        { failures: 0, openUntil: 0 },
     'ensemble':   { failures: 0, openUntil: 0 },
     'metar':      { failures: 0, openUntil: 0 },
-    'gk2a':       { failures: 0, openUntil: 0 },
-    'radiosonde': { failures: 0, openUntil: 0 },
 };
 const CIRCUIT_THRESHOLD = 3;            // consecutive failures to open
 const CIRCUIT_COOLDOWN = 5 * 60 * 1000; // 5 min before half-open retry
@@ -261,21 +259,6 @@ const ProviderService = {
         );
     },
 
-    // 8. GK2A 천리안위성 2A호 — satellite cloud/aerosol observation (East Asia, API key required)
-    async fetchGK2A(lat, lon) {
-        const GK2AService = require('./gk2aService');
-        if (!GK2AService.isInCoverage(lat, lon)) return null;
-        if (!process.env.GK2A_API_KEY) return null;
-        return this._fetchWithRetry('GK2A', () => GK2AService.fetchSatelliteData(lat, lon));
-    },
-
-    // 9. 라디오존데 고층관측 — real measured vertical profiles (Korea, apihub API key required)
-    async fetchRadiosonde(lat, lon) {
-        const RadiosondeService = require('./radiosondeService');
-        if (!RadiosondeService.isKorea(lat, lon)) return null;
-        if (!process.env.KMA_UPP_API_KEY) return null;
-        return this._fetchWithRetry('Radiosonde', () => RadiosondeService.fetchProfile(lat, lon));
-    }
 };
 
 module.exports = ProviderService;

@@ -477,7 +477,6 @@ const WeatherService = {
 
         // Fetch all data sources in parallel (7 API calls)
         // v4.1: GK2A 위성 제거 — NWP 모델 기반 단순화 (Meteoblue/Astrospheric 동일 접근)
-        const radiosondePromise = ProviderService.fetchRadiosonde(lat, lon).catch(() => null);
         let [timerData, omData, metData, aqData, kmaData, ensembleData, metarData] = await Promise.all([
             ProviderService.fetch7Timer(lat, lon).catch(() => null),
             ProviderService.fetchOpenMeteo(lat, lon, ['best_match', 'gfs_seamless', 'ecmwf_ifs']).catch(() => null),
@@ -486,11 +485,6 @@ const WeatherService = {
             ProviderService.fetchKMA(lat, lon).catch(() => null),
             ProviderService.fetchEnsembleCloud(lat, lon).catch(() => null),
             ProviderService.fetchMetar(lat, lon).catch(() => null)
-        ]);
-        // 라디오존데: 이미 완료됐으면 즉시, 아니면 최대 3초 대기
-        let radiosondeData = await Promise.race([
-            radiosondePromise,
-            new Promise(resolve => setTimeout(() => resolve(null), 3000))
         ]);
 
         // API Health Tracking — raw success/failure before fallback logic
@@ -503,7 +497,6 @@ const WeatherService = {
             kma: isKR ? !!kmaData : null,  // null = not applicable (non-Korea)
             ensemble: !!ensembleData,
             metar: !!metarData,
-            radiosonde: null,  // 보조 소스 — apiHealth 판정에서 제외 (타임아웃 빈번)
         };
 
         // ═══ 3-Tier Timeline Fallback ═══
@@ -577,16 +570,9 @@ const WeatherService = {
             const mapped = WeatherService.mapSourceData(targetDate, item, omBest, metData, aqData, kmaData, ensembleData, metarData);
 
             // 2. Ensemble USP Model Processing
-            // v3.4: 라디오존데 실측 프로파일 블렌딩 (한국, 6시간 이내 관측)
-            // 실측 제트기류: 250hPa 풍속 직접 관측값 (예보보다 정확)
-            const radioLayers = radiosondeData?.layers ?? null;
-            const radioJet = radiosondeData?.jetStreamSpeed ?? null; // kt (실측 250hPa)
-            const hasRadio = radioLayers && radioLayers.length >= 3;
             let uspResults = ensembleModels.map(m => {
                 const forecastLayers = WeatherService.prepareUSPData(targetDate, m);
-                // 제트기류: 실측 250hPa 우선
-                const jetKt = radioJet ?? (mapped.jetStream != null ? mapped.jetStream * 1.94384 : null);
-                // 예보 USP
+                const jetKt = mapped.jetStream != null ? mapped.jetStream * 1.94384 : null;
                 const forecastUsp = USPModel.calculate({
                     layers: forecastLayers,
                     surfaceWind: mapped.wind ?? 0,
@@ -597,31 +583,7 @@ const WeatherService = {
                     humidity: mapped.humidity,
                     isCoastal: isCoastal
                 });
-                if (!hasRadio) return forecastUsp;
-                // 실측 USP (라디오존데 레이어)
-                const radioUsp = USPModel.calculate({
-                    layers: radioLayers,
-                    surfaceWind: mapped.wind ?? 0,
-                    jetStreamSpeed: jetKt,
-                    targetAltitude: 90, urban: isUrban, elevation: siteElevation,
-                    aod: mapped.aod, pm25: mapped.pm25,
-                    variance: (mapped.tempMax != null && mapped.tempMin != null) ? mapped.tempMax - mapped.tempMin : null,
-                    humidity: mapped.humidity,
-                    isCoastal: isCoastal
-                });
-                // 블렌딩: 실측 60% + 예보 40% (실측이 더 정확하지만, 관측소 거리 오차 보정)
-                return {
-                    ...forecastUsp,
-                    seeing: parseFloat((radioUsp.seeing * 0.6 + forecastUsp.seeing * 0.4).toFixed(2)),
-                    score: parseFloat((radioUsp.score * 0.6 + forecastUsp.score * 0.4).toFixed(1)),
-                    confidence: Math.round(radioUsp.confidence * 0.6 + forecastUsp.confidence * 0.4),
-                    details: {
-                        ...forecastUsp.details,
-                        r0: parseFloat((radioUsp.details.r0 * 0.6 + forecastUsp.details.r0 * 0.4).toFixed(1)),
-                        tau0: parseFloat((radioUsp.details.tau0 * 0.6 + forecastUsp.details.tau0 * 0.4).toFixed(1)),
-                        stability: radioUsp.details.stability,  // 실측 우선
-                    }
-                };
+                return forecastUsp;
             });
 
             // Fallback if ensemble failed
