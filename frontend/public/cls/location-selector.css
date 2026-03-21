@@ -175,18 +175,63 @@
     text-transform: uppercase;
 }
 
-[data-cls-element="refresh-btn"] {
+/* Coordinates Input */
+[data-cls-element="coords-form"] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+[data-cls-element="coords-row"] {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+[data-cls-element="coords-label"] {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    width: 32px;
+    flex-shrink: 0;
+}
+
+[data-cls-element="lat-input"],
+[data-cls-element="lon-input"] {
+    flex: 1;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+[data-cls-element="lat-input"]:focus,
+[data-cls-element="lon-input"]:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: rgba(15, 23, 42, 0.8);
+}
+
+[data-cls-element="coords-go-btn"] {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     background: rgba(59, 130, 246, 0.08);
     color: #3b82f6;
     border: 1px solid rgba(59, 130, 246, 0.2);
     border-radius: 10px;
     font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
 }
 
-[data-cls-element="refresh-btn"]:hover {
+[data-cls-element="coords-go-btn"]:hover {
     background: #3b82f6;
     color: white;
 }

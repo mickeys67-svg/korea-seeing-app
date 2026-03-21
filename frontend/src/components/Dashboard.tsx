@@ -13,7 +13,6 @@ import useI18n from '../hooks/useI18n';
 const Dashboard: React.FC = () => {
     const location = useGeolocation();
     const t = useI18n();
-    const [gpsBannerDismissed, setGpsBannerDismissed] = React.useState(false);
     const [infoPanelOpen, setInfoPanelOpen] = React.useState(false);
     const [updatePopupVisible, setUpdatePopupVisible] = React.useState(() => {
         try { return !localStorage.getItem('clearsky-update-v3.4-seen'); } catch { return true; }
@@ -139,25 +138,6 @@ const Dashboard: React.FC = () => {
                 </div>
             </header>
 
-            {/* ===== GPS Permission Denied Banner ===== */}
-            {location.error && !location.val && !gpsBannerDismissed && (
-                <div className="w-full mb-4 animate-fade-in-up">
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/5">
-                        <MapPin className="w-4 h-4 text-amber-400/80 shrink-0" />
-                        <p className="text-xs lg:text-sm text-[var(--text-secondary)] flex-1">
-                            <span className="text-amber-400/90 font-semibold">{t.gpsBanner.title}</span>
-                            {' '}{t.gpsBanner.message}
-                        </p>
-                        <button
-                            onClick={() => setGpsBannerDismissed(true)}
-                            className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors shrink-0"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                </div>
-            )}
-
             {/* ===== Hero: Observation Score ===== */}
             {currentForecast && (
                 <SeeingDetails
@@ -281,7 +261,7 @@ const Dashboard: React.FC = () => {
                     <li>Target suitability: planets, Milky Way, nebulae, star clusters, galaxies</li>
                     <li>Jet stream (250hPa), CAPE convection, sky transparency, cloud cover</li>
                     <li>Moon phase forecast with optimal dark-sky observation windows</li>
-                    <li>GPS auto-location with astronomical twilight detection</li>
+                    <li>City-based location selection with astronomical twilight detection</li>
                     <li>Multi-source atmospheric data integration</li>
                     <li>Atmospheric scintillation and boundary layer turbulence analysis</li>
                 </ul>

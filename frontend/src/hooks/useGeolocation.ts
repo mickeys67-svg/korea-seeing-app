@@ -7,67 +7,19 @@ interface LocationState {
     error: string | null;
 }
 
+// Default: Seoul
+const DEFAULT_LAT = 37.5665;
+const DEFAULT_LON = 126.9780;
+
 const useGeolocation = () => {
-    const [location, setLocation] = useState<LocationState>(() => {
-        if (!("geolocation" in navigator)) {
-            return {
-                loaded: true,
-                val: null,
-                name: null,
-                error: "Geolocation not supported",
-            };
-        }
-        return {
-            loaded: false,
-            val: null,
-            name: null,
-            error: null,
-        };
+    const [location, setLocation] = useState<LocationState>({
+        loaded: true,
+        val: { lat: DEFAULT_LAT, lon: DEFAULT_LON },
+        name: null,
+        error: null,
     });
 
-    const onSuccess = (position: GeolocationPosition) => {
-        setLocation(prev => ({
-            ...prev,
-            loaded: true,
-            val: {
-                lat: position.coords.latitude,
-                lon: position.coords.longitude,
-            },
-            name: "Current GPS Location",
-            error: null,
-        }));
-    };
-
-    const onError = (error: GeolocationPositionError) => {
-        setLocation(prev => ({
-            ...prev,
-            loaded: true,
-            val: null,
-            name: null,
-            error: error.message,
-        }));
-    };
-
-    const refresh = () => {
-        if (!("geolocation" in navigator)) return;
-        setLocation(prev => ({ ...prev, loaded: false, error: null }));
-        navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-        });
-    };
-
     useEffect(() => {
-        if (!("geolocation" in navigator)) return;
-
-        // Initial fetch with timeout + high accuracy options
-        navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000, // 5 minutes cache
-        });
-
         const handleLocationChange = (e: Event) => {
             const customEvent = e as CustomEvent;
             const loc = customEvent.detail;
@@ -88,7 +40,7 @@ const useGeolocation = () => {
         };
     }, []);
 
-    return { ...location, refresh };
+    return { ...location, refresh: () => {} };
 };
 
 export default useGeolocation;
