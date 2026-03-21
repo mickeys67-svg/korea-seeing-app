@@ -4,7 +4,7 @@ const ko: Translations = {
     common: {
         live: '실시간',
         loading: '데이터 수신 중',
-        gpsLocation: 'GPS 현재 위치',
+        gpsLocation: '서울 (기본)',
         defaultCity: '서울, 대한민국',
         humidity: '습도',
         temp: '기온',
@@ -193,10 +193,10 @@ const ko: Translations = {
             v3Features: [
                 { label: '대상별 관측 적합도', sub: '행성·은하수·성운·성단·은하' },
                 { label: '예보 모델 강화', sub: '전문 관측 데이터 기반 보정' },
-                { label: '일출·일몰 자동 구분', sub: 'GPS 위치 기반 천문 일몰' },
+                { label: '일출·일몰 자동 구분', sub: '위치 기반 천문 일몰' },
                 { label: 'Warp AI 점수 정합', sub: '예측 + 종합 점수 통합' },
             ],
-            siteDesc: '무료 · PC/모바일 · GPS 자동 위치',
+            siteDesc: '무료 · PC/모바일 · 위도경도 직접입력',
             hashtags: ['천문관측', '천체사진', '시잉예보', '행성관측', '딥스카이', 'ClearSkies', 'Astrophotography'],
         },
         news: {
@@ -205,7 +205,6 @@ const ko: Translations = {
                     title: '서버 성능 및 안정성 개선',
                     items: [
                         '동시 접속 시 로딩 속도 대폭 개선',
-                        '위성 데이터 수신 안정성 강화',
                         '다수 사용자 동시 접속 시 간헐적 데이터 누락 해결',
                         '예보 점수 산출 정확도 향상 (경계값 오류 7건 수정)',
                         '장애 발생 시 자동 복구 및 서비스 연속성 확보',
@@ -232,7 +231,7 @@ const ko: Translations = {
                 {
                     title: '낮/밤 자동 구분',
                     items: [
-                        'GPS 기반 실제 일출·일몰 시각 적용',
+                        '위치 기반 실제 일출·일몰 시각 적용',
                         '낮 시간대 예보 카드 자동 dimming',
                         'Warp AI 첫 선택 → 첫 번째 밤 슬롯',
                         '일몰 시각 관측 품질 카드 내 표시',
@@ -269,7 +268,7 @@ const ko: Translations = {
                 { title: '대상별 적합도', desc: '5가지 천체 대상별로 현재 대기 조건의 적합도를 독립 모델로 계산합니다. 각 대상의 광학적 특성에 맞는 가중치가 적용됩니다.', badge: '점수', badgeLabel: '낮을수록 제한 원인 표시' },
                 { title: 'Warp AI 스캔', desc: '최대 72시간(3일) 타임슬라이더로 미래 시점을 선택하고 스캔하면 해당 시각의 관측 가능성을 분석합니다. 밤 슬롯(🔵)을 선택하세요.', badge: 'AI', badgeLabel: '다중소스' },
                 { title: '달 위상 예보', desc: '3일간 월출·월몰·달 조명률을 확인하세요. 딥스카이 관측은 달 조명률 20% 이하인 날이 이상적입니다.', badge: '<20%', badgeLabel: '딥스카이 최적' },
-                { title: 'GPS 위치 인식', desc: 'GPS를 허용하면 현재 위치 기준 정밀 예보가 제공됩니다. 거부 시 서울 기본값으로 표시됩니다.', badge: 'AUTO', badgeLabel: '또는 도시 선택' },
+                { title: '위치 직접 입력', desc: '위도·경도를 직접 입력하거나 도시 검색으로 원하는 위치의 정밀 예보를 확인하세요. 기본값은 서울입니다.', badge: 'LAT/LON', badgeLabel: '또는 도시 검색' },
             ],
             contactObservatory: 'Forme Observatory · 강화도',
         },

@@ -4,7 +4,7 @@ const zh: Translations = {
     common: {
         live: '实时',
         loading: '数据获取中',
-        gpsLocation: 'GPS当前位置',
+        gpsLocation: '首尔（默认）',
         defaultCity: '首尔，韩国',
         humidity: '湿度',
         temp: '气温',
@@ -193,10 +193,10 @@ const zh: Translations = {
             v3Features: [
                 { label: '目标天体适合度', sub: '行星·银河·星云·星团·星系' },
                 { label: '预报模型强化', sub: '专业观测数据校准' },
-                { label: '日出/日落自动判别', sub: 'GPS位置天文暮光' },
+                { label: '日出/日落自动判别', sub: '位置天文暮光' },
                 { label: 'Warp AI评分统一', sub: '预测 + 综合评分整合' },
             ],
-            siteDesc: '免费 · 电脑/手机 · GPS自动定位',
+            siteDesc: '免费 · 电脑/手机 · 经纬度输入',
             hashtags: ['天文观测', '天文摄影', '视宁度预报', '行星观测', '深空', 'ClearSkies', 'Astrophotography'],
         },
         news: {
@@ -205,7 +205,6 @@ const zh: Translations = {
                     title: '服务器性能与稳定性改进',
                     items: [
                         '并发访问时加载速度大幅提升',
-                        '卫星数据接收稳定性增强',
                         '多用户同时访问时数据偶发缺失问题已修复',
                         '预报评分精度提升（7个边界值错误修复）',
                         '故障自动恢复，保障服务连续性',
@@ -232,7 +231,7 @@ const zh: Translations = {
                 {
                     title: '昼/夜自动判别',
                     items: [
-                        '基于GPS的实际日出·日落时间应用',
+                        '基于位置的实际日出·日落时间应用',
                         '白天预报卡片自动变暗',
                         'Warp AI首选 → 第一个夜间时段',
                         '日落时间显示在观测质量卡片中',
@@ -269,7 +268,7 @@ const zh: Translations = {
                 { title: '目标适合度', desc: '独立计算5种天体目标在当前大气条件下的适合度。针对每种目标的光学特性应用不同权重。', badge: '评分', badgeLabel: '分数越低显示限制因素' },
                 { title: 'Warp AI扫描', desc: '使用时间滑块选择最多72小时（3天）后的时间点进行扫描，分析该时刻的观测可能性。请选择夜间时段（🔵）。', badge: 'AI', badgeLabel: '多源' },
                 { title: '月相预报', desc: '查看3天的月出·月落·月光照明率。深空观测在月光照明率低于20%时最为理想。', badge: '<20%', badgeLabel: '深空最佳' },
-                { title: 'GPS位置识别', desc: '允许GPS可获得当前位置的精确预报。拒绝则显示首尔默认值。', badge: 'AUTO', badgeLabel: '或选择城市' },
+                { title: '位置输入', desc: '直接输入经纬度或搜索城市获取精确预报。默认为首尔。', badge: 'LAT/LON', badgeLabel: '或城市搜索' },
             ],
             contactObservatory: 'Forme Observatory · 江华岛',
         },

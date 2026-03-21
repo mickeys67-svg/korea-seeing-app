@@ -4,7 +4,7 @@ const ja: Translations = {
     common: {
         live: 'ライブ',
         loading: 'データ取得中',
-        gpsLocation: 'GPS現在地',
+        gpsLocation: 'ソウル（デフォルト）',
         defaultCity: 'ソウル、韓国',
         humidity: '湿度',
         temp: '気温',
@@ -193,10 +193,10 @@ const ja: Translations = {
             v3Features: [
                 { label: '天体別観測適合度', sub: '惑星·天の川·星雲·星団·銀河' },
                 { label: '予報モデル強化', sub: '専門観測データ基準で較正' },
-                { label: '日の出/入り自動判別', sub: 'GPS位置基準の天文薄明' },
+                { label: '日の出/入り自動判別', sub: '位置基準の天文薄明' },
                 { label: 'Warp AIスコア統合', sub: '予測 + 総合スコア統一' },
             ],
-            siteDesc: '無料 · PC/モバイル · GPS自動位置',
+            siteDesc: '無料 · PC/モバイル · 緯度経度入力',
             hashtags: ['天文観測', '天体写真', 'シーイング予報', '惑星観測', 'ディープスカイ', 'ClearSkies', 'Astrophotography'],
         },
         news: {
@@ -205,7 +205,6 @@ const ja: Translations = {
                     title: 'サーバー性能・安定性の改善',
                     items: [
                         '同時アクセス時の読み込み速度を大幅に改善',
-                        '衛星データの受信安定性を強化',
                         '多数ユーザー同時接続時のデータ欠落を解消',
                         '予報スコア算出の精度向上（境界値エラー7件修正）',
                         '障害発生時の自動復旧でサービス継続性を確保',
@@ -232,7 +231,7 @@ const ja: Translations = {
                 {
                     title: '昼/夜 自動判別',
                     items: [
-                        'GPS基準の実際の日の出・日の入り時刻を適用',
+                        '位置基準の実際の日の出・日の入り時刻を適用',
                         '昼間の予報カードを自動で暗く表示',
                         'Warp AIの初回選択 → 最初の夜スロット',
                         '日の入り時刻を観測品質カードに表示',
@@ -269,7 +268,7 @@ const ja: Translations = {
                 { title: '天体別適合度', desc: '5種類の天体対象ごとに現在の大気条件の適合度を独立モデルで計算。各対象の光学特性に合わせた重みが適用されます。', badge: 'スコア', badgeLabel: '低いほど制限要因を表示' },
                 { title: 'Warp AIスキャン', desc: '最大72時間（3日間）のタイムスライダーで未来の時点を選択してスキャンすると、その時刻の観測可能性を分析。夜スロット（🔵）を選択してください。', badge: 'AI', badgeLabel: 'マルチソース' },
                 { title: '月の位相予報', desc: '3日間の月の出・月の入り・照明率を確認。ディープスカイ観測は月の照明率20%以下の日が理想的です。', badge: '<20%', badgeLabel: 'ディープスカイ最適' },
-                { title: 'GPS位置検出', desc: 'GPSを許可すると現在位置基準の精密予報が提供されます。拒否するとソウルのデフォルト値が表示されます。', badge: 'AUTO', badgeLabel: 'または都市選択' },
+                { title: '位置入力', desc: '緯度・経度を直接入力するか、都市検索で精密予報を確認。デフォルトはソウルです。', badge: 'LAT/LON', badgeLabel: 'または都市検索' },
             ],
             contactObservatory: 'Forme Observatory · 江華島',
         },

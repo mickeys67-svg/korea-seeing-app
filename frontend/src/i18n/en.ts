@@ -2,7 +2,7 @@ const en = {
     common: {
         live: 'LIVE',
         loading: 'ACQUIRING DATA',
-        gpsLocation: 'GPS Location',
+        gpsLocation: 'Seoul (default)',
         defaultCity: 'Seoul, Korea',
         humidity: 'Humidity',
         temp: 'Temp',
@@ -191,10 +191,10 @@ const en = {
             v3Features: [
                 { label: 'Target Suitability', sub: 'Planets·Milky Way·Nebulae·Clusters·Galaxies' },
                 { label: 'Forecast Model Enhanced', sub: 'Professional observation data calibrated' },
-                { label: 'Sunrise/Sunset Auto', sub: 'GPS-based astronomical twilight' },
+                { label: 'Sunrise/Sunset Auto', sub: 'Location-based astronomical twilight' },
                 { label: 'Warp AI Score Sync', sub: 'Prediction + combined score unified' },
             ],
-            siteDesc: 'Free · PC/Mobile · GPS auto-location',
+            siteDesc: 'Free · PC/Mobile · Manual coordinates',
             hashtags: ['Astronomy', 'Astrophotography', 'SeeingForecast', 'Planetary', 'DeepSky', 'ClearSkies', 'Stargazing'],
         },
         news: {
@@ -203,7 +203,6 @@ const en = {
                     title: 'Performance & Stability Improvements',
                     items: [
                         'Significantly faster loading under concurrent access',
-                        'Satellite data reception stability improved',
                         'Fixed intermittent data gaps during high traffic',
                         'Forecast scoring accuracy improved (7 edge-case fixes)',
                         'Automatic fault recovery for uninterrupted service',
@@ -230,7 +229,7 @@ const en = {
                 {
                     title: 'Day/Night Auto Detection',
                     items: [
-                        'GPS-based actual sunrise/sunset times applied',
+                        'Location-based actual sunrise/sunset times applied',
                         'Daytime forecast cards auto-dimmed',
                         'Warp AI first selection → first night slot',
                         'Sunset time shown on observation quality card',
@@ -267,7 +266,7 @@ const en = {
                 { title: 'Target Suitability', desc: 'Independently calculates suitability for 5 celestial target types using current atmospheric conditions. Each target has optical-specific weight factors.', badge: 'Score', badgeLabel: 'Low score shows limiting factors' },
                 { title: 'Warp AI Scan', desc: 'Select a future time point up to 72h (3 days) ahead with the time slider and scan to analyze observation potential. Choose a night slot (🔵).', badge: 'AI', badgeLabel: 'Multi-source' },
                 { title: 'Moon Phase Forecast', desc: 'Check moonrise/moonset and illumination for 3 days. Deep-sky observation is ideal when moon illumination is below 20%.', badge: '<20%', badgeLabel: 'Deep-sky optimal' },
-                { title: 'GPS Location Detection', desc: 'Allow GPS for precise location-based forecasts. If denied, Seoul defaults will be shown.', badge: 'AUTO', badgeLabel: 'Or select city' },
+                { title: 'Location Input', desc: 'Enter lat/lon coordinates or search cities for precise forecasts. Default is Seoul.', badge: 'LAT/LON', badgeLabel: 'Or city search' },
             ],
             contactObservatory: 'Forme Observatory · Ganghwado',
         },

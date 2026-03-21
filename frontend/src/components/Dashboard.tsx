@@ -99,7 +99,7 @@ const Dashboard: React.FC = () => {
                         <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs lg:text-sm">
                             <MapPin className="w-3 h-3" />
                             <span className="truncate max-w-[200px]">
-                                {location.name || (location.val ? t.common.gpsLocation : t.common.defaultCity)}
+                                {location.name || t.common.defaultCity}
                             </span>
                         </div>
                     </div>
