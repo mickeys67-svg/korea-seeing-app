@@ -90,6 +90,12 @@ if (process.env.NODE_ENV === 'production') {
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');
             }
+            // cls/ 폴더의 JS/CSS는 해시가 없으므로 캐시 금지
+            if (filePath.includes('cls') && (filePath.endsWith('.js') || filePath.endsWith('.css'))) {
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
         }
     }));
 
