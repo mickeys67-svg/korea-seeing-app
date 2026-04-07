@@ -14,7 +14,7 @@ function _setDb(db) { _firestoreDb = db; }
 // In-memory, resets on container restart (which is fine — natural cleanup)
 const _cache = new Map();
 const CACHE_FRESH = 3 * 60 * 1000;     // 3 minutes — serve fresh without API calls
-const CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours — stale fallback when APIs fail
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours — stale fallback when APIs fail
 const CACHE_MAX = 50;                  // max entries (~2.5MB)
 
 // ═══ Request Coalescing — 동일 지역 동시 요청 합치기 ═══
@@ -652,7 +652,7 @@ const WeatherService = {
                 temp2m: Math.round(mapped.temp ?? 0),
                 rh2m: Math.round(mapped.humidity ?? 0),
                 wind10m: {
-                    direction: item.wind10m?.direction || 'N/A',
+                    direction: (item.wind10m?.direction && item.wind10m.direction !== '-9999') ? item.wind10m.direction : 'N/A',
                     speed: parseFloat((mapped.wind ?? 0).toFixed(1))
                 },
                 usp: finalUsp,

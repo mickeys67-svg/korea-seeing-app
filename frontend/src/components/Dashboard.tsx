@@ -27,7 +27,7 @@ const Dashboard: React.FC = () => {
         ? (location.val ? location.val.lon : defaultLon)
         : null;
 
-    const { data, loading, error } = useWeatherData(lat, lon);
+    const { data, loading, error, stale } = useWeatherData(lat, lon);
 
     if (loading || !location.loaded) {
         return (
@@ -137,6 +137,12 @@ const Dashboard: React.FC = () => {
                     </button>
                 </div>
             </header>
+
+            {stale && (
+                <div className="w-full mb-4 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs text-center">
+                    서버 연결 불가 — 이전 데이터를 표시하고 있습니다. 새로고침하면 최신 데이터를 시도합니다.
+                </div>
+            )}
 
             {/* ===== Hero: Observation Score ===== */}
             {currentForecast && (
