@@ -77,21 +77,15 @@ const USPModel = {
     /**
      * Terrain and environmental correction factors
      */
+    // ═══ v4.0: seeing에 영향을 주는 요소만 남김 ═══
+    // 습도/AOD/PM2.5 → transparency에서만 처리 (이중 계산 제거)
+    // seeing에 남는 것: 도시 열섬, 고도, 해안 효과 (대기 난류 직접 영향)
     environmentFactor: (data) => {
         let factor = 1.0;
         if (data.urban) factor *= 1.15;      // Urban Heat Island (+15%)
         if (data.elevation > 1000) factor *= 0.8; // High altitude improvement
 
-        // Active Humidity Penalty (Scattering/Absorption)
-        if (data.humidity > 85) factor *= 1.15;
-        else if (data.humidity > 70) factor *= 1.05;
-
-        // Optical/Air quality factors (null = no data → no penalty)
-        if (data.aod != null && data.aod > 0.25) factor *= 1.12;
-        if (data.pm25 != null && data.pm25 > 30) factor *= 1.08;
-
         // v3.1: Coastal marine boundary layer stabilization
-        // Coastal sites with light wind benefit from laminar sea breeze
         if (data.isCoastal && (data.surfaceWind || 0) < 8) factor *= 0.92;
 
         return factor;
@@ -135,11 +129,10 @@ const USPModel = {
                 cn2Integral += cn2 * dz;
             });
         } else {
-            // Simplified Fallback — adjust baseCn2 by elevation/humidity
-            // v3.5: Kept at 4.5e-13 — matches SCALE=5e-16 after Ri fix
+            // Simplified Fallback — adjust baseCn2 by elevation only
+            // v4.0: 습도 → transparency에서만 처리 (이중 계산 제거)
             let baseCn2 = 4.5e-13;
             if (data.elevation > 1000) baseCn2 *= 0.5;      // high altitude = cleaner air
-            if (data.humidity != null && data.humidity < 50) baseCn2 *= 0.8; // dry air = less turbulence
             const windImpact = 1 + Math.pow(data.surfaceWind || 0, 1.2) * 0.05;
             const jetKt = data.jetStreamSpeed ?? 25;
             const jetImpact = 1 + Math.log1p(jetKt / 80) * 0.6;
@@ -169,12 +162,12 @@ const USPModel = {
         if (data.aod != null) confidence += 0.05;                       // has air quality
         if (data.pm25 != null) confidence += 0.03;                      // has PM2.5
         if (data.humidity != null) confidence += 0.02;                  // has humidity
-        if ((data.variance || 0) <= 1.0) confidence += 0.05;           // low variance = stable
+        if (typeof data.variance === 'number' && !isNaN(data.variance) && data.variance <= 1.0) confidence += 0.05;
 
         return {
             seeing: parseFloat(Math.min(5.0, Math.max(0.35, finalSeeing)).toFixed(2)),
             score: parseFloat(score.toFixed(1)),
-            confidence: Math.max(10, Math.round(confidence * 100)),
+            confidence: Math.round(confidence * 100),
             details: {
                 r0: parseFloat((r0 * 100).toFixed(1)),
                 stability: data.layers && data.layers.length > 0 && data.layers[0].ri != null ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Mixed',

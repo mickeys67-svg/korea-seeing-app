@@ -11,7 +11,6 @@ const _GRID = {
     'ensemble':   { step: 0.2, ttl: 10 * 60 * 1000 },  // ~22km, 10분 (ECMWF 0.25°)
     'kma':        { step: 0.05, ttl: 3 * 60 * 1000 },  // ~5km,  3분  (5km LCC 격자)
     'metar':      { step: 0.2, ttl:  5 * 60 * 1000 },  // ~22km, 5분  (공항 기준)
-    // Radiosonde: 자체 캐시 보유 — 여기서 중복 캐시 불필요
 };
 const _apiCache = new Map();   // key: `${apiName}_${gridLat}_${gridLon}` → { data, ts }
 const _API_CACHE_MAX = 200;

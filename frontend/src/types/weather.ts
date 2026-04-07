@@ -79,7 +79,6 @@ export interface WeatherData {
         timezone?: string;
         timezoneOffset?: number;
     };
-    weather: ForecastItem[];
     forecast: ForecastItem[];
     astronomy: AstronomyDay[];
     aiSummary?: string | null;

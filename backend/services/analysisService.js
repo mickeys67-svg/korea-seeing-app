@@ -101,8 +101,9 @@ const AnalysisService = {
 
         // Find best block in 24h (skip blocks with undefined/NaN scores)
         const scored = upcoming.filter(b => b.score != null && !isNaN(b.score));
-        let bestBlock = scored[0] || upcoming[0];
-        let worstBlock = scored[0] || upcoming[0];
+        if (scored.length === 0) return null; // 유효한 점수 없으면 트렌드 분석 불가
+        let bestBlock = scored[0];
+        let worstBlock = scored[0];
         for (const block of scored) {
             if (block.score > bestBlock.score) bestBlock = block;
             if (block.score < worstBlock.score) worstBlock = block;
@@ -118,8 +119,9 @@ const AnalysisService = {
         // Detect improving or worsening trend (current → next 2 blocks)
         let trend = 'stable';
         if (currentIdx >= 0) {
-            const futureBlocks = upcoming.slice(currentIdx + 1, currentIdx + 3);
-            if (futureBlocks.length > 0) {
+            const futureBlocks = upcoming.slice(currentIdx + 1, currentIdx + 3)
+                .filter(b => b.score != null && !isNaN(b.score));
+            if (futureBlocks.length > 0 && currentData.score != null && !isNaN(currentData.score)) {
                 const avgFutureScore = futureBlocks.reduce((s, b) => s + b.score, 0) / futureBlocks.length;
                 const diff = avgFutureScore - currentData.score;
                 if (diff >= 10) trend = 'improving';

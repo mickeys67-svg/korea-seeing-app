@@ -588,9 +588,9 @@ const WeatherService = {
 
             // Fallback if ensemble failed
             if (uspResults.length === 0) {
-                const fallbackJet = radioJet ?? (mapped.jetStream != null ? mapped.jetStream * 1.94384 : null);
+                const fallbackJet = mapped.jetStream != null ? mapped.jetStream * 1.94384 : null;
                 uspResults = [USPModel.calculate({
-                    layers: hasRadio ? radioLayers : [],
+                    layers: [],
                     surfaceWind: mapped.wind ?? 0,
                     jetStreamSpeed: fallbackJet,
                     targetAltitude: 90, urban: isUrban, elevation: siteElevation,
@@ -755,7 +755,7 @@ const WeatherService = {
                 timezone: resolvedTz,
                 timezoneOffset: resolvedOffset,
                 ensemble: ensembleModels.length,
-                sources: ['7Timer', 'Open-Meteo (Ensemble)', 'Met.no', 'Cloud-Ensemble', 'METAR', 'Radiosonde'],
+                sources: ['7Timer', 'Open-Meteo (Ensemble)', 'Met.no', 'Cloud-Ensemble', 'METAR'],
                 apiHealth
             }
         };

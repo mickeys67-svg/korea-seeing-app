@@ -47,35 +47,34 @@ const ScoringService = {
     //   2. Atmospheric quality — how good is the air? (only when sky is open)
     //   3. Final score = atmospheric_quality × cloud_probability
     //
-    // Cloud is fundamentally different from other factors:
-    //   seeing/jet/transparency = atmospheric QUALITY (how sharp/clear the view is)
-    //   cloud = sky AVAILABILITY (probability of seeing anything at all)
-    //   These are multiplicative: score = quality × availability
+    // ═══ v4.0: 국제 기준 통합 모델 ═══
+    // Cloud = sky AVAILABILITY (하늘이 열려있는 확률)
+    // Seeing/Transparency/Wind/Convection = atmospheric QUALITY (대기 품질)
+    // Final = quality × availability (Meteoblue/Astrospheric 방식)
     //
     calculateObservationScore: (params, lang = 'en') => {
-        // Atmospheric quality weights (cloud excluded, normalized to 1.0)
-        // Calibrated against Meteoblue/Clear Outside/Astrospheric global standards
-        // Jet stream reduced from 0.25→0.18 (250hPa wind already captured in USP seeing)
+        // ═══ v4.0: 국제 기준 통합 가중치 ═══
+        // 제트스트림: USP seeing에 이미 포함 (Cn² → r₀에 반영) → 별도 가중치 제거
+        // Meteoblue/Astrospheric 기준: seeing과 jet은 하나의 turbulence 지표
         const WEIGHTS = {
-            seeing: 0.35,
-            transparency: 0.20,
-            wind: 0.12,
-            jetstream: 0.18,
-            convection: 0.15
+            seeing: 0.45,        // 시잉 (제트 효과 포함)
+            transparency: 0.25,  // 투명도 (습도+에어로졸+미세먼지)
+            wind: 0.15,          // 지상풍
+            convection: 0.15     // 대류 불안정
         };
 
         const _safe = (v, fallback) => (typeof v === 'number' && !isNaN(v)) ? v : fallback;
-        const seeingScore = _safe(params.seeing, 4);       // NaN/missing → neutral (was 8=worst)
+        const seeingScore = _safe(params.seeing, 4);       // NaN/missing → neutral
         const transparencyScore = _safe(params.transparency, 4);
         const cloudScore = _safe(params.cloud, 4);          // 4 = 반 흐림 (중립)
         const windScore = _safe(params.wind, 3);
-        const jetstreamScore = _safe(params.jetstream, 4);
         const convectionScore = _safe(params.convection, 2);
 
-        // Step 1: Cloud availability — sigmoid model (v3.1)
-        // Sigmoid(k=1.0, m=4.2): international standards 89% match
-        // cloud 0→0.985, 2→0.900, 4→0.550, 6→0.142, 8→0.022
-        let cloudMultiplier = 1.0 / (1.0 + Math.exp(1.0 * (cloudScore - 4.2)));
+        // ═══ v4.0: sigmoid k=0.7 (완화) ═══
+        // k=1.0은 구름 4→6에서 0.55→0.14로 급락 → 점수 편차 과대
+        // k=0.7: 구름 0→0.95, 2→0.85, 4→0.55, 6→0.22, 8→0.06
+        // 국제 기준: 구름 50%에서도 간헐적 관측 가능 → 부드러운 전환
+        let cloudMultiplier = 1.0 / (1.0 + Math.exp(0.7 * (cloudScore - 4.2)));
 
         // Cirrus bonus: if cloud is predominantly high (>70%) with clear low layers
         // Max +0.10 — thin cirrus allows astronomical observation (ESO "thin cirrus" category)
@@ -96,7 +95,6 @@ const ScoringService = {
             seeingScore * WEIGHTS.seeing +
             transparencyScore * WEIGHTS.transparency +
             windScore * WEIGHTS.wind +
-            jetstreamScore * WEIGHTS.jetstream +
             convectionScore * WEIGHTS.convection;
 
         const atmosphericQuality = (1 - weightedBadness / 8) * 100;

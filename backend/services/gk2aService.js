@@ -685,7 +685,19 @@ async function fetchSatelliteData(lat, lon) {
     if (!isInCoverage(lat, lon)) return null;
 
     const obsDate = getLatestObsTime(10);
-    // 한국 좌표면 ELA(확장한반도, ~23MB) 사용 — EA(동아시아, ~54MB)보다 절반 크기
+
+    // ═══ v3.5: 주간 APPS(27MB) 다운로드 제거 — Open-Meteo AOD로 대체 ═══
+    // 주간 AOD는 Open-Meteo CAMS에서 제공 (±0.05~0.1 오차, 스코어 1~3점 차이)
+    // 27MB HDF5 다운로드 제거로 로딩 5~20초 단축
+    const obsUtcHour = parseInt(obsDate.substring(8, 10), 10);
+    const kstHour = (obsUtcHour + 9) % 24;
+    const isNight = kstHour >= 18 || kstHour < 6;
+    if (!isNight) {
+        console.log('[GK2A] Daytime — skipping satellite download (using Open-Meteo AOD)');
+        return null;
+    }
+
+    // 한국 좌표면 ELA(확장한반도, ~7MB) 사용 — EA(동아시아, ~54MB)보다 작음
     const isKorea = lat >= 30 && lat <= 44 && lon >= 120 && lon <= 135;
     const area = isKorea ? 'ELA' : DEFAULT_AREA;
     // 좌표 라운딩 → 동일 위성이미지 중복 다운로드 방지 (0.05° ≈ 5.5km, GK2A 2km 해상도 대비 적절)
@@ -732,16 +744,8 @@ async function fetchSatelliteData(lat, lon) {
 async function _backgroundFetch(lat, lon, obsDate, area, cacheKey) {
     const apiKey = process.env.GK2A_API_KEY;
 
-    // 야간 판별 (관측 시각 기준 KST 18시~06시)
-    // obsDate는 UTC "YYYYMMDDHHMM" → KST = UTC+9
-    const obsUtcHour = parseInt(obsDate.substring(8, 10), 10);
-    const kstHour = (obsUtcHour + 9) % 24;
-    const isNight = kstHour >= 18 || kstHour < 6;
-
-    // ═══ v3.3: CLD/EA(54MB) 제거 — US서버에서 다운로드 불가 ═══
-    // 야간: NCOT/ELA(~7MB) → 구름 점수 + 광학두께 + 투명도
-    // 주간: APPS/ELA(~수MB) → AOD (구름은 KMA/METAR 지상관측 사용)
-    const products = isNight ? ['NCOT'] : ['APPS'];
+    // ═══ v3.5: 야간 NCOT만 사용 (주간은 fetchSatelliteData에서 이미 스킵) ═══
+    const products = ['NCOT'];
 
     // _sharedDownload: 같은 product/area/obsDate면 다운로드 1회만 수행 (27MB 중복 방지)
     try {
@@ -758,27 +762,17 @@ async function _backgroundFetch(lat, lon, obsDate, area, cacheKey) {
         };
 
         if (buffers[0]) {
-            if (isNight) {
-                const tau = await extractPointValue(buffers[0], lat, lon, area);
-                if (tau != null && tau >= 0) {
-                    result.opticalDepth = parseFloat(tau.toFixed(2));
-                    result.ncotCloudScore = ncotToCloudScore(tau);
-                    result.cloudScore = result.ncotCloudScore;
-                    result.transparencyPenalty = ncotToTransparencyPenalty(tau);
-                    console.log(`[GK2A] NCOT at (${lat},${lon}): τ=${tau.toFixed(2)} → cloud=${result.ncotCloudScore?.toFixed(1)}, transPenalty=${result.transparencyPenalty}`);
-                } else if (tau === null) {
-                    result.opticalDepth = 0;
-                    result.ncotCloudScore = 0.3;
-                    result.cloudScore = 0.3;
-                    result.transparencyPenalty = 0;
-                    console.log(`[GK2A] NCOT at (${lat},${lon}): NODATA → interpreted as CLEAR SKY (cloud=0.3)`);
-                }
-            } else {
-                const aodVal = await extractPointValue(buffers[0], lat, lon, area);
-                result.aod = appsToAOD(aodVal);
-                if (result.aod != null) {
-                    console.log(`[GK2A] APPS at (${lat},${lon}): AOD=${result.aod.toFixed(3)}`);
-                }
+            const tau = await extractPointValue(buffers[0], lat, lon, area);
+            if (tau != null && tau >= 0) {
+                result.opticalDepth = parseFloat(tau.toFixed(2));
+                result.ncotCloudScore = ncotToCloudScore(tau);
+                result.cloudScore = result.ncotCloudScore;
+                result.transparencyPenalty = ncotToTransparencyPenalty(tau);
+                console.log(`[GK2A] NCOT at (${lat},${lon}): τ=${tau.toFixed(2)} → cloud=${result.ncotCloudScore?.toFixed(1)}, transPenalty=${result.transparencyPenalty}`);
+            } else if (tau === null) {
+                // v4.0: NODATA = "모름" → 구름 블렌딩에서 제외 (null 유지)
+                // 이전: 0.3(맑음)으로 해석 → 다른 소스를 압도하는 버그
+                console.log(`[GK2A] NCOT at (${lat},${lon}): NODATA → skipping (no cloud data)`);
             }
         }
 

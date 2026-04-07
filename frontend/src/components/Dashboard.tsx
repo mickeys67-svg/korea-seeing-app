@@ -43,7 +43,7 @@ const Dashboard: React.FC = () => {
         );
     }
 
-    if (error) {
+    if (error && !loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6">
                 <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
