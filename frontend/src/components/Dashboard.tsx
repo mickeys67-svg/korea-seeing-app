@@ -83,13 +83,13 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className={`flex flex-col items-center w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 bg-dot-pattern min-h-screen ${currentForecast ? getGradeBgClass(currentForecast.grade) : ''}`}>
+        <main className={`flex flex-col items-center w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 bg-dot-pattern min-h-screen ${currentForecast ? getGradeBgClass(currentForecast.grade) : ''}`}>
 
             {/* ===== Header ===== */}
             <header className="w-full flex justify-between items-center mb-8 animate-fade-in-up">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <img src="/logo.jpg" alt="Clear Skies" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
+                        <img src="/logo.jpg" alt="Clear Skies — Astronomical Seeing Forecast" width="48" height="48" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[var(--bg-void)]" />
                     </div>
                     <div>
@@ -277,7 +277,7 @@ const Dashboard: React.FC = () => {
                     <a href="mailto:mickeys67@gmail.com" className="text-[var(--accent)] hover:underline">mickeys67@gmail.com</a>
                 </p>
             </footer>
-        </div>
+        </main>
     );
 };
 

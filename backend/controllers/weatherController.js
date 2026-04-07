@@ -16,7 +16,8 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
         }
 
         // 1. Determine language BEFORE fetching data (needed by analysisService)
-        let targetLang = req.query.lang || 'en';
+        const ALLOWED_LANGS = ['en', 'ko', 'ja', 'zh'];
+        let targetLang = ALLOWED_LANGS.includes(req.query.lang) ? req.query.lang : 'en';
         if (!req.query.lang && (lat >= 33 && lat <= 39) && (lon >= 124 && lon <= 131)) {
             targetLang = 'ko';
         } else if (!req.query.lang && (lat >= 24 && lat <= 46) && (lon >= 127 && lon <= 146) && targetLang === 'en') {

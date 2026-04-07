@@ -20,8 +20,23 @@ app.use(compression());
 
 // Security headers
 app.use(helmet({
-    contentSecurityPolicy: false, // Allow inline styles/scripts for SPA
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+        }
+    },
     crossOriginEmbedderPolicy: false,
+    strictTransportSecurity: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
 // Rate limiting for API routes
@@ -52,6 +67,20 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50kb' }));
 
+// HTTPS redirect + www canonicalization (Cloud Run sets x-forwarded-proto)
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        if (req.header('x-forwarded-proto') && req.header('x-forwarded-proto') !== 'https') {
+            return res.redirect(301, `https://${req.hostname}${req.originalUrl}`);
+        }
+        const host = req.header('host') || '';
+        if (host === 'clearsky.kr') {
+            return res.redirect(301, `https://www.clearsky.kr${req.originalUrl}`);
+        }
+        next();
+    });
+}
+
 // Firestore Database — single instance shared across all services
 const db = new Firestore({ databaseId: 'koreaseeingapp1' });
 app.locals.db = db;
@@ -62,6 +91,21 @@ console.log('Firestore initialized (database: koreaseeingapp1)');
 // Firestore write 제거 — Cloud Run은 HTTP 200만 필요, DB 확인은 실제 API 호출에서 수행
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: Math.round(process.uptime()) });
+});
+
+// --- SEO: Dynamic sitemap with current date ---
+app.get('/sitemap.xml', (req, res) => {
+    const today = new Date().toISOString().split('T')[0];
+    res.type('application/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.clearsky.kr/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`);
 });
 
 // --- API Routes ---
@@ -134,10 +178,7 @@ if (process.env.NODE_ENV === 'production') {
 // --- Global Error Handling Middleware ---
 app.use((err, req, res, next) => {
     console.error('Unhandled Error:', err.stack);
-    res.status(500).json({
-        error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
-    });
+    res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // Start Server

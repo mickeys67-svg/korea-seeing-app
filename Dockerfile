@@ -1,28 +1,41 @@
-# Base image
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Copy ALL files (respected by .dockerignore)
-COPY . .
-
-# --- Frontend Build ---
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
-RUN npm install
-# Force cache invalidation
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
 ARG CACHEBUST=1
 RUN npm run build
 
-# --- Backend Setup ---
-WORKDIR /app/backend
-RUN npm install --production
+# Stage 2: Production
+FROM node:20-alpine
 
-# --- Final Config ---
+# Non-root user for security
+RUN addgroup -g 1001 appgroup && adduser -S appuser -u 1001 -G appgroup
+
 WORKDIR /app
+
+# Backend dependencies
+COPY backend/package*.json ./backend/
+WORKDIR /app/backend
+RUN npm ci --omit=dev
+
+# Copy backend source
+WORKDIR /app
+COPY backend/ ./backend/
+
+# Copy frontend build output
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
+# Copy root files needed at runtime
+COPY start_all.js web.js package.json ./
+
+# Switch to non-root user
+USER appuser
+
 ENV PORT=8080
 ENV NODE_ENV=production
 EXPOSE 8080
 
-# Start
 WORKDIR /app/backend
 CMD ["npm", "start"]
