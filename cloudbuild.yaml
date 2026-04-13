@@ -5,5 +5,20 @@ steps:
   # Push the container image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "gcr.io/mickey-485213/korea-sky-seeing"]
+  # Clean up old images — latest 1개만 유지, 나머지 삭제 (저장 비용 절감)
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        gcloud container images list-tags gcr.io/mickey-485213/korea-sky-seeing \
+          --format="get(digest)" --filter="NOT tags:latest" --limit=100 \
+        | while read digest; do
+            [ -z "$digest" ] && continue
+            gcloud container images delete \
+              "gcr.io/mickey-485213/korea-sky-seeing@$$digest" \
+              --force-delete-tags --quiet 2>/dev/null || true
+          done
+        echo "Image cleanup complete"
 images:
   - "gcr.io/mickey-485213/korea-sky-seeing"
