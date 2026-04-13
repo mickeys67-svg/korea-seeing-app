@@ -685,8 +685,10 @@ const WeatherService = {
         });
 
         // ═══ Training Data Collection (fire-and-forget, no await) ═══
+        // 비용 최적화: ENABLE_TRAINING_DATA=true 일 때만 Firestore 쓰기 (기본 OFF)
         const db = _getDb();
-        if (db && mappedForecast.length > 0) {
+        const enableTraining = process.env.ENABLE_TRAINING_DATA === 'true';
+        if (enableTraining && db && mappedForecast.length > 0) {
             try {
                 const col = db.collection('trainingData');
                 const batch = db.batch();
@@ -718,7 +720,7 @@ const WeatherService = {
         }
 
         // ═══ Auto-Validation: 과거 예측 vs 현재 실측 자동 비교 (fire-and-forget) ═══
-        if (db && mappedForecast.length > 0) {
+        if (enableTraining && db && mappedForecast.length > 0) {
             const cur = mappedForecast[0]; // 현재 시점 슬롯
             validatePastPredictions(db, lat, lon, {
                 cloudScore: cur.scores?.cloudCover ?? null,

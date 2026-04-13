@@ -1,4 +1,4 @@
-const axios = require('axios');
+// native fetch (Node 18+)
 
 // ═══ Open-Meteo Ensemble API ═══
 // 다중 NWP 모델 멤버 조회 → 비관적(max) 구름 값 산출
@@ -22,8 +22,9 @@ async function fetchEnsembleCloud(lat, lon) {
     const url = `${ENSEMBLE_BASE}?latitude=${lat}&longitude=${lon}`
         + `&hourly=cloud_cover&models=${MODELS}&forecast_days=3&timezone=GMT`;
 
-    const response = await axios.get(url, { timeout: 20000 });
-    const data = response.data;
+    const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
+    const data = await response.json();
 
     if (!data || !data.hourly || !data.hourly.time) {
         console.warn('[Ensemble] No hourly data in response');

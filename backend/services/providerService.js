@@ -1,4 +1,4 @@
-const axios = require('axios');
+// native fetch (Node 18+) — axios 제거로 Docker 이미지 2.4MB 축소
 
 // ═══ API별 그리드 캐시 — 데이터 해상도에 맞춘 좌표 라운딩 ═══
 // 각 API의 실제 공간 해상도에 맞게 좌표를 라운딩하여 캐시
@@ -127,8 +127,9 @@ const ProviderService = {
                 this._recordSuccess(name);
                 return result;
             } catch (error) {
-                const isRetryable = ['ETIMEDOUT', 'ECONNRESET', 'ECONNABORTED', 'EAI_AGAIN'].includes(error.code)
-                    || (error.response && error.response.status >= 500);
+                const isRetryable = ['ETIMEDOUT', 'ECONNRESET', 'ECONNABORTED', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT'].includes(error.code)
+                    || (error.cause?.code && ['ETIMEDOUT', 'ECONNRESET', 'ECONNABORTED', 'EAI_AGAIN'].includes(error.cause.code))
+                    || (error.status >= 500);
                 if (attempt < maxRetries && isRetryable) {
                     console.warn(`${name} attempt ${attempt + 1} failed (${error.code || error.response?.status}), retrying...`);
                     await new Promise(r => setTimeout(r, 1000));
@@ -147,8 +148,9 @@ const ProviderService = {
         return _gridFetch('7timer', lat, lon, () =>
             this._fetchWithRetry('7Timer', async () => {
                 const url = `https://www.7timer.info/bin/api.pl?lon=${lon}&lat=${lat}&product=astro&output=json`;
-                const response = await axios.get(url, { timeout: 10000 });
-                return response.data;
+                const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+                if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
+                return response.json();
             })
         );
     },
@@ -176,8 +178,9 @@ const ProviderService = {
                     url += `&models=${Array.isArray(models) ? models.join(',') : models}`;
                 }
 
-                const response = await axios.get(url, { timeout: 15000 });
-                return response.data;
+                const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
+                return response.json();
             })
         );
     },
@@ -187,13 +190,14 @@ const ProviderService = {
         return _gridFetch('metno', lat, lon, () =>
             this._fetchWithRetry('Met.no', async () => {
                 const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
-                const response = await axios.get(url, {
+                const response = await fetch(url, {
                     headers: {
                         'User-Agent': `ClearSky-App/2.0 (${process.env.CONTACT_EMAIL || 'support@clearsky.kr'})`
                     },
-                    timeout: 8000
+                    signal: AbortSignal.timeout(8000)
                 });
-                return response.data;
+                if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
+                return response.json();
             })
         );
     },
@@ -218,12 +222,14 @@ const ProviderService = {
                     return null;
                 }
                 try {
-                    const response = await axios.get(base + varSets[idx], { timeout: 10000 });
+                    const response = await fetch(base + varSets[idx], { signal: AbortSignal.timeout(10000) });
+                    if (response.status === 400) return tryNext(idx + 1);
+                    if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
                     this._recordSuccess('AirQuality');
-                    return response.data;
+                    return response.json();
                 } catch (e) {
-                    if (e.response && e.response.status === 400) return tryNext(idx + 1);
-                    console.error('AirQuality fetch failed:', e.code || e.message || '(unknown)');
+                    if (e.status === 400) return tryNext(idx + 1);
+                    console.error('AirQuality fetch failed:', e.code || e.cause?.code || e.message || '(unknown)');
                     this._recordFailure('AirQuality');
                     return null;
                 }

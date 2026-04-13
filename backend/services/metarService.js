@@ -1,4 +1,4 @@
-const axios = require('axios');
+// native fetch (Node 18+)
 
 // ═══ AviationWeather.gov METAR Service ═══
 // 전세계 공항 실측 구름 관측 데이터
@@ -64,22 +64,25 @@ async function fetchNearbyMetar(lat, lon) {
     const bbox = makeBbox(lat, lon);
     const url = `${METAR_BASE}?bbox=${bbox}&format=json&hours=2`;
 
-    const response = await axios.get(url, {
-        timeout: 8000,
+    const response = await fetch(url, {
+        signal: AbortSignal.timeout(8000),
         headers: {
             'User-Agent': 'ClearSky-App/3.3 (support@clearsky.kr)'
-        },
-        // 204 No Content = 데이터 없음, axios는 이를 에러로 처리하지 않음
-        validateStatus: (status) => status === 200 || status === 204
+        }
     });
 
-    // 204 또는 빈 응답
-    if (response.status === 204 || !response.data || !Array.isArray(response.data) || response.data.length === 0) {
+    // 204 No Content = 데이터 없음
+    if (response.status === 204) {
         console.log(`[METAR] No stations found near ${lat.toFixed(2)},${lon.toFixed(2)}`);
         return null;
     }
+    if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
 
-    const metars = response.data;
+    const metars = await response.json();
+    if (!Array.isArray(metars) || metars.length === 0) {
+        console.log(`[METAR] No stations found near ${lat.toFixed(2)},${lon.toFixed(2)}`);
+        return null;
+    }
 
     // 가장 가까운 스테이션 찾기 (Haversine 근사)
     let closest = null;

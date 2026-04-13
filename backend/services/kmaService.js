@@ -1,4 +1,4 @@
-const axios = require('axios');
+// native fetch (Node 18+)
 
 // ═══ KMA (기상청) 초단기예보 서비스 ═══
 // 한국 좌표 전용 — 30분 갱신 실시간 구름/기상 데이터
@@ -133,8 +133,9 @@ async function fetchUltraSrtFcst(lat, lon) {
 
     console.log(`[KMA] Fetching UltraSrtFcst: ${baseDate} ${baseTime} grid(${nx},${ny}) key=${'*'.repeat(6)}`);
 
-    const response = await axios.get(url, { timeout: 8000 });
-    const data = response.data;
+    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
+    const data = await response.json();
 
     // 응답 검증
     const header = data?.response?.header;
