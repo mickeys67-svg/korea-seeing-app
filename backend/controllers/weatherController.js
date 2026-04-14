@@ -41,8 +41,8 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
         const utcOffset = meta ? meta.timezoneOffset : 0;
         const astronomy = AstronomyService.getAstronomyForecast(startDate, 4, lat, lon, utcOffset);
 
-        // 3분 브라우저 캐시 + 2분 stale-while-revalidate
-        res.set('Cache-Control', 'public, max-age=180, stale-while-revalidate=120');
+        // 5분 브라우저 캐시 + 5분 stale-while-revalidate
+        res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
         res.json({
             location: {
                 lat,

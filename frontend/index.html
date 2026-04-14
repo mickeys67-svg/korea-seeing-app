@@ -5,13 +5,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Preconnect to font origins -->
+  <!-- Fonts: async load (non-render-blocking), reduced weights -->
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" /></noscript>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/jpeg" href="/logo.jpg" />
-  <link rel="apple-touch-icon" href="/logo.jpg" />
+  <link rel="icon" type="image/webp" href="/logo.webp" />
+  <link rel="apple-touch-icon" href="/logo.webp" />
 
   <!-- Primary Meta (English-first for global SEO) -->
   <title>Clear Skies ! | Astronomical Seeing Forecast · Target Suitability</title>
@@ -27,12 +29,8 @@
   <!-- Canonical -->
   <link rel="canonical" href="https://www.clearsky.kr/" />
 
-  <!-- Hreflang: multi-language support -->
-  <link rel="alternate" hreflang="en" href="https://www.clearsky.kr/" />
-  <link rel="alternate" hreflang="ko" href="https://www.clearsky.kr/" />
-  <link rel="alternate" hreflang="ja" href="https://www.clearsky.kr/" />
-  <link rel="alternate" hreflang="zh" href="https://www.clearsky.kr/" />
-  <link rel="alternate" hreflang="x-default" href="https://www.clearsky.kr/" />
+  <!-- Hreflang removed: all languages share the same URL, so hreflang tags caused
+       Google to report "alternate page with proper canonical" duplicates -->
 
   <!-- Open Graph (Facebook / KakaoTalk / etc.) -->
   <meta property="og:type" content="website" />

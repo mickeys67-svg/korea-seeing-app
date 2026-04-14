@@ -1,19 +1,23 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import SeeingDetails from './SeeingDetails';
 import MoonPhase from './MoonPhase';
 // NotificationSetup removed — no actual notification logic implemented
 import AiPrediction from './AiPrediction';
 import ForecastList from './ForecastList';
 import InfoPanel from './InfoPanel';
-import { Loader2, MapPin, X, Info, Cloud } from 'lucide-react';
+import { Loader2, MapPin, X, Info, Cloud, Camera } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useWeatherData from '../hooks/useWeatherData';
 import useI18n from '../hooks/useI18n';
+
+// v5.0 Photo Guide — lazy (code-split) so bundle stays unchanged until user opens modal
+const PhotoGuideModal = lazy(() => import('../features/photo-guide/PhotoGuideModal'));
 
 const Dashboard: React.FC = () => {
     const location = useGeolocation();
     const t = useI18n();
     const [infoPanelOpen, setInfoPanelOpen] = React.useState(false);
+    const [photoGuideOpen, setPhotoGuideOpen] = React.useState(false);
     const [updatePopupVisible, setUpdatePopupVisible] = React.useState(() => {
         try { return !localStorage.getItem('clearsky-update-v3.4-seen'); } catch { return true; }
     });
@@ -89,7 +93,7 @@ const Dashboard: React.FC = () => {
             <header className="w-full flex justify-between items-center mb-8 animate-fade-in-up">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <img src="/logo.jpg" alt="Clear Skies — Astronomical Seeing Forecast" width="48" height="48" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
+                        <img src="/logo.webp" alt="Clear Skies — Astronomical Seeing Forecast" width="48" height="48" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[var(--bg-void)]" />
                     </div>
                     <div>
@@ -123,6 +127,19 @@ const Dashboard: React.FC = () => {
                             </div>
                         );
                     })()}
+                    <button
+                        onClick={() => setPhotoGuideOpen(true)}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-105"
+                        style={{
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid var(--glass-border)',
+                            color: '#f59e0b',
+                        }}
+                        title="Photo Guide"
+                        aria-label="Photo Guide"
+                    >
+                        <Camera className="w-4 h-4" />
+                    </button>
                     <button
                         onClick={() => setInfoPanelOpen(true)}
                         className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-105"
@@ -183,6 +200,17 @@ const Dashboard: React.FC = () => {
 
             {/* Info Panel */}
             <InfoPanel isOpen={infoPanelOpen} onClose={() => setInfoPanelOpen(false)} />
+
+            {/* v5.0 Photo Guide Modal — lazy mount, network request only when opened */}
+            {photoGuideOpen && (
+                <Suspense fallback={null}>
+                    <PhotoGuideModal
+                        lat={lat}
+                        lon={lon}
+                        onClose={() => setPhotoGuideOpen(false)}
+                    />
+                </Suspense>
+            )}
 
             {/* ===== Update Popup (v3.3 Cloud Model) ===== */}
             {updatePopupVisible && (

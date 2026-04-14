@@ -288,7 +288,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({ isOpen, onClose }) => {
                     <div className="relative z-10 flex items-center justify-between px-5 sm:px-6 pt-7 sm:pt-6 pb-3">
                         <div className="flex items-center gap-3">
                             <img
-                                src="/logo.jpg"
+                                src="/logo.webp"
                                 alt="Clear Skies"
                                 className="w-9 h-9 rounded-xl object-cover"
                                 style={{ boxShadow: '0 0 20px rgba(99,102,241,0.12)' }}

@@ -58,7 +58,9 @@ const useWeatherData = (lat: number | null, lon: number | null): UseWeatherDataR
                     setError(null);
                     setStale(false);
                 }
-                const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}&_t=${Date.now()}`, { signal });
+                const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`, {
+                    signal,
+                });
                 if (!response.ok) {
                     throw new Error('Failed to fetch weather data');
                 }
@@ -95,6 +97,14 @@ const useWeatherData = (lat: number | null, lon: number | null): UseWeatherDataR
                 }
             }
         };
+
+        // Stale-while-revalidate: 캐시 데이터 즉시 표시 → 백그라운드 갱신
+        const cached = loadFromCache(lat, lon);
+        if (cached) {
+            setData(cached);
+            setLoading(false);
+            setStale(true);
+        }
 
         fetchData();
 

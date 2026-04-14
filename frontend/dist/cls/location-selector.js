@@ -23,7 +23,7 @@
         },
 
         State: {
-            mode: 'gps',
+            mode: 'coords',
             favorites: [],
             recent: [],
             current: null,
@@ -89,21 +89,33 @@
             <!-- Collapsible Body -->
             <div data-cls-element="collapsible-body" style="display: ${isExpanded ? 'block' : 'none'}">
               <div data-cls-element="tab-nav">
-                <button data-cls-element="tab-button" data-cls-tab="gps" data-cls-state="${mode === 'gps' ? 'active' : ''}">📍 GPS Mode</button>
+                <button data-cls-element="tab-button" data-cls-tab="coords" data-cls-state="${mode === 'coords' ? 'active' : ''}">📍 Lat / Lon</button>
                 <button data-cls-element="tab-button" data-cls-tab="manual" data-cls-state="${mode === 'manual' ? 'active' : ''}">🔍 City Search</button>
               </div>
-              
-              <div data-cls-content="gps" style="display: ${mode === 'gps' ? 'block' : 'none'}">
-                <button data-cls-element="refresh-btn">🔄 Detect Current Location</button>
-                <div data-cls-element="gps-status" style="margin-top: 10px; font-size: 13px; color: rgba(255,255,255,0.5); text-align: center;"></div>
+
+              <!-- Coordinates Input -->
+              <div data-cls-content="coords" style="display: ${mode === 'coords' ? 'block' : 'none'}">
+                <div data-cls-element="coords-form">
+                  <div data-cls-element="coords-row">
+                    <label data-cls-element="coords-label">Lat</label>
+                    <input type="number" data-cls-element="lat-input" step="any" min="-90" max="90" placeholder="37.5665" />
+                  </div>
+                  <div data-cls-element="coords-row">
+                    <label data-cls-element="coords-label">Lon</label>
+                    <input type="number" data-cls-element="lon-input" step="any" min="-180" max="180" placeholder="126.9780" />
+                  </div>
+                  <button data-cls-element="coords-go-btn">Go</button>
+                  <div data-cls-element="coords-status" style="margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.4); text-align: center;"></div>
+                </div>
               </div>
-              
+
+              <!-- City Search -->
               <div data-cls-content="manual" style="display: ${mode === 'manual' ? 'block' : 'none'}">
                 <div data-cls-element="search-container">
                   <input type="text" data-cls-element="search-input" placeholder="Search cities (e.g. Seoul, Tokyo)...">
                   <div data-cls-component="autocomplete" style="display: none"></div>
                 </div>
-                
+
                 <div data-cls-element="favorites-section">
                   <div data-cls-element="section-title">⭐ Favorites</div>
                   <div data-cls-element="fav-list"></div>
@@ -156,8 +168,8 @@
                     } else if (el === 'tab-button') {
                         CLEARSKY_LOCATION.State.mode = t.dataset.clsTab;
                         this.render();
-                    } else if (el === 'refresh-btn') {
-                        this.detectGps();
+                    } else if (el === 'coords-go-btn') {
+                        this.submitCoords();
                     } else if (el === 'location-item') {
                         const id = t.dataset.clsId;
                         const loc = [...CLEARSKY_LOCATION.State.favorites, ...CLEARSKY_LOCATION.State.recent].find(l => l.id === id);
@@ -217,34 +229,29 @@
                 if (ac) ac.style.display = 'none';
             },
 
-            detectGps() {
-                if (!navigator.geolocation) return this.setGpsStatus('GPS not supported');
+            submitCoords() {
+                const latInput = this.container.querySelector('[data-cls-element="lat-input"]');
+                const lonInput = this.container.querySelector('[data-cls-element="lon-input"]');
+                const status = this.container.querySelector('[data-cls-element="coords-status"]');
+                if (!latInput || !lonInput) return;
 
-                const btn = this.container.querySelector('[data-cls-element="refresh-btn"]');
-                if (btn) btn.disabled = true;
-                this.setGpsStatus('Detecting...');
+                const lat = parseFloat(latInput.value);
+                const lng = parseFloat(lonInput.value);
 
-                navigator.geolocation.getCurrentPosition(pos => {
-                    CLEARSKY_LOCATION.State.setLocation({
-                        id: 'gps-current',
-                        name: 'Current Location',
-                        country: 'Detected via GPS',
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude
-                    }, 'gps');
-                    if (btn) btn.disabled = false;
-                    this.setGpsStatus('Location updated!');
-                    setTimeout(() => this.setGpsStatus(''), 3000);
-                }, err => {
-                    if (btn) btn.disabled = false;
-                    this.setGpsStatus('GPS Error: ' + err.message);
-                });
+                if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    if (status) status.textContent = 'Invalid coordinates (Lat: -90~90, Lon: -180~180)';
+                    return;
+                }
+
+                CLEARSKY_LOCATION.State.setLocation({
+                    id: 'custom-' + lat.toFixed(4) + '-' + lng.toFixed(4),
+                    name: lat.toFixed(4) + ', ' + lng.toFixed(4),
+                    country: 'Custom Coordinates',
+                    lat: lat,
+                    lng: lng
+                }, 'coords');
             },
 
-            setGpsStatus(msg) {
-                const s = this.container.querySelector('[data-cls-element="gps-status"]');
-                if (s) s.textContent = msg;
-            }
         },
 
         init() {

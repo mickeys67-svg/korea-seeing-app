@@ -477,14 +477,24 @@ const WeatherService = {
 
         // Fetch all data sources in parallel (7 API calls)
         // v4.1: GK2A 위성 제거 — NWP 모델 기반 단순화 (Meteoblue/Astrospheric 동일 접근)
+        // v5.3: 4초 데드라인 — 느린 API가 전체 응답을 지연시키지 않도록
+        const DEADLINE_MS = 4000;
+        const withDeadline = (promise) => {
+            let timer;
+            return Promise.race([
+                promise,
+                new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('DEADLINE')), DEADLINE_MS); })
+            ]).catch(() => null).finally(() => clearTimeout(timer));
+        };
+
         let [timerData, omData, metData, aqData, kmaData, ensembleData, metarData] = await Promise.all([
-            ProviderService.fetch7Timer(lat, lon).catch(() => null),
-            ProviderService.fetchOpenMeteo(lat, lon, ['best_match', 'gfs_seamless', 'ecmwf_ifs']).catch(() => null),
-            ProviderService.fetchMetNo(lat, lon).catch(() => null),
-            ProviderService.fetchAirQuality(lat, lon).catch(() => null),
-            ProviderService.fetchKMA(lat, lon).catch(() => null),
-            ProviderService.fetchEnsembleCloud(lat, lon).catch(() => null),
-            ProviderService.fetchMetar(lat, lon).catch(() => null)
+            withDeadline(ProviderService.fetch7Timer(lat, lon)),
+            withDeadline(ProviderService.fetchOpenMeteo(lat, lon, ['best_match', 'gfs_seamless', 'ecmwf_ifs'])),
+            withDeadline(ProviderService.fetchMetNo(lat, lon)),
+            withDeadline(ProviderService.fetchAirQuality(lat, lon)),
+            withDeadline(ProviderService.fetchKMA(lat, lon)),
+            withDeadline(ProviderService.fetchEnsembleCloud(lat, lon)),
+            withDeadline(ProviderService.fetchMetar(lat, lon))
         ]);
 
         // API Health Tracking — raw success/failure before fallback logic
