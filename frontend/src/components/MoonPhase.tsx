@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import './MoonPhase.css';
 import { type AstronomyDay } from '../types/weather';
 import { getPhaseDef, formatDate, formatTime, calculateDuration, calculateObservationWindows, minutesToTime, formatDurationMins } from '../utils/astronomyUtils';
-import PlanetsTab from './PlanetsTab';
+// v5.4 비용0원: PlanetsTab은 astronomy-engine(~150KB)을 사용 → lazy load로 메인 번들에서 제외
+// 사용자가 'Planets' 탭을 클릭할 때만 청크 다운로드
+const PlanetsTab = lazy(() => import('./PlanetsTab'));
 import useI18n from '../hooks/useI18n';
 
 interface MoonPhaseProps {
@@ -231,9 +233,11 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                     </div>
                 )}
 
-                {/* Planets Tab */}
+                {/* Planets Tab — lazy chunk (astronomy-engine ~150KB) */}
                 {activeTab === 'planets' && (
-                    <PlanetsTab lat={lat} lon={lon} timezone={timezone} />
+                    <Suspense fallback={<div className="text-center py-8 text-xs text-[var(--text-tertiary)]">Loading…</div>}>
+                        <PlanetsTab lat={lat} lon={lon} timezone={timezone} />
+                    </Suspense>
                 )}
             </div>
         </div>

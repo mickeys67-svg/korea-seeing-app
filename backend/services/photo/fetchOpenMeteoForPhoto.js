@@ -1,109 +1,36 @@
 /**
  * v5.0 Photo Guide — Open-Meteo 추가 변수 fetcher
  *
- * 기존 providerService.fetchOpenMeteo()의 변수 배열을 건드리지 않고,
- * photo 전용 변수만 별도 URL로 요청한다.
+ * v5.4 비용 최적화: providerService.fetchOpenMeteo()의 통합 응답을 재사용한다.
+ *  - 이전: 별도 OM URL 호출 (visibility/precip/gust/uv/pressure/isDay)
+ *  - 현재: 메인 OM 호출에 위 7개 변수 통합 → 그리드 캐시 1회 히트로 끝
  *
- * 신규 변수 (7개):
- *   - visibility             (기상 가시거리, meter)
- *   - precipitation          (mm)
- *   - precipitation_probability (%)
- *   - wind_gusts_10m         (m/s)
- *   - uv_index               (0-11+)
- *   - surface_pressure       (hPa)
- *   - is_day                 (0/1)
- *
- * 또한 altitude는 current 응답의 elevation 필드에서 얻는다.
- *
- * 캐시: 자체 LRU, 키 prefix "photo_openmeteo"
- * TTL: 5분 (기존 openmeteo 그리드와 동일)
+ * 결과: photoService가 weather와 동시에 호출돼도 OM 외부 호출은 1번만 발생.
  */
-// native fetch (Node 18+)
-
-const _cache = new Map();
-const _MAX = 100;
-const _TTL = 5 * 60 * 1000; // 5 min
-const _GRID_STEP = 0.1; // ~11km (Open-Meteo 실질 해상도)
-
-function _gridKey(lat, lon) {
-    const gLat = (Math.round(lat / _GRID_STEP) * _GRID_STEP).toFixed(3);
-    const gLon = (Math.round(lon / _GRID_STEP) * _GRID_STEP).toFixed(3);
-    return `photo_om_${gLat}_${gLon}`;
-}
-
-function _cacheGet(key) {
-    const entry = _cache.get(key);
-    if (!entry) return undefined;
-    if (Date.now() - entry.ts > _TTL) {
-        _cache.delete(key);
-        return undefined;
-    }
-    return entry.data;
-}
-
-function _cacheSet(key, data) {
-    if (_cache.size >= _MAX && !_cache.has(key)) {
-        const oldest = _cache.keys().next().value;
-        _cache.delete(oldest);
-    }
-    _cache.set(key, { data, ts: Date.now() });
-}
-
-// Simple pending-request dedup
-const _pending = new Map();
+const ProviderService = require('../providerService');
 
 /**
  * Photo용 Open-Meteo 데이터 fetch.
- * 실패 시 null 반환 (photoService가 "제한 모드"로 계산).
+ * 내부적으로 메인 OM 호출과 같은 그리드 캐시를 공유하므로 추가 비용 0.
  *
  * @param {number} lat
  * @param {number} lon
- * @returns {Promise<object|null>} Open-Meteo raw response or null
+ * @returns {Promise<object|null>} Open-Meteo raw response (통합) or null
  */
 async function fetchOpenMeteoForPhoto(lat, lon) {
-    const key = _gridKey(lat, lon);
-
-    // 1. cache hit
-    const cached = _cacheGet(key);
-    if (cached !== undefined) return cached;
-
-    // 2. pending dedup
-    if (_pending.has(key)) return _pending.get(key);
-
-    // 3. new request
-    const vars = [
-        'visibility',
-        'precipitation',
-        'precipitation_probability',
-        'wind_gusts_10m',
-        'uv_index',
-        'surface_pressure',
-        'is_day',
-    ].join(',');
-
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&forecast_days=4&timezone=auto`;
-
-    const promise = (async () => {
-        try {
-            const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
-            if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
-            const data = await response.json();
-            if (data != null) _cacheSet(key, data);
-            return data;
-        } catch (error) {
-            console.warn('[photo] fetchOpenMeteoForPhoto failed:', error.code || error.message || 'unknown');
-            return null;
-        }
-    })();
-
-    _pending.set(key, promise);
-    promise.finally(() => _pending.delete(key));
-    return promise;
+    try {
+        return await ProviderService.fetchOpenMeteo(lat, lon);
+    } catch (error) {
+        console.warn('[photo] fetchOpenMeteoForPhoto failed:', error.code || error.message || 'unknown');
+        return null;
+    }
 }
 
 /**
  * raw Open-Meteo 응답을 time-indexed map으로 변환.
- * photoService가 기존 weather forecast slot과 시간대로 join할 때 사용.
+ * photoService가 weather forecast slot과 시간대로 join할 때 사용.
+ *
+ * 통합 응답에는 best_match 단일 모델 변수만 들어있고, suffix는 없다.
  *
  * @returns {Map<string, object>} time(ISO) → { visibility, precipitation, ... }
  */

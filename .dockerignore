@@ -7,3 +7,23 @@ build
 coverage
 *.log
 .DS_Store
+
+# v5.4: 빌드 컨텍스트 슬림화 (Cloud Build 업로드 시간/스토리지 절감)
+test_*.json
+test*.json
+korea-seeing-app*.json
+E:korea-seeing-app*.json
+*.zip
+server-source-*.zip
+server-3-4
+training
+validate.py
+payload.json
+nul
+*.bat
+README.md
+DEPLOY.md
+DEVELOPMENT_GUIDE.md
+USER_RULES.md
+.claude
+CLAUDE.md

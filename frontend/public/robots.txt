@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /health
+Disallow: /cls/
 
 Sitemap: https://www.clearsky.kr/sitemap.xml

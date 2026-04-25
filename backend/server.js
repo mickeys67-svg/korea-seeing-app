@@ -1,7 +1,6 @@
 console.log("Starting Server...");
 require('dotenv').config();
 const express = require('express');
-const { Firestore } = require('@google-cloud/firestore');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -10,6 +9,7 @@ const compression = require('compression');
 
 // Import Controllers & Services
 const weatherController = require('./controllers/weatherController');
+const photoController = require('./controllers/photoController');
 const WeatherService = require('./services/weatherService');
 
 const app = express();
@@ -63,7 +63,9 @@ app.use(cors({
         } else {
             callback(new Error('Not allowed by CORS'));
         }
-    }
+    },
+    // v5.4 비용0원: preflight 응답을 24h 동안 브라우저가 캐시 → OPTIONS 요청 사실상 0
+    maxAge: 86400,
 }));
 app.use(express.json({ limit: '50kb' }));
 
@@ -81,11 +83,21 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-// Firestore Database — single instance shared across all services
-const db = new Firestore({ databaseId: 'koreaseeingapp1' });
-app.locals.db = db;
-WeatherService.setDb(db);
-console.log('Firestore initialized (database: koreaseeingapp1)');
+// Firestore — lazy init: 첫 접근 시에만 클라이언트 생성 (콜드스타트 -500ms)
+// ENABLE_TRAINING_DATA=false 이고 /api/feedback 호출이 없으면 영원히 초기화 안 됨 → 비용 0
+let _firestoreInstance = null;
+function getFirestore() {
+    if (!_firestoreInstance) {
+        const { Firestore } = require('@google-cloud/firestore');
+        _firestoreInstance = new Firestore({ databaseId: 'koreaseeingapp1' });
+        console.log('[Firestore] lazy init (database: koreaseeingapp1)');
+    }
+    return _firestoreInstance;
+}
+// feedbackController는 req.app.locals.db로 접근 — getter로 lazy 초기화 연결
+Object.defineProperty(app.locals, 'db', { get: getFirestore });
+// WeatherService에는 lazy 게터를 주입 (ENABLE_TRAINING_DATA=true 때만 실제 호출됨)
+WeatherService.setDbResolver(getFirestore);
 
 // --- Health Check (for Cloud Run / Load Balancers) ---
 // Firestore write 제거 — Cloud Run은 HTTP 200만 필요, DB 확인은 실제 API 호출에서 수행
@@ -110,6 +122,7 @@ app.get('/sitemap.xml', (req, res) => {
 
 // --- API Routes ---
 app.get('/api/weather', weatherController.getWeatherAndSeeing);
+app.get('/api/photo-forecast', photoController.getPhotoForecast);
 
 // Register CLS routes
 const clsRoutes = require('./routes/cls');
@@ -122,6 +135,46 @@ app.use('/api', feedbackRoutes);
 // --- Static Asset Serving (Production) ---
 if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '../frontend/dist');
+    const fs = require('fs');
+
+    // v5.4 비용0원: 사전 압축된 .br/.gz 파일을 우선 서빙 (CPU 0, 응답 ~30%↓)
+    // vite-plugin-compression이 빌드 타임에 생성한 .br/.gz를 활용
+    app.use((req, res, next) => {
+        if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+        // 압축 가능 확장자만 처리
+        if (!/\.(js|css|html|svg|json|woff2?)$/i.test(req.path)) return next();
+
+        const accept = req.headers['accept-encoding'] || '';
+        const tryServe = (ext, encoding, contentType) => {
+            const compressedPath = path.join(distPath, req.path + ext);
+            if (!fs.existsSync(compressedPath)) return false;
+            res.setHeader('Content-Encoding', encoding);
+            res.setHeader('Vary', 'Accept-Encoding');
+            res.setHeader('Content-Type', contentType);
+            // express.static의 캐시 헤더와 동일하게 — 해시 파일은 1y immutable
+            if (req.path.includes('/assets/')) {
+                res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+            res.sendFile(compressedPath);
+            return true;
+        };
+
+        // MIME 타입 추정
+        const ext = path.extname(req.path).toLowerCase();
+        const mime = {
+            '.js': 'application/javascript; charset=utf-8',
+            '.css': 'text/css; charset=utf-8',
+            '.html': 'text/html; charset=utf-8',
+            '.svg': 'image/svg+xml',
+            '.json': 'application/json; charset=utf-8',
+            '.woff': 'font/woff',
+            '.woff2': 'font/woff2',
+        }[ext] || 'application/octet-stream';
+
+        if (accept.includes('br') && tryServe('.br', 'br', mime)) return;
+        if (accept.includes('gzip') && tryServe('.gz', 'gzip', mime)) return;
+        next();
+    });
 
     // 1. Serve static files — HTML no-cache, assets immutable (hashed filenames)
     app.use(express.static(distPath, {
@@ -130,6 +183,12 @@ if (process.env.NODE_ENV === 'production') {
         setHeaders: (res, filePath) => {
             if (filePath.endsWith('.html')) {
                 // HTML은 항상 최신 버전 제공
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+            // robots.txt, sitemap.xml — 해시 없는 SEO 파일은 캐시 금지
+            if (filePath.endsWith('robots.txt') || filePath.endsWith('sitemap.xml')) {
                 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');
@@ -149,6 +208,12 @@ if (process.env.NODE_ENV === 'production') {
         // Safe check for URL - Only serve index.html for non-API GET requests
         const url = req.originalUrl || req.url || '';
         if (req.method === 'GET' && !url.startsWith('/api')) {
+            // SEO: Only serve index.html for root path
+            // Non-root paths → 301 redirect to prevent Google from indexing duplicate pages
+            if (url !== '/' && url !== '') {
+                return res.redirect(301, '/');
+            }
+
             // FORCE NO-CACHE for index.html entry point
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
             res.setHeader('Pragma', 'no-cache');

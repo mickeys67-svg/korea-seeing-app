@@ -25,7 +25,7 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
         }
 
         // 2. Get Aggregated Weather Data (pass targetLang for aiSummary language)
-        console.log('Fetching aggregated forecast for', lat, lon, 'lang:', targetLang);
+        // v5.4 비용0원: 요청당 로그 제거 (production)
         const { forecast, aiSummary, meta } = await WeatherService.getAggregatedForecast(lat, lon, targetLang);
         let processedSeeing = forecast;
 
@@ -41,8 +41,8 @@ exports.getWeatherAndSeeing = async (req, res, next) => {
         const utcOffset = meta ? meta.timezoneOffset : 0;
         const astronomy = AstronomyService.getAstronomyForecast(startDate, 4, lat, lon, utcOffset);
 
-        // 5분 브라우저 캐시 + 5분 stale-while-revalidate
-        res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=300');
+        // v5.4 비용0원: 10분 브라우저 캐시 + 30분 stale-while-revalidate (서버 도달 요청 ~70%↓)
+        res.set('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800');
         res.json({
             location: {
                 lat,

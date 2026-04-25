@@ -5,16 +5,22 @@ const AnalysisService = require('./analysisService');
 const KmaService = require('./kmaService');
 const EnsembleService = require('./ensembleService');
 const { validatePastPredictions } = require('./autoValidationService');
-// Firestore reference — set by server.js via setDb() to avoid duplicate connections
-let _firestoreDb = null;
-function _getDb() { return _firestoreDb; }
-function _setDb(db) { _firestoreDb = db; }
+// Firestore reference — server.js가 lazy resolver를 주입 (콜드스타트 비용 절감)
+// ENABLE_TRAINING_DATA=true 일 때만 실제로 호출되므로 false 환경에선 Firestore 객체가 영원히 생성되지 않음
+let _firestoreResolver = null;
+function _getDb() {
+    if (!_firestoreResolver) return null;
+    try { return _firestoreResolver(); } catch { return null; }
+}
+function _setDbResolver(fn) { _firestoreResolver = fn; }
 
 // ═══ Last-Known-Good Cache — serves stale data when all APIs fail ═══
 // In-memory, resets on container restart (which is fine — natural cleanup)
+// v5.4 비용 0원: fresh 3분→10분 (외부 API 호출 70%↓), stale 6h→24h
+// Seeing 예보는 시간 단위로 거의 변하지 않으므로 10분 fresh는 사용자 경험에 영향 없음
 const _cache = new Map();
-const CACHE_FRESH = 3 * 60 * 1000;     // 3 minutes — serve fresh without API calls
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours — stale fallback when APIs fail
+const CACHE_FRESH = 10 * 60 * 1000;    // 10 minutes — serve fresh without API calls
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours — stale fallback when APIs fail
 const CACHE_MAX = 50;                  // max entries (~2.5MB)
 
 // ═══ Request Coalescing — 동일 지역 동시 요청 합치기 ═══
@@ -184,15 +190,13 @@ function _estimateBortle(lat, lon) {
 
 const WeatherService = {
     // ... [Rest of the constants and helpers remain unchanged] ...
+    // v5.4: 압력층 8→5 (PBL / lower / mid / upper / jet) — USP 연산 38% 감소
     PRESSURE_LEVEL_HEIGHTS: {
         '1000hPa': 110,
-        '925hPa': 760,
         '850hPa': 1450,
         '700hPa': 3010,
         '500hPa': 5570,
-        '300hPa': 9160,
         '250hPa': 10360,
-        '200hPa': 11780
     },
 
     findClosestItem: (times, targetDate) => {
@@ -414,7 +418,7 @@ const WeatherService = {
         const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
         if (omIdx === null) return layers;
         const h = omData.hourly;
-        const pressureLevels = ['1000hPa', '925hPa', '850hPa', '700hPa', '500hPa', '300hPa', '250hPa', '200hPa'];
+        const pressureLevels = ['1000hPa', '850hPa', '700hPa', '500hPa', '250hPa'];
         for (let i = 0; i < pressureLevels.length - 1; i++) {
             const level1 = pressureLevels[i]; const level2 = pressureLevels[i + 1];
             const t1 = h[`temperature_${level1}`] ? h[`temperature_${level1}`][omIdx] : null;
@@ -450,12 +454,12 @@ const WeatherService = {
     },
 
     getAggregatedForecast: async (lat, lon, targetLang = 'en') => {
-        // ═══ Fresh Cache — 3분 이내 동일 좌표 요청은 캐시에서 즉시 반환 (API 호출 0) ═══
+        // ═══ Fresh Cache — 10분 이내 동일 좌표 요청은 캐시에서 즉시 반환 (API 호출 0) ═══
         const freshCached = _cacheGet(lat, lon, targetLang);
         if (freshCached) {
             const age = Date.now() - (_cache.get(_cacheKey(lat, lon, targetLang))?.ts || 0);
             if (age < CACHE_FRESH) {
-                console.log(`[Cache] Fresh hit (${Math.round(age/1000)}s old) — skipping all API calls`);
+                // v5.4 비용0원: hit 로그 제거 (대부분 요청이 캐시 히트라 무한 로그 방지)
                 return freshCached;
             }
         }
@@ -464,7 +468,6 @@ const WeatherService = {
         const coalKey = _cacheKey(lat, lon, targetLang);
         let pending = _pendingRequests.get(coalKey);
         if (pending) {
-            console.log(`[Coalesce] Joining existing request for ${coalKey}`);
             return pending;
         }
         const fetchPromise = WeatherService._doAggregatedForecast(lat, lon, targetLang);
@@ -477,8 +480,9 @@ const WeatherService = {
 
         // Fetch all data sources in parallel (7 API calls)
         // v4.1: GK2A 위성 제거 — NWP 모델 기반 단순화 (Meteoblue/Astrospheric 동일 접근)
-        // v5.3: 4초 데드라인 — 느린 API가 전체 응답을 지연시키지 않도록
-        const DEADLINE_MS = 4000;
+        // v5.4: 2.5초 데드라인 (이전 4s) — worst-case CPU 38% 감소
+        // v5.4: OM multi-model 앙상블 제거 — best_match 단일 모델만 사용 (응답 67%↓)
+        const DEADLINE_MS = 2500;
         const withDeadline = (promise) => {
             let timer;
             return Promise.race([
@@ -489,7 +493,7 @@ const WeatherService = {
 
         let [timerData, omData, metData, aqData, kmaData, ensembleData, metarData] = await Promise.all([
             withDeadline(ProviderService.fetch7Timer(lat, lon)),
-            withDeadline(ProviderService.fetchOpenMeteo(lat, lon, ['best_match', 'gfs_seamless', 'ecmwf_ifs'])),
+            withDeadline(ProviderService.fetchOpenMeteo(lat, lon)),
             withDeadline(ProviderService.fetchMetNo(lat, lon)),
             withDeadline(ProviderService.fetchAirQuality(lat, lon)),
             withDeadline(ProviderService.fetchKMA(lat, lon)),
@@ -558,9 +562,8 @@ const WeatherService = {
             return res;
         };
 
+        // v5.4: 단일 best_match 모델만 사용 (이전 3-model 앙상블 제거)
         const omBest = getModelData(omData, 'best_match');
-        const omGfs = getModelData(omData, 'gfs_seamless');
-        const omEcmwf = getModelData(omData, 'ecmwf_ifs');
         const siteElevation = omData?.elevation ?? 50; // elevation은 OM 응답 최상위 프로퍼티
         // Urban estimation: high altitude or low BLH → non-urban (no external API needed)
         const blh = omBest?.hourly?.boundary_layer_height?.[0] ?? null;
@@ -568,7 +571,7 @@ const WeatherService = {
         const isCoastal = _isNearKoreaCoast(lat, lon);
         const bortleEstimate = _estimateBortle(lat, lon);
         const now = new Date();
-        const ensembleModels = [omBest, omGfs, omEcmwf].filter(m => m !== null);
+        const ensembleModels = omBest ? [omBest] : [];
         const mappedForecast = timerData.dataseries.map(item => {
             const targetDate = new Date(now.getTime() + item.timepoint * 60 * 60 * 1000);
             // v3.3: Use LOCAL hour for convection timing (Cloud Run runs UTC)
@@ -696,8 +699,9 @@ const WeatherService = {
 
         // ═══ Training Data Collection (fire-and-forget, no await) ═══
         // 비용 최적화: ENABLE_TRAINING_DATA=true 일 때만 Firestore 쓰기 (기본 OFF)
-        const db = _getDb();
+        // _getDb() 호출 자체를 enableTraining 뒤로 이동 → false 환경에서는 Firestore 객체 생성 안 됨
         const enableTraining = process.env.ENABLE_TRAINING_DATA === 'true';
+        const db = enableTraining ? _getDb() : null;
         if (enableTraining && db && mappedForecast.length > 0) {
             try {
                 const col = db.collection('trainingData');
@@ -779,5 +783,5 @@ const WeatherService = {
     }
 };
 
-WeatherService.setDb = _setDb;
+WeatherService.setDbResolver = _setDbResolver;
 module.exports = WeatherService;

@@ -1,0 +1,121 @@
+{
+  "_comment": "Major annual meteor showers. peakMonth/peakDay are approximate peak dates (UTC). ZHR = Zenithal Hourly Rate at peak under ideal conditions. radiantRA/Dec for radiant position. Source: IMO (International Meteor Organization) 2024 calendar.",
+  "showers": [
+    {
+      "id": "quadrantids",
+      "name": { "en": "Quadrantids", "ko": "사분의자리 유성우", "ja": "しぶんぎ座流星群", "zh": "象限仪座流星雨" },
+      "peakMonth": 1, "peakDay": 3,
+      "activeStart": { "month": 12, "day": 28 },
+      "activeEnd":   { "month":  1, "day": 12 },
+      "zhr": 120,
+      "radiant": { "ra": 15.3, "dec": 49.5, "direction": "NE" },
+      "velocityKms": 41,
+      "parentBody": "2003 EH1",
+      "notes": "Sharp peak, ~6h window"
+    },
+    {
+      "id": "lyrids",
+      "name": { "en": "Lyrids", "ko": "거문고자리 유성우", "ja": "こと座流星群", "zh": "天琴座流星雨" },
+      "peakMonth": 4, "peakDay": 22,
+      "activeStart": { "month": 4, "day": 16 },
+      "activeEnd":   { "month": 4, "day": 25 },
+      "zhr": 18,
+      "radiant": { "ra": 18.1, "dec": 34.0, "direction": "E" },
+      "velocityKms": 49,
+      "parentBody": "C/1861 G1 (Thatcher)"
+    },
+    {
+      "id": "eta-aquariids",
+      "name": { "en": "Eta Aquariids", "ko": "물병자리 에타 유성우", "ja": "みずがめ座η流星群", "zh": "宝瓶座η流星雨" },
+      "peakMonth": 5, "peakDay": 6,
+      "activeStart": { "month": 4, "day": 19 },
+      "activeEnd":   { "month": 5, "day": 28 },
+      "zhr": 50,
+      "radiant": { "ra": 22.5, "dec": -1.0, "direction": "E" },
+      "velocityKms": 66,
+      "parentBody": "1P/Halley",
+      "notes": "Better viewed from Southern Hemisphere; still visible in Korea before dawn"
+    },
+    {
+      "id": "perseids",
+      "name": { "en": "Perseids", "ko": "페르세우스자리 유성우", "ja": "ペルセウス座流星群", "zh": "英仙座流星雨" },
+      "peakMonth": 8, "peakDay": 12,
+      "activeStart": { "month": 7, "day": 17 },
+      "activeEnd":   { "month": 8, "day": 24 },
+      "zhr": 100,
+      "radiant": { "ra": 3.2, "dec": 58.0, "direction": "NE" },
+      "velocityKms": 59,
+      "parentBody": "109P/Swift-Tuttle",
+      "notes": "Most popular of the year; warm summer nights"
+    },
+    {
+      "id": "orionids",
+      "name": { "en": "Orionids", "ko": "오리온자리 유성우", "ja": "オリオン座流星群", "zh": "猎户座流星雨" },
+      "peakMonth": 10, "peakDay": 21,
+      "activeStart": { "month": 10, "day": 2 },
+      "activeEnd":   { "month": 11, "day": 7 },
+      "zhr": 20,
+      "radiant": { "ra": 6.3, "dec": 15.5, "direction": "E" },
+      "velocityKms": 66,
+      "parentBody": "1P/Halley"
+    },
+    {
+      "id": "leonids",
+      "name": { "en": "Leonids", "ko": "사자자리 유성우", "ja": "しし座流星群", "zh": "狮子座流星雨" },
+      "peakMonth": 11, "peakDay": 17,
+      "activeStart": { "month": 11, "day": 6 },
+      "activeEnd":   { "month": 11, "day": 30 },
+      "zhr": 15,
+      "radiant": { "ra": 10.2, "dec": 22.0, "direction": "E" },
+      "velocityKms": 71,
+      "parentBody": "55P/Tempel-Tuttle",
+      "notes": "Historic storm years (1833, 1966, 2001); currently ~15/hr"
+    },
+    {
+      "id": "geminids",
+      "name": { "en": "Geminids", "ko": "쌍둥이자리 유성우", "ja": "ふたご座流星群", "zh": "双子座流星雨" },
+      "peakMonth": 12, "peakDay": 14,
+      "activeStart": { "month": 12, "day": 4 },
+      "activeEnd":   { "month": 12, "day": 20 },
+      "zhr": 150,
+      "radiant": { "ra": 7.5, "dec": 32.0, "direction": "E" },
+      "velocityKms": 35,
+      "parentBody": "3200 Phaethon",
+      "notes": "Best shower of the year; active all night in winter sky"
+    },
+    {
+      "id": "ursids",
+      "name": { "en": "Ursids", "ko": "작은곰자리 유성우", "ja": "こぐま座流星群", "zh": "小熊座流星雨" },
+      "peakMonth": 12, "peakDay": 22,
+      "activeStart": { "month": 12, "day": 17 },
+      "activeEnd":   { "month": 12, "day": 26 },
+      "zhr": 10,
+      "radiant": { "ra": 14.5, "dec": 75.8, "direction": "N" },
+      "velocityKms": 33,
+      "parentBody": "8P/Tuttle"
+    },
+    {
+      "id": "delta-aquariids",
+      "name": { "en": "Delta Aquariids", "ko": "물병자리 델타 유성우", "ja": "みずがめ座δ流星群", "zh": "宝瓶座δ流星雨" },
+      "peakMonth": 7, "peakDay": 30,
+      "activeStart": { "month": 7, "day": 12 },
+      "activeEnd":   { "month": 8, "day": 23 },
+      "zhr": 25,
+      "radiant": { "ra": 22.7, "dec": -16.0, "direction": "SE" },
+      "velocityKms": 41,
+      "parentBody": "96P/Machholz (possibly)"
+    },
+    {
+      "id": "draconids",
+      "name": { "en": "Draconids", "ko": "용자리 유성우", "ja": "りゅう座流星群", "zh": "天龙座流星雨" },
+      "peakMonth": 10, "peakDay": 8,
+      "activeStart": { "month": 10, "day": 6 },
+      "activeEnd":   { "month": 10, "day": 10 },
+      "zhr": 10,
+      "radiant": { "ra": 17.5, "dec": 54.0, "direction": "NW" },
+      "velocityKms": 20,
+      "parentBody": "21P/Giacobini-Zinner",
+      "notes": "Variable; occasional outbursts"
+    }
+  ]
+}

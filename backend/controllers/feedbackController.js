@@ -1,8 +1,14 @@
 /**
  * POST /api/feedback
  * Receive user observation feedback and update matching TrainingData in Firestore
+ *
+ * v5.4 비용0원: ENABLE_TRAINING_DATA=false 일 때 즉시 503 반환 → Firestore 인스턴스 생성 차단
  */
 const submitFeedback = async (req, res) => {
+    if (process.env.ENABLE_TRAINING_DATA !== 'true') {
+        return res.status(503).json({ error: 'Feedback collection is disabled' });
+    }
+
     try {
         const { lat, lon, timestamp, rating, actualSeeing, comment } = req.body;
 

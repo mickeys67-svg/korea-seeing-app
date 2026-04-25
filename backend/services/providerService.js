@@ -3,14 +3,15 @@
 // ═══ API별 그리드 캐시 — 데이터 해상도에 맞춘 좌표 라운딩 ═══
 // 각 API의 실제 공간 해상도에 맞게 좌표를 라운딩하여 캐시
 // → 인접 좌표 요청이 같은 캐시 히트 → 외부 API 호출 절감
+// v5.4 비용0원: TTL 대폭 확대. NWP 모델은 1시간 단위 갱신이므로 30분~1시간 캐시 안전
 const _GRID = {
-    '7timer':     { step: 0.5, ttl: 30 * 60 * 1000 },  // ~55km, 30분 (데이터 3시간 단위)
-    'openmeteo':  { step: 0.1, ttl:  5 * 60 * 1000 },  // ~11km, 5분  (hourly 예보)
-    'metno':      { step: 0.1, ttl:  5 * 60 * 1000 },  // ~11km, 5분
-    'airquality': { step: 0.2, ttl: 10 * 60 * 1000 },  // ~22km, 10분 (공기질 느리게 변화)
-    'ensemble':   { step: 0.2, ttl: 10 * 60 * 1000 },  // ~22km, 10분 (ECMWF 0.25°)
-    'kma':        { step: 0.05, ttl: 3 * 60 * 1000 },  // ~5km,  3분  (5km LCC 격자)
-    'metar':      { step: 0.2, ttl:  5 * 60 * 1000 },  // ~22km, 5분  (공항 기준)
+    '7timer':     { step: 0.5, ttl: 60 * 60 * 1000 },  // ~55km, 1시간 (3시간 단위 데이터)
+    'openmeteo':  { step: 0.1, ttl: 30 * 60 * 1000 },  // ~11km, 30분 (hourly 예보)
+    'metno':      { step: 0.1, ttl: 30 * 60 * 1000 },  // ~11km, 30분
+    'airquality': { step: 0.2, ttl: 60 * 60 * 1000 },  // ~22km, 1시간 (공기질 느리게 변화)
+    'ensemble':   { step: 0.2, ttl: 60 * 60 * 1000 },  // ~22km, 1시간 (ECMWF 0.25°)
+    'kma':        { step: 0.05, ttl: 15 * 60 * 1000 }, // ~5km, 15분 (초단기 30분 단위)
+    'metar':      { step: 0.2, ttl: 30 * 60 * 1000 },  // ~22km, 30분 (보통 1시간 단위 발행)
 };
 const _apiCache = new Map();   // key: `${apiName}_${gridLat}_${gridLon}` → { data, ts }
 const _API_CACHE_MAX = 200;
@@ -156,23 +157,31 @@ const ProviderService = {
     },
 
     // 2. Open-Meteo — ~11km 해상도, 0.1° 그리드 캐시
+    // v5.4 비용 최적화:
+    //  - forecast_days 7→4 (UI는 3일만 표시, 1일 buffer)
+    //  - 압력층 8→5 (1000/850/700/500/250hPa) — USP 정확도 유지하며 wind_speed/temp 변수 6개 제거
+    //  - photo-only 변수 7개 통합 (visibility, precipitation, precipProb, gusts, uv, surfacePressure, isDay)
+    //  - 기본 best_match 단일 모델 (앙상블 multi-model 금지)
     async fetchOpenMeteo(lat, lon, models = null) {
         return _gridFetch('openmeteo', lat, lon, () =>
             this._fetchWithRetry('Open-Meteo', async () => {
                 const vars = [
+                    // 표면/기본
                     'temperature_2m', 'relative_humidity_2m', 'dew_point_2m', 'cloud_cover',
                     'cloud_cover_low', 'cloud_cover_mid', 'cloud_cover_high',
-                    'wind_speed_10m', 'wind_speed_250hPa', 'cape',
+                    'wind_speed_10m', 'cape',
                     'boundary_layer_height', 'skin_temperature',
-                    'temperature_1000hPa', 'temperature_925hPa', 'temperature_850hPa',
-                    'temperature_700hPa', 'temperature_500hPa', 'temperature_300hPa',
-                    'temperature_250hPa', 'temperature_200hPa',
-                    'wind_speed_1000hPa', 'wind_speed_925hPa', 'wind_speed_850hPa',
-                    'wind_speed_700hPa', 'wind_speed_500hPa', 'wind_speed_300hPa',
-                    'wind_speed_250hPa', 'wind_speed_200hPa'
+                    // USP용 압력층 (5개로 축소: PBL / lower / mid / upper / jet)
+                    'temperature_1000hPa', 'temperature_850hPa',
+                    'temperature_700hPa', 'temperature_500hPa', 'temperature_250hPa',
+                    'wind_speed_1000hPa', 'wind_speed_850hPa',
+                    'wind_speed_700hPa', 'wind_speed_500hPa', 'wind_speed_250hPa',
+                    // photo-forecast 통합 변수
+                    'visibility', 'precipitation', 'precipitation_probability',
+                    'wind_gusts_10m', 'uv_index', 'surface_pressure', 'is_day',
                 ].join(',');
 
-                let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&forecast_days=7&timezone=auto`;
+                let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&forecast_days=4&timezone=auto`;
 
                 if (models && models !== 'best_match') {
                     url += `&models=${Array.isArray(models) ? models.join(',') : models}`;
