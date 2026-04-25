@@ -152,10 +152,11 @@ if (process.env.NODE_ENV === 'production') {
             res.setHeader('Vary', 'Accept-Encoding');
             res.setHeader('Content-Type', contentType);
             // express.static의 캐시 헤더와 동일하게 — 해시 파일은 1y immutable
+            // Cloudflare가 캐싱하도록 명시적 public + cacheControl:false로 sendFile 자동 헤더 차단
             if (req.path.includes('/assets/')) {
                 res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
             }
-            res.sendFile(compressedPath);
+            res.sendFile(compressedPath, { cacheControl: false, immutable: false });
             return true;
         };
 
