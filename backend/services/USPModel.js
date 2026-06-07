@@ -158,7 +158,7 @@ const USPModel = {
         // Dynamic Confidence — reflects actual data quality & diversity
         let confidence = 0.50; // base
         if (data.layers && data.layers.length > 0) confidence += 0.25;  // has vertical profiles
-        if (data.layers && data.layers.length >= 5) confidence += 0.10; // full profile (5+ layers)
+        if (data.layers && data.layers.length >= 4) confidence += 0.10; // full profile (5 pressure levels → 4 layers)
         if (data.aod != null) confidence += 0.05;                       // has air quality
         if (data.pm25 != null) confidence += 0.03;                      // has PM2.5
         if (data.humidity != null) confidence += 0.02;                  // has humidity

@@ -109,8 +109,6 @@ async function fetchNearbyMetar(lat, lon) {
     const obsTime = closest.reportTime
         || (closest.obsTime ? new Date(closest.obsTime * 1000).toISOString() : new Date().toISOString());
 
-    console.log(`[METAR] ${stationId}: ${closest.cover || 'N/A'} → ${oktas} oktas (${minDist.toFixed(0)}km away)`);
-
     return {
         oktas,          // 0-8 (이미 scoringService 스케일과 동일!)
         stationId,

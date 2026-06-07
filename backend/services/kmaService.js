@@ -131,8 +131,6 @@ async function fetchUltraSrtFcst(lat, lon) {
     // serviceKey를 URL에 직접 삽입 (axios params 인코딩 시 data.go.kr 401 발생 방지)
     const url = `${KMA_BASE}/getUltraSrtFcst?serviceKey=${apiKey}&dataType=JSON&base_date=${baseDate}&base_time=${baseTime}&nx=${nx}&ny=${ny}&numOfRows=60&pageNo=1`;
 
-    console.log(`[KMA] Fetching UltraSrtFcst: ${baseDate} ${baseTime} grid(${nx},${ny}) key=${'*'.repeat(6)}`);
-
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
     const data = await response.json();
@@ -170,7 +168,6 @@ async function fetchUltraSrtFcst(lat, lon) {
         }
     }
 
-    console.log(`[KMA] Parsed ${slotMap.size} time slots from UltraSrtFcst`);
     return slotMap;
 }
 
