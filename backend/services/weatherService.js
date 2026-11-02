@@ -441,8 +441,14 @@ const WeatherService = {
             const avgTheta = (theta1 + theta2) / 2;
             if (!avgTheta || avgTheta <= 0 || !dz || dz <= 0) continue; // skip invalid layer
             const ri = (9.8 / avgTheta) * (dTheta / dz) / Math.pow(Math.abs(windShear) || 0.001, 2);
-            // TKE estimation from wind shear + Richardson number (replaces hardcoded 0.5)
-            const shearTKE = Math.pow(Math.abs(windShear) * dz, 2) * 0.1;
+            // TKE from shear × mixing length (Prandtl): TKE ≈ (ℓ·|du/dz|)²
+            // ℓ = 자유대기 유효 난류 규모(약 250 m)이지 "층 두께 dz"가 아니다.
+            // v5.4에서 압력층 8→5로 줄이며 dz가 최대 4790 m까지 커졌는데, 기존
+            // (du/dz · dz)² = Δv²(층 위아래 속도차의 제곱) 공식은 상층 제트만 있으면
+            // 늘 상한 3.0에 붙어버려 전 세계 시잉이 2.5~4.4″로 똑같이 나빠졌다.
+            // 혼합길이를 고정값으로 쓰면 층 두께에 휘둘리지 않고 실제 난류를 반영한다.
+            const MIXING_LENGTH = 250; // m — effective free-atmosphere eddy scale
+            const shearTKE = Math.pow(Math.abs(windShear) * MIXING_LENGTH, 2);
             let stabilityFactor;
             if (ri > 0.25) stabilityFactor = 0.3;       // stable → suppressed
             else if (ri > 0) stabilityFactor = 0.7;      // neutral
