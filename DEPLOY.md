@@ -44,8 +44,10 @@ gcloud config set project mickey-485213
 *Docker가 내 컴퓨터에 설치되어 있지 않아도, 구글 서버에서 빌드하므로 상관없습니다.*
 
 ```bash
-gcloud builds submit --tag gcr.io/mickey-485213/korea-sky-seeing
+gcloud builds submit --tag gcr.io/mickey-485213/korea-sky-seeing --project=mickey-485213
 ```
+
+> ⚠️ `--project=mickey-485213`을 반드시 붙이세요. gcloud 기본 프로젝트가 `talktics`(별개 프로젝트)로 돼 있으면, 이 옵션 없이는 빌드가 talktics에서 실행됩니다. talktics와는 완전 분리 상태로 둡니다.
 
 ### 5. Cloud Run으로 배포 (Deploy)
 만들어진 이미지를 실제 서비스로 배포합니다.
@@ -55,7 +57,8 @@ gcloud run deploy korea-sky-seeing \
   --image gcr.io/mickey-485213/korea-sky-seeing \
   --platform managed \
   --region us-central1 \
-  --allow-unauthenticated
+  --allow-unauthenticated \
+  --project=mickey-485213
 ```
 
 *   **Region**: `us-central1` (미국 중부). ⚠️ 한국 서버(asia-northeast3)는 폐기됨.
