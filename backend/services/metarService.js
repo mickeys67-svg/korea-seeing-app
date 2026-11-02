@@ -105,9 +105,11 @@ async function fetchNearbyMetar(lat, lon) {
 
     const oktas = parseCloudOktas(closest);
     const stationId = closest.icaoId || closest.id || 'UNKNOWN';
-    // reportTime(ISO 문자열) 우선, 없으면 obsTime(Unix초) 변환, 둘 다 없으면 현재 시각
+    // reportTime(ISO 문자열) 우선, 없으면 obsTime(Unix초) 변환.
+    // 둘 다 없으면 관측시각 불명 → null. 현재 시각으로 찍어 '방금 관측'인 척하지 않는다.
+    // obsTime이 null이면 weatherService가 이 METAR를 적용하지 않음(정직한 처리).
     const obsTime = closest.reportTime
-        || (closest.obsTime ? new Date(closest.obsTime * 1000).toISOString() : new Date().toISOString());
+        || (closest.obsTime ? new Date(closest.obsTime * 1000).toISOString() : null);
 
     return {
         oktas,          // 0-8 (이미 scoringService 스케일과 동일!)

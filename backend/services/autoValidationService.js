@@ -73,16 +73,16 @@ async function validatePastPredictions(db, lat, lon, currentActual) {
                 ? Math.abs(inputs.temp - currentActual.temp)
                 : null;
 
-            // 자동 등급 산출 (1~5, 5=정확)
-            // 구름 오차 기반 (가장 중요한 지표)
-            let autoRating = 3; // 기본 보통
-            if (cloudError != null) {
-                if (cloudError <= 1.0) autoRating = 5;       // 구름 1단계 이내 → 정확
-                else if (cloudError <= 2.0) autoRating = 4;  // 2단계 이내 → 좋음
-                else if (cloudError <= 3.0) autoRating = 3;  // 3단계 → 보통
-                else if (cloudError <= 5.0) autoRating = 2;  // 5단계 → 나쁨
-                else autoRating = 1;                          // 완전 틀림
-            }
+            // 자동 등급 산출 (1~5, 5=정확) — 구름 오차 기반
+            // cloudError가 없으면 검증 불가 → 가짜 rating(3) 기록하지 않고 이 예측은 건너뜀
+            // (학습셋에 근거 없는 "검증됨" 레코드가 섞이지 않도록)
+            if (cloudError == null) return;
+            let autoRating;
+            if (cloudError <= 1.0) autoRating = 5;       // 구름 1단계 이내 → 정확
+            else if (cloudError <= 2.0) autoRating = 4;  // 2단계 이내 → 좋음
+            else if (cloudError <= 3.0) autoRating = 3;  // 3단계 → 보통
+            else if (cloudError <= 5.0) autoRating = 2;  // 5단계 → 나쁨
+            else autoRating = 1;                          // 완전 틀림
 
             batch.update(doc.ref, {
                 actual: {

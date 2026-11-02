@@ -100,7 +100,7 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
                             const s = point.scores.seeing;
                             const seeingColor = getSeeingColor(s);
                             const scoreColor = getScoreColor(point.score);
-                            const confidence = point.raw?.confidence ?? 70;
+                            const confidence = point.raw?.confidence ?? null;
 
                             return (
                                 <div
@@ -152,14 +152,16 @@ const ForecastList: React.FC<ForecastListProps> = ({ forecast, timezone, astrono
                                         </div>
                                     </div>
 
-                                    {/* Confidence */}
+                                    {/* Confidence — 실제 confidence 없으면 가짜 숫자(70%) 대신 '—' */}
                                     <div className="mt-2 w-full h-[3px] bg-white/5 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full rounded-full opacity-40"
-                                            style={{ width: `${confidence}%`, background: 'var(--accent)' }}
-                                        />
+                                        {confidence != null && (
+                                            <div
+                                                className="h-full rounded-full opacity-40"
+                                                style={{ width: `${confidence}%`, background: 'var(--accent)' }}
+                                            />
+                                        )}
                                     </div>
-                                    <span className="text-[10px] font-data text-[var(--text-tertiary)] mt-1">{confidence}%</span>
+                                    <span className="text-[10px] font-data text-[var(--text-tertiary)] mt-1">{confidence != null ? `${confidence}%` : '—'}</span>
                                 </div>
                             );
                         })}
