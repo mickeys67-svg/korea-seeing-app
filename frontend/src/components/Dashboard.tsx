@@ -5,7 +5,7 @@ import MoonPhase from './MoonPhase';
 import AiPrediction from './AiPrediction';
 import ForecastList from './ForecastList';
 import InfoPanel from './InfoPanel';
-import { Loader2, MapPin, X, Info, Cloud, Camera } from 'lucide-react';
+import { Loader2, MapPin, Info, Camera } from 'lucide-react';
 import useGeolocation from '../hooks/useGeolocation';
 import useWeatherData from '../hooks/useWeatherData';
 import useI18n from '../hooks/useI18n';
@@ -18,9 +18,6 @@ const Dashboard: React.FC = () => {
     const t = useI18n();
     const [infoPanelOpen, setInfoPanelOpen] = React.useState(false);
     const [photoGuideOpen, setPhotoGuideOpen] = React.useState(false);
-    const [updatePopupVisible, setUpdatePopupVisible] = React.useState(() => {
-        try { return !localStorage.getItem('clearsky-update-v3.4-seen'); } catch { return true; }
-    });
     const defaultLat = 37.5665;
     const defaultLon = 126.9780;
 
@@ -218,80 +215,6 @@ const Dashboard: React.FC = () => {
                         onClose={() => setPhotoGuideOpen(false)}
                     />
                 </Suspense>
-            )}
-
-            {/* ===== Update Popup (v3.3 Cloud Model) ===== */}
-            {updatePopupVisible && (
-                <div
-                    className="fixed left-1/2 z-50 w-[calc(100%-2rem)] max-w-xs animate-fade-in-up"
-                    style={{ transform: 'translateX(-50%)', bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}
-                >
-                    <div
-                        className="relative rounded-2xl px-4 py-3.5 backdrop-blur-xl text-center"
-                        style={{
-                            background: 'linear-gradient(170deg, rgba(14,18,38,0.96) 0%, rgba(10,14,30,0.98) 100%)',
-                            border: '1px solid rgba(34,211,238,0.2)',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(34,211,238,0.08)',
-                        }}
-                    >
-                        {/* Close button */}
-                        <button
-                            onClick={() => {
-                                setUpdatePopupVisible(false);
-                                try { localStorage.setItem('clearsky-update-v3.4-seen', '1'); } catch {}
-                            }}
-                            className="absolute top-2.5 right-2.5 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                        {/* Top accent line */}
-                        <div
-                            className="absolute top-0 left-6 right-6 h-px"
-                            style={{ background: 'linear-gradient(90deg, transparent, rgba(34,211,238,0.4), transparent)' }}
-                        />
-                        {/* Icon + Badge */}
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                            <div
-                                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                                style={{
-                                    background: 'rgba(34,211,238,0.1)',
-                                    border: '1px solid rgba(34,211,238,0.2)',
-                                }}
-                            >
-                                <Cloud className="w-3.5 h-3.5" style={{ color: 'var(--cyan)' }} />
-                            </div>
-                            <span
-                                className="text-[9px] font-bold font-data px-1.5 py-0.5 rounded"
-                                style={{ color: 'var(--cyan)', background: 'rgba(34,211,238,0.1)' }}
-                            >
-                                {t.updatePopup.badge}
-                            </span>
-                        </div>
-                        {/* Title */}
-                        <p className="text-sm font-bold mb-1.5" style={{ color: 'var(--text-bright)' }}>
-                            {t.updatePopup.title}
-                        </p>
-                        {/* Description */}
-                        <p className="text-[11px] leading-relaxed mb-3" style={{ color: 'var(--text-secondary)' }}>
-                            {t.updatePopup.desc}
-                        </p>
-                        {/* Dismiss button */}
-                        <button
-                            onClick={() => {
-                                setUpdatePopupVisible(false);
-                                try { localStorage.setItem('clearsky-update-v3.4-seen', '1'); } catch {}
-                            }}
-                            className="px-5 py-1.5 rounded-lg text-xs font-bold transition-all hover:brightness-110 active:scale-95"
-                            style={{
-                                background: 'linear-gradient(135deg, rgba(34,211,238,0.15), rgba(99,102,241,0.15))',
-                                border: '1px solid rgba(34,211,238,0.25)',
-                                color: 'var(--cyan)',
-                            }}
-                        >
-                            {t.updatePopup.dismiss}
-                        </button>
-                    </div>
-                </div>
             )}
 
             {/* SEO — hidden text for crawlers */}

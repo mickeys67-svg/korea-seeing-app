@@ -32,6 +32,13 @@
             init() {
                 this.favorites = JSON.parse(localStorage.getItem(CLEARSKY_LOCATION.Config.storageKeyFavorites) || '[]');
                 this.recent = JSON.parse(localStorage.getItem(CLEARSKY_LOCATION.Config.storageKeyRecent) || '[]');
+                // 첫 방문(한 번도 위치를 설정한 적 없음) → 주소 입력 탭을 자동으로 펼쳐 안내
+                let located = null;
+                try { located = localStorage.getItem('cls_located'); } catch { /* storage 차단 환경 */ }
+                if (!located) {
+                    this.mode = 'address';
+                    this.isExpanded = true;
+                }
             },
 
             save() {
@@ -42,6 +49,8 @@
             setLocation(loc, source = 'manual') {
                 const item = { ...loc, source, time: Date.now() };
                 this.current = item;
+                // 위치를 한 번이라도 설정하면 첫 방문 자동 안내를 끈다
+                try { localStorage.setItem('cls_located', '1'); } catch { /* storage 차단 환경 */ }
 
                 if (source === 'manual') {
                     this.recent = [item, ...this.recent.filter(r => r.id !== loc.id)].slice(0, 10);
@@ -91,6 +100,7 @@
               <div data-cls-element="tab-nav">
                 <button data-cls-element="tab-button" data-cls-tab="coords" data-cls-state="${mode === 'coords' ? 'active' : ''}">📍 Lat / Lon</button>
                 <button data-cls-element="tab-button" data-cls-tab="manual" data-cls-state="${mode === 'manual' ? 'active' : ''}">🔍 City Search</button>
+                <button data-cls-element="tab-button" data-cls-tab="address" data-cls-state="${mode === 'address' ? 'active' : ''}">🏠 주소</button>
               </div>
 
               <!-- Coordinates Input -->
@@ -125,6 +135,15 @@
                   <div data-cls-element="section-title">🕒 Recent Searches</div>
                   <div data-cls-element="recent-list"></div>
                 </div>
+              </div>
+
+              <!-- Address Search (주소 입력 → 좌표, GPS 미사용 · 사용자 제공 위치) -->
+              <div data-cls-content="address" style="display: ${mode === 'address' ? 'block' : 'none'}">
+                <div data-cls-element="search-container">
+                  <input type="text" data-cls-element="addr-input" placeholder="주소 입력 (예: 서울 종로구 세종대로 1)">
+                  <div data-cls-component="autocomplete" style="display: none"></div>
+                </div>
+                <div data-cls-element="coords-status" style="margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.4); text-align: center;">정확한 예보를 위해 주소를 입력해 위치를 설정하세요 (GPS 미사용)</div>
               </div>
             </div>
           </div>
@@ -192,6 +211,18 @@
                         timer = setTimeout(() => this.search(val), 300);
                     };
                 }
+
+                const addrInput = this.container.querySelector('[data-cls-element="addr-input"]');
+                if (addrInput) {
+                    let atimer;
+                    addrInput.oninput = () => {
+                        clearTimeout(atimer);
+                        const val = addrInput.value.trim();
+                        if (val.length < 2) return this.hideAddrResults();
+                        // 주소는 500ms 디바운스(Nominatim 정책 배려 + 불필요한 호출 방지)
+                        atimer = setTimeout(() => this.searchAddress(val), 500);
+                    };
+                }
             },
 
             async search(q) {
@@ -226,6 +257,50 @@
 
             hideResults() {
                 const ac = this.container.querySelector('[data-cls-component="autocomplete"]');
+                if (ac) ac.style.display = 'none';
+            },
+
+            // ── 주소 지오코딩 (백엔드 /api/geocode 프록시: Kakao 키 있으면 Kakao, 없으면 Nominatim) ──
+            async searchAddress(q) {
+                try {
+                    const res = await fetch(`/api/geocode?q=${encodeURIComponent(q)}`);
+                    const data = await res.json();
+                    this.showAddrResults(Array.isArray(data) ? data : []);
+                } catch (e) { console.error(e); }
+            },
+
+            showAddrResults(list) {
+                const panel = this.container.querySelector('[data-cls-content="address"]');
+                const ac = panel && panel.querySelector('[data-cls-component="autocomplete"]');
+                if (!ac) return;
+                ac.innerHTML = list.map((l, i) => `
+          <div data-cls-element="autocomplete-item" data-cls-idx="${i}">
+            <span data-cls-element="city-name">${l.name}</span>
+          </div>
+        `).join('');
+                ac.style.display = list.length ? 'block' : 'none';
+                ac.onclick = e => {
+                    const t = e.target.closest('[data-cls-element="autocomplete-item"]');
+                    if (!t) return;
+                    const loc = list[parseInt(t.dataset.clsIdx, 10)];
+                    if (loc) {
+                        CLEARSKY_LOCATION.State.setLocation({
+                            id: 'addr-' + loc.lat.toFixed(4) + '-' + loc.lng.toFixed(4),
+                            name: loc.name,
+                            country: '입력 주소',
+                            lat: loc.lat,
+                            lng: loc.lng,
+                        }, 'coords');
+                        ac.style.display = 'none';
+                        const ai = panel.querySelector('[data-cls-element="addr-input"]');
+                        if (ai) ai.value = '';
+                    }
+                };
+            },
+
+            hideAddrResults() {
+                const panel = this.container.querySelector('[data-cls-content="address"]');
+                const ac = panel && panel.querySelector('[data-cls-component="autocomplete"]');
                 if (ac) ac.style.display = 'none';
             },
 

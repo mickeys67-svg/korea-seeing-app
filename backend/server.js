@@ -128,6 +128,10 @@ app.get('/api/photo-forecast', photoController.getPhotoForecast);
 const clsRoutes = require('./routes/cls');
 app.use('/api/cls', clsRoutes);
 
+// Register Geocode route (주소→좌표, 사용자 입력 기반 · GPS 미사용)
+const geocodeRoutes = require('./routes/geocode');
+app.use('/api/geocode', geocodeRoutes);
+
 // Register Feedback routes
 const feedbackRoutes = require('./routes/feedback');
 app.use('/api', feedbackRoutes);
