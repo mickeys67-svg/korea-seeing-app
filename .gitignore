@@ -28,5 +28,11 @@ nul
 commitmsg.txt
 verify_v2.js
 
+# Dev-only API response dumps & ad-hoc validators (git status 오염 방지)
+test_*.json
+validate.py
+# 셸 리다이렉트 오타로 생긴 사고 산출물(파일명에 경로가 박힘)
+*korea-seeing-app*.json
+
 # Claude
 .claude/

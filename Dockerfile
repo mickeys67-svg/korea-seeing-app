@@ -27,8 +27,8 @@ COPY backend/ ./backend/
 # Copy frontend build output
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Copy root files needed at runtime
-COPY start_all.js web.js package.json ./
+# Copy root files needed at runtime (web.js는 Cafe24 잔재라 제거)
+COPY start_all.js package.json ./
 
 # Switch to non-root user
 USER appuser
