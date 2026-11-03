@@ -184,7 +184,9 @@ async function getPhotoForecast(lat, lon, lang = 'en') {
 
         // 6. 지리 플래그
         const isCoastal = isCoastalKorea(lat, lon);
-        const isUrban = false; // TODO: 도시 판정 개선
+        // weatherService가 이미 실측(고도 + 경계층 높이)으로 계산한 값을 재사용.
+        // 과거엔 false 하드코딩이라 도시/시골 구분이 전역에서 꺼져 있었다.
+        const isUrban = weatherResult?.meta?.isUrban ?? false;
         const siteElevation = elevation;
 
         // 7. 각 슬롯 처리

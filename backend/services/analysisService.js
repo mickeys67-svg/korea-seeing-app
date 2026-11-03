@@ -22,9 +22,10 @@ const AnalysisService = {
         if ((scores.seeing ?? 0) >= 4) factors.push({ key: 'seeing', severity: scores.seeing, ko: '시잉 불안정', en: 'poor seeing' });
         if ((scores.transparency ?? 0) >= 5) factors.push({ key: 'transparency', severity: scores.transparency, ko: '투명도 저하', en: 'low transparency' });
         if ((scores.wind ?? 0) >= 4) factors.push({ key: 'wind', severity: scores.wind, ko: '강풍', en: 'strong winds' });
-        if ((data.rh2m ?? 0) >= 85) factors.push({ key: 'humidity', severity: 7, ko: '높은 습도', en: 'high humidity' });
-        if ((raw.jetStreamSpeed ?? 0) >= 120) factors.push({ key: 'jetSpeed', severity: 8, ko: '극심한 제트기류', en: 'extreme jet stream' });
         if ((scores.convection ?? 0) >= 5) factors.push({ key: 'convection', severity: scores.convection, ko: '대류 불안정', en: 'convective instability' });
+        // 습도(severity 7)·극심한 제트(severity 8)는 리터럴 상수라 제거했다(가짜 /8 척도 금지).
+        // 높은 습도는 transparency 요인이, 강한 제트는 jet/seeing 요인이 실제 0-8 점수로
+        // 이미 반영하므로 정보 손실 없이 중복·가짜만 제거된다.
 
         factors.sort((a, b) => b.severity - a.severity);
         return factors;

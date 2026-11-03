@@ -777,7 +777,10 @@ const WeatherService = {
                 timezone: resolvedTz,
                 timezoneOffset: resolvedOffset,
                 ensemble: ensembleModels.length,
-                sources: ['7Timer', 'Open-Meteo (Ensemble)', 'Met.no', 'Cloud-Ensemble', 'METAR'],
+                isUrban: isUrban, // photoService 등에서 재사용 (하드코딩 금지)
+                // USP는 단일 best_match 모델이므로 'Ensemble'로 표기하지 않음. 구름은 실제
+                // 다중모델 앙상블이라 'Cloud-Ensemble' 유지.
+                sources: ['7Timer', 'Open-Meteo', 'Met.no', 'Cloud-Ensemble', 'METAR'],
                 apiHealth
             }
         };
