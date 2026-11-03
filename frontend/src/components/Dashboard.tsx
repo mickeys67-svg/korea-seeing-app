@@ -111,13 +111,15 @@ const Dashboard: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                     {data?.apiHealth && (() => {
-                        // null = 해당 지역 미적용(예: 한국 밖 KMA) → 판정에서 제외
-                        const entries = Object.entries(data.apiHealth).filter(([, v]) => v !== null);
+                        // 상태등은 '예보가 정상인가'를 뜻한다. 핵심 예보 소스(Open-Meteo/7Timer/
+                        // Met.no) 중 하나라도 살아있으면 정상(OK). KMA·METAR·공기질·앙상블은
+                        // 선택적 보강재라 없어도 '지연'으로 깎지 않는다(있으면 정확도만 올림).
+                        // 이렇게 해야 핵심 예보가 멀쩡한데 보강재 하나 빠졌다고 가짜 경보가 안 뜬다.
+                        const CORE = ['timer', 'openmeteo', 'metno'];
                         const srcNames = t.apiHealth.sources as Record<string, string>;
-                        const down = entries.filter(([, v]) => v === false).map(([k]) => srcNames[k] ?? k);
-                        const healthy = entries.length > 0 && down.length === 0;
-                        // '데이터 복구중'(앱 전체가 고장난 듯한 표현) 대신, 문제가 있는 소스만 구체적으로 표시.
-                        // 예: 기상청만 지연이면 "기상청 지연" → 나머지는 정상이라는 뜻이 분명해진다.
+                        const core = Object.entries(data.apiHealth).filter(([k, v]) => CORE.includes(k) && v !== null);
+                        const healthy = core.some(([, v]) => v === true);
+                        const down = core.filter(([, v]) => v === false).map(([k]) => srcNames[k] ?? k);
                         const label = healthy ? t.apiHealth.ok : `${down.join('·')} ${t.apiHealth.delayed}`;
                         return (
                             <div className="flex items-center gap-1.5" title={healthy ? t.apiHealth.ok : `${down.join(', ')} ${t.apiHealth.delayed}`}>
