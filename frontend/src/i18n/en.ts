@@ -200,6 +200,16 @@ const en = {
         news: {
             updates: [
                 {
+                    title: 'Major accuracy & reliability overhaul',
+                    items: [
+                        'Fixed seeing forecast reading too poor worldwide',
+                        'Removed ungrounded on-screen numbers — only real computed/measured values shown',
+                        'Confidence now reflects weather-model agreement',
+                        'Data status now names the specific source with an issue',
+                        'Added automated tests to prevent regressions',
+                    ],
+                },
+                {
                     title: 'Performance & Stability Improvements',
                     items: [
                         'Significantly faster loading under concurrent access',

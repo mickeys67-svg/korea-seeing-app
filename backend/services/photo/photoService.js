@@ -284,7 +284,7 @@ async function getPhotoForecast(lat, lon, lang = 'en') {
             phenomena: phenomenaCalendar,
             topSuggestionsNow,
             meta: {
-                version: '5.0.0',
+                version: '5.5.0',
                 mode: photoOmRaw ? 'full' : 'limited',
                 hasPhotoVars: !!photoOmRaw,
                 hasWeatherData: true,

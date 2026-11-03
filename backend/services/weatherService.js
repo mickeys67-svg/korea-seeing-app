@@ -517,7 +517,10 @@ const WeatherService = {
             openmeteo: !!(omData && omData.hourly),
             metno: !!metData,
             airquality: !!aqData,
-            kma: isKR ? !!kmaData : null,  // null = not applicable (non-Korea)
+            // KMA는 유효한 KMA_API_KEY가 설정된 한국 좌표에서만 보고한다. 키가 없으면
+            // null(비한국과 동일) → 상태등에서 제외돼 '기상청 지연'으로 표시되지 않는다.
+            // 나중에 키를 설정하면 코드 변경 없이 자동으로 다시 상태에 반영된다(선택적화).
+            kma: (isKR && !!process.env.KMA_API_KEY) ? !!kmaData : null,
             ensemble: !!ensembleData,
             metar: !!metarData,
         };
