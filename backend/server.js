@@ -159,6 +159,10 @@ if (process.env.NODE_ENV === 'production') {
             // Cloudflare가 캐싱하도록 명시적 public + cacheControl:false로 sendFile 자동 헤더 차단
             if (req.path.includes('/assets/')) {
                 res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            } else if (req.path.endsWith('/sw.js') || req.path.endsWith('/registerSW.js') || req.path.endsWith('.webmanifest')) {
+                // PWA 제어 파일: 해시 없는 고정 이름 → 반드시 최신(no-cache).
+                // 캐시되면 서비스워커가 영영 안 바뀌어 옛 앱 셸이 계속 서빙된다.
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
             }
             res.sendFile(compressedPath, { cacheControl: false, immutable: false });
             return true;
@@ -200,6 +204,13 @@ if (process.env.NODE_ENV === 'production') {
             }
             // cls/ 폴더의 JS/CSS는 해시가 없으므로 캐시 금지
             if (filePath.includes('cls') && (filePath.endsWith('.js') || filePath.endsWith('.css'))) {
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
+            }
+            // PWA 서비스워커·매니페스트: 해시 없는 고정 이름 → no-cache로 SW 자동 갱신 보장.
+            // (1년 immutable이면 새 sw.js가 안 내려가 옛 앱이 영영 서빙됨)
+            if (filePath.endsWith('sw.js') || filePath.endsWith('registerSW.js') || filePath.endsWith('.webmanifest')) {
                 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');
