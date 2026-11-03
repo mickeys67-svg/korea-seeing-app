@@ -32,13 +32,26 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // 정적 자산은 즉시 캐시 → 재방문자 egress 0
-        globPatterns: ['**/*.{js,css,html,webp,jpg,svg,woff2}'],
-        // index.html은 SW 업데이트 즉시 반영되도록 cleanupOutdatedCaches
+        // 정적 자산(해시 파일)은 precache → 재방문자 egress 0
+        globPatterns: ['**/*.{js,css,webp,jpg,svg,woff2}'],
         cleanupOutdatedCaches: true,
         // 5MB 한도 — 큰 이미지 자동 제외
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // 앱 셸(HTML)을 precache 내비게이션으로 고정하지 않는다. precache된 옛 셸 +
+        // 캐시된 sw.js가 겹치면 옛 화면에 갇히는 문제가 생겼었다. 내비게이션은 아래
+        // NetworkFirst로 항상 네트워크의 최신 index.html을 받고, 오프라인일 때만 캐시.
+        navigateFallback: null,
         runtimeCaching: [
+          {
+            // HTML 내비게이션: 네트워크 우선(오프라인이면 캐시 폴백) → 셸이 캐시에 안 갇힘
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-shell',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
           {
             // /api/weather, /api/photo-forecast — SWR (10분 fresh)
             urlPattern: ({ url }) => url.pathname.startsWith('/api/weather') || url.pathname.startsWith('/api/photo-forecast'),
