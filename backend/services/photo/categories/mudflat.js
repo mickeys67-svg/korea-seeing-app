@@ -128,18 +128,17 @@ function calculate(slot, context) {
     // ─── 5. Visibility ─────────────────────────────────────────
     const visScore = clamp((visibility - 5000) / 15000, 0, 1);
 
-    // ─── 6. Tide proxy (Phase C에서 교체) ──────────────────────
-    // 현재는 "대략적 평균" 0.5 — 실제 tide data로 대체 예정
-    const tideProxy = 0.5;
-
     // ─── 가중 합산 ────────────────────────────────────────────
+    // 조수(tide)는 실제 데이터 소스가 없어 제거했다(가짜 0.5 상수 금지).
+    // KHOA 조수 API를 붙이기 전까지는 황혼·반사·구름·시정 같은 실측 기반
+    // 요소로만 점수를 낸다. weightedAvg는 가중치 합으로 정규화하므로
+    // 항목을 빼도 나머지 비율은 그대로 유지된다.
     const componentRaw = weightedAvg([
         { value: twilightOverlap,   weight: 0.30 },
         { value: reflectionQuality, weight: 0.20 },
         { value: cloudDrama,        weight: 0.15 },
         { value: horizonClear,      weight: 0.10 },
         { value: visScore,          weight: 0.10 },
-        { value: tideProxy,         weight: 0.15 },
     ]);
 
     // 강수 감점
@@ -166,11 +165,9 @@ function calculate(slot, context) {
             cloudDrama:        { score: cloudDrama,        value: cloudMid,    label: 'Cloud Drama' },
             horizonClear:      { score: horizonClear,      value: cloudLow,    label: 'Horizon Clear' },
             visibility:        { score: visScore,          value: visibility,  label: 'Visibility' },
-            tideProxy:         { score: tideProxy,                            label: 'Tide (Phase C pending)' },
         },
         factors: {
             rainPenalty,
-            needsTideData: true, // Phase C 힌트
         },
     };
 }

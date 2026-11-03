@@ -119,7 +119,6 @@ export interface MudflatResult extends CategoryResultBase {
 // Phenomena slot-level
 export interface OpticalEvent {
     id: string;
-    probability: number;
     direction: string;
 }
 export interface LinkedPhenomenon {

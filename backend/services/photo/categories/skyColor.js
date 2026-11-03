@@ -1,10 +1,9 @@
 /**
  * v5.0 Photo Guide — Sky Color (Golden/Blue Hour) Scorer
  *
- * NOAA/MIT SunsetWx 기반 물리 모델:
+ * NOAA/MIT SunsetWx 기반 물리 모델 (실측 구름·습도·시정만 사용):
  *   - 고층운(cirrus) 30-60%가 태양광을 반사 → 강렬한 오렌지
  *   - 저층운이 지평선을 막지 않아야 함
- *   - 에어로졸이 약간 있으면 Mie scattering으로 붉은색 증폭
  *   - 습도 40-70%가 최적 (너무 높으면 탁해짐)
  *
  * Output: 각 슬롯마다 score(0-100), grade, palette, colorDirection
@@ -57,31 +56,9 @@ function directionFromAzimuth(az) {
     return 'N';
 }
 
-// ─── AOD 근사값 ───────────────────────────────────────────────
-/**
- * Open-Meteo는 AOD를 직접 제공하지 않음.
- * 대신 visibility + humidity에서 간이 추정:
- *   - visibility 30km + humidity 50% → AOD ≈ 0.10 (clean)
- *   - visibility 10km + humidity 80% → AOD ≈ 0.35 (hazy)
- *   - visibility  5km               → AOD ≈ 0.60 (polluted)
- *
- * SunsetWx 모델의 "sweet spot" AOD ≈ 0.15 (약간의 에어로졸이 붉은색 증폭)
- */
-function estimateAOD(visibilityM, humidity) {
-    const vis = safeNum(visibilityM, 20000);
-    const hum = safeNum(humidity, 60);
-    // visibility만으로 대충: 30km → 0.08, 20km → 0.15, 10km → 0.30, 5km → 0.55
-    let aod;
-    if (vis >= 30000) aod = 0.08;
-    else if (vis >= 20000) aod = 0.15;
-    else if (vis >= 15000) aod = 0.20;
-    else if (vis >= 10000) aod = 0.30;
-    else if (vis >= 5000)  aod = 0.45;
-    else aod = 0.65;
-    // humidity 보정 (높을수록 습한 에어로졸 → 약간 증가)
-    if (hum > 80) aod += 0.05;
-    return aod;
-}
+// AOD(에어로졸 광학두께)는 Open-Meteo가 제공하지 않는다. 과거엔 visibility로
+// 지어낸 추정값을 "측정값"처럼 썼으나 실제 근거가 없어 제거했다(가짜 데이터 금지).
+// 에어로졸 항목 없이 실측 구름·습도·시정만으로 노을색 점수를 낸다.
 
 // ─── 메인 계산 ────────────────────────────────────────────────
 /**
@@ -103,13 +80,11 @@ function calculate(slot, context) {
     const humidity  = safeNum(w.relativeHumidity, 60);
     const visibility = safeNum(w.visibility, 20000); // m
     const precipProb = safeNum(w.precipProb, 0);
-    const aod = estimateAOD(visibility, humidity);
 
     // ─── SunsetWx 가우시안 sweet-spot 점수 ─────────────────
     const highCloudOptimal = gaussian(cloudHigh, 45, 20);        // peak 45%, σ 20%
     const midCloudOptimal  = gaussian(cloudMid,  25, 15);        // peak 25%, σ 15%
     const lowCloudClear    = clamp((30 - cloudLow) / 30, 0, 1);  // <30% = 1, >30% 급감
-    const aerosolOptimal   = gaussian(aod, 0.15, 0.10);          // peak 0.15
     const humidityOptimal  = gaussian(humidity, 55, 15);         // peak 55%
     const visibilityOk     = clamp((visibility - 5000) / 10000, 0, 1); // 5km→0, 15km→1
 
@@ -138,13 +113,13 @@ function calculate(slot, context) {
     }
 
     // ─── 가중 합산 ────────────────────────────────────────
+    // 에어로졸 항목(가중치 0.15) 제거 후 남은 5개를 합 1.0으로 재정규화
     const componentRaw =
-        0.30 * highCloudOptimal +
-        0.15 * midCloudOptimal +
-        0.20 * lowCloudClear +
-        0.15 * aerosolOptimal +
-        0.10 * humidityOptimal +
-        0.10 * visibilityOk;
+        0.35 * highCloudOptimal +
+        0.18 * midCloudOptimal +
+        0.23 * lowCloudClear +
+        0.12 * humidityOptimal +
+        0.12 * visibilityOk;
 
     const raw = clamp(componentRaw * rainPenalty * solarAngleBonus, 0, 1);
     const score = rawToScore100(raw);
@@ -173,7 +148,6 @@ function calculate(slot, context) {
         highCloud:  { value: cloudHigh,  score: highCloudOptimal, label: 'High Cloud' },
         midCloud:   { value: cloudMid,   score: midCloudOptimal,  label: 'Mid Cloud' },
         lowCloud:   { value: cloudLow,   score: lowCloudClear,    label: 'Low Cloud (clearness)' },
-        aerosol:    { value: aod,        score: aerosolOptimal,   label: 'Aerosol (AOD est.)' },
         humidity:   { value: humidity,   score: humidityOptimal,  label: 'Humidity' },
         visibility: { value: visibility, score: visibilityOk,     label: 'Visibility' },
     };
@@ -182,7 +156,6 @@ function calculate(slot, context) {
     const factors = {
         rainPenalty,
         solarAngleBonus,
-        aodEstimated: aod,
         sunAltitude: solar?.sunAltitude ?? null,
         sunAzimuth:  solar?.sunAzimuth  ?? null,
         phase:       solar?.phase       ?? null,
@@ -209,5 +182,4 @@ module.exports = {
     calculate,
     paletteFromRaw,
     directionFromAzimuth,
-    estimateAOD,
 };

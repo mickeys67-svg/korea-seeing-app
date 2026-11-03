@@ -4,7 +4,7 @@
  * phenomenaService는 30일 캘린더(월식/일식/슈퍼문/유성우)를 제공하고,
  * 이 모듈은 "지금 이 슬롯에서 관측 가능한 대기광학 현상"을 판정.
  *
- * Atmospheric Optics (기상 조건 기반 확률):
+ * Atmospheric Optics (기상 조건 기반 "가능 여부" 판정 — 가짜 확률 상수 없음):
  *   - Rainbow: 태양 고도 < 42° + precipProb 20-50% + is_day
  *   - Fogbow: 안개 + 태양 가시
  *   - Halo 22°: cloudHigh > 40% (권운) + 태양 가시
@@ -31,12 +31,8 @@ function checkRainbow(w, context) {
     if (!isDay) return null;
     if (sunAlt <= 0 || sunAlt >= 42) return null;
     if (precipProb < 15 || precipProb > 70) return null;
-    // 확률 = sweet spot 20-50%에서 peak
-    const probability = precipProb >= 25 && precipProb <= 45 ? 0.7 :
-                        precipProb >= 15 && precipProb <= 60 ? 0.45 : 0.25;
     return {
         id: 'rainbow',
-        probability,
         direction: solar?.sunAzimuth != null
             ? `opposite-sun (az ${Math.round((solar.sunAzimuth + 180) % 360)}°)`
             : 'opposite-sun',
@@ -51,7 +47,6 @@ function checkFogbow(w, context) {
     if (!solar || solar.sunAltitude == null || solar.sunAltitude < 0) return null;
     return {
         id: 'fogbow',
-        probability: 0.4,
         direction: 'opposite-sun',
     };
 }
@@ -65,7 +60,6 @@ function checkHalo22(w, context) {
     if (!solar || solar.sunAltitude == null || solar.sunAltitude < 10) return null;
     return {
         id: 'halo-22',
-        probability: cloudHigh >= 50 && cloudHigh <= 75 ? 0.6 : 0.4,
         direction: 'around-sun (22° radius)',
     };
 }
@@ -80,7 +74,6 @@ function checkSunPillar(w, context) {
     if (!(solar.isGoldenHour || solar.isBlueHour)) return null;
     return {
         id: 'sun-pillar',
-        probability: 0.55,
         direction: solar.sunAzimuth != null ? `sun direction (az ${Math.round(solar.sunAzimuth)}°)` : 'sun direction',
     };
 }
@@ -93,7 +86,6 @@ function checkCrepuscularRays(w, context) {
     if (!(solar.isGoldenHour || solar.phase === 'twilight')) return null;
     return {
         id: 'crepuscular-rays',
-        probability: cloudMid >= 35 && cloudMid <= 55 ? 0.6 : 0.4,
         direction: solar.sunAzimuth != null ? `sun direction (az ${Math.round(solar.sunAzimuth)}°)` : 'sun direction',
     };
 }
@@ -105,7 +97,6 @@ function checkBeltOfVenus(w, context) {
     if (cloudLow > 40) return null;
     return {
         id: 'belt-of-venus',
-        probability: cloudLow < 20 ? 0.85 : 0.55,
         direction: solar.sunAzimuth != null
             ? `opposite-sun (az ${Math.round((solar.sunAzimuth + 180) % 360)}°)`
             : 'opposite-sun',
@@ -122,7 +113,6 @@ function checkAlpenglow(w, context) {
     if (cloudLow > 60) return null;
     return {
         id: 'alpenglow',
-        probability: 0.7,
         direction: 'mountain peaks',
     };
 }
@@ -151,9 +141,10 @@ function calculate(slot, context) {
         }
     }
 
-    // Score: 이벤트 확률의 가중 합
+    // Score: 조건을 통과해 "가능"으로 판정된 광학현상 개수 기반(현상당 0.2).
+    // 과거엔 손으로 넣은 '확률' 상수(0.4/0.55/0.7…)를 썼으나 근거가 없어 제거(가짜 데이터 금지).
     let raw = 0;
-    for (const c of checks) raw += c.probability * 0.2;
+    for (let i = 0; i < checks.length; i++) raw += 0.2;
     for (const p of linkedPhenomena) {
         // 월식/슈퍼문 등이 이 날 있으면 크게 가산
         if (p.type === 'blood-moon') raw += 0.6;
