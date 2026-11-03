@@ -199,13 +199,26 @@ const WeatherService = {
         '250hPa': 10360,
     },
 
-    findClosestItem: (times, targetDate) => {
+    // targetDate는 '진짜 UTC instant'다. Open-Meteo는 timezone=auto로 부르면 시간을
+    // 오프셋 없는 현지 벽시계 문자열("2026-11-03T11:00")로 돌려준다. 이걸 서버에서
+    // new Date()로 바로 파싱하면 UTC로 읽혀(= 서버가 UTC인 Cloud Run에서 11:00Z),
+    // 실제 그 슬롯이 가리키는 순간(11:00 KST = 02:00Z)과 utc_offset_seconds만큼
+    // 어긋난다(한국 9시간). 그래서 응답의 utc_offset_seconds로 진짜 instant를 복원해
+    // 비교한다. 서버 타임존과 무관하게 동작하며, 이미 Z/±hh:mm를 단 문자열은 그대로 쓴다.
+    findClosestItem: (times, targetDate, utcOffsetSeconds = 0) => {
         if (!times || times.length === 0) return null;
         const targetTime = targetDate.getTime();
+        const offMs = (utcOffsetSeconds || 0) * 1000;
         let minDiff = Infinity;
         let closestIndex = -1;
         for (let i = 0; i < times.length; i++) {
-            const t = new Date(times[i]).getTime();
+            const s = times[i];
+            if (!s) continue;
+            const timePart = s.length > 10 ? s.slice(10) : '';
+            const hasZone = /[zZ]/.test(timePart) || /[+-]\d\d:?\d\d$/.test(timePart);
+            // naive 문자열: 벽시계를 UTC로 파싱한 뒤 offset을 빼 진짜 instant로 변환
+            const t = hasZone ? Date.parse(s) : (Date.parse(s + 'Z') - offMs);
+            if (Number.isNaN(t)) continue;
             const diff = Math.abs(t - targetTime);
             if (diff < minDiff) {
                 minDiff = diff;
@@ -227,7 +240,7 @@ const WeatherService = {
         if (isValid(item.rh2m)) values.humidities.push(item.rh2m);
         if (isValid(item.cloudcover)) values.clouds.push(Math.max(0, item.cloudcover - 1));
         if (omData && omData.hourly && omData.hourly.time) {
-            const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
+            const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate, omData.utc_offset_seconds);
             if (omIdx !== null) {
                 const h = omData.hourly;
                 if (h.temperature_2m && h.temperature_2m[omIdx] != null) values.temps.push(h.temperature_2m[omIdx]);
@@ -265,7 +278,7 @@ const WeatherService = {
         let pm25 = null;
         let aod = null;
         if (aqData && aqData.hourly && aqData.hourly.time) {
-            const aqIdx = WeatherService.findClosestItem(aqData.hourly.time, targetDate);
+            const aqIdx = WeatherService.findClosestItem(aqData.hourly.time, targetDate, aqData.utc_offset_seconds);
             if (aqIdx !== null) {
                 if (aqData.hourly.pm2_5 && aqData.hourly.pm2_5[aqIdx] != null) pm25 = aqData.hourly.pm2_5[aqIdx];
                 // AOD: accept whichever key the API returned (current or legacy)
@@ -418,7 +431,7 @@ const WeatherService = {
     prepareUSPData: (targetDate, omData) => {
         const layers = [];
         if (!omData || !omData.hourly) return layers;
-        const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate);
+        const omIdx = WeatherService.findClosestItem(omData.hourly.time, targetDate, omData.utc_offset_seconds);
         if (omIdx === null) return layers;
         const h = omData.hourly;
         const pressureLevels = ['1000hPa', '850hPa', '700hPa', '500hPa', '250hPa'];

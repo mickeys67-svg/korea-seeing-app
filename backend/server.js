@@ -155,15 +155,24 @@ if (process.env.NODE_ENV === 'production') {
             res.setHeader('Content-Encoding', encoding);
             res.setHeader('Vary', 'Accept-Encoding');
             res.setHeader('Content-Type', contentType);
-            // express.static의 캐시 헤더와 동일하게 — 해시 파일은 1y immutable
-            // Cloudflare가 캐싱하도록 명시적 public + cacheControl:false로 sendFile 자동 헤더 차단
+            // express.static의 캐시 헤더와 동일하게 맞춘다. 이 핸들러가 express.static보다
+            // 먼저 돌기 때문에, 여기서 Cache-Control을 안 붙이면(sendFile은 cacheControl:false라
+            // 자동 헤더도 없음) 응답에 캐시 헤더가 전혀 없어 Cloudflare가 제멋대로 캐시한다.
+            // 과거 cls/*·html이 이 구멍으로 빠져 옛 위젯/셸이 고착됐다(수동 ?v= 버스팅의 원인).
             if (req.path.includes('/assets/')) {
+                // 해시된 번들: 내용이 바뀌면 파일명도 바뀌므로 영구 캐시 안전
                 res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-            } else if (req.path.endsWith('/sw.js') || req.path.endsWith('/registerSW.js') || req.path.endsWith('.webmanifest')) {
-                // PWA 제어 파일: 해시 없는 고정 이름 → 반드시 최신(no-cache).
-                // 캐시되면 서비스워커가 영영 안 바뀌어 옛 앱 셸이 계속 서빙된다.
+            } else if (
+                req.path.endsWith('/sw.js') || req.path.endsWith('/registerSW.js') ||
+                req.path.endsWith('.webmanifest') || req.path.endsWith('.html') ||
+                (req.path.includes('/cls') && (req.path.endsWith('.js') || req.path.endsWith('.css')))
+            ) {
+                // 해시 없는 고정 이름(PWA 제어·앱 셸·cls 위젯): 캐시되면 옛 버전이 고착 → 반드시 no-cache
                 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+                res.setHeader('Pragma', 'no-cache');
+                res.setHeader('Expires', '0');
             }
+            // 그 외 비해시 정적(favicon.svg 등)은 sendFile 기본값에 맡긴다.
             res.sendFile(compressedPath, { cacheControl: false, immutable: false });
             return true;
         };

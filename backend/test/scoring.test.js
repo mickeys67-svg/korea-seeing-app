@@ -131,3 +131,90 @@ test('관측점수: 완전 흐림(cloud>=7)은 10 이하로 캡', () => {
     assert.ok(r.score <= 10, `흐림 점수=${r.score} — 하드게이트 깨짐`);
     assert.strictEqual(r.grade, 'D');
 });
+
+// ─────────────────────────────────────────────────────────────
+// 8. findClosestItem 타임존 회귀 가드 (2026-11-03 고친 버그)
+//    OM timezone=auto는 오프셋 없는 현지 벽시계 문자열을 준다. 서버(UTC)에서 그걸
+//    그대로 UTC로 파싱하면 한국은 9시간 어긋난 슬롯을 집었다(기온·구름·압력층 전부).
+//    utc_offset_seconds로 진짜 instant를 복원해 비교해야 한다.
+// ─────────────────────────────────────────────────────────────
+test('findClosestItem: 한국 naive 로컬 문자열 + offset으로 진짜 instant 매칭', () => {
+    const KR_OFFSET = 9 * 3600; // Asia/Seoul utc_offset_seconds
+    // OM가 timezone=auto로 돌려준 현지 벽시계(오프셋 없음) — 00:00~23:00 KST
+    const localTimes = [];
+    for (let h = 0; h < 24; h++) localTimes.push(`2026-11-03T${String(h).padStart(2, '0')}:00`);
+
+    // 원하는 진짜 순간: 2026-11-03T02:00:00Z = 한국 11:00 (= localTimes[11])
+    const target = new Date('2026-11-03T02:00:00Z');
+    const idx = WS.findClosestItem(localTimes, target, KR_OFFSET);
+    assert.strictEqual(localTimes[idx], '2026-11-03T11:00',
+        `offset 적용 시 11:00(KST)=02:00Z를 집어야 함 — 집은 값=${localTimes[idx]}`);
+
+    // 회귀 증명: offset을 무시하면(옛 동작) 02:00을 집어 9시간 어긋난다
+    const buggy = WS.findClosestItem(localTimes, target, 0);
+    assert.strictEqual(localTimes[buggy], '2026-11-03T02:00',
+        'offset=0(옛 동작)은 02:00을 집어 9h 어긋났음을 확인');
+    assert.notStrictEqual(localTimes[idx], localTimes[buggy],
+        'offset 적용/미적용 결과가 달라야 함 — 같으면 수정이 안 먹은 것');
+});
+
+test('findClosestItem: Z 접미사가 붙은 문자열은 offset 무관하게 그대로 파싱', () => {
+    // Met.no·내부 toISOString()은 이미 진짜 UTC. offset을 넘겨도 영향 없어야 한다.
+    const utcTimes = ['2026-11-03T01:00:00Z', '2026-11-03T02:00:00Z', '2026-11-03T03:00:00Z'];
+    const target = new Date('2026-11-03T02:10:00Z');
+    assert.strictEqual(WS.findClosestItem(utcTimes, target, 9 * 3600), 1);
+    assert.strictEqual(WS.findClosestItem(utcTimes, target, 0), 1);
+});
+
+// ─────────────────────────────────────────────────────────────
+// 9. buildPhotoIndex 키 불일치 회귀 가드 (2026-11-03 고친 버그)
+//    과거: Map 키=OM 현지문자열("…T13:00"), 조회=ws.time(진짜 UTC "…Z") → 영원히 불일치
+//    → photo 변수 전부 null → isDay 늘 오판, 야간/장노출 추천 미작동.
+//    수정: 진짜 instant로 변환해 최근접 매칭.
+// ─────────────────────────────────────────────────────────────
+const { buildPhotoIndex } = require('../services/photo/fetchOpenMeteoForPhoto');
+
+function makePhotoRaw() {
+    const time = [];
+    const is_day = [];
+    const visibility = [];
+    for (let h = 0; h < 24; h++) {
+        time.push(`2026-11-03T${String(h).padStart(2, '0')}:00`); // KST 현지 벽시계
+        is_day.push(h >= 7 && h <= 18 ? 1 : 0);                   // 낮: 07~18 KST
+        visibility.push(h * 1000);                                // 시각마다 다른 값(변별 확인용)
+    }
+    return { utc_offset_seconds: 9 * 3600, hourly: { time, is_day, visibility } };
+}
+
+test('buildPhotoIndex: ws.time(진짜 UTC)로 조회 시 올바른 현지 슬롯 반환(null 아님)', () => {
+    const idx = buildPhotoIndex(makePhotoRaw());
+    assert.ok(idx.size === 24, `인덱스 크기=${idx.size}`);
+
+    // 한국 낮 13:00 = 04:00Z. ws.time은 toISOString() 형식.
+    const dayWs = new Date('2026-11-03T04:00:00.000Z').toISOString();
+    const day = idx.get(dayWs);
+    assert.ok(day !== null, '진짜 UTC 조회가 null이면 키 불일치 버그 재발');
+    assert.strictEqual(day.isDay, 1, `한국 13:00는 낮이어야 함 isDay=${day && day.isDay}`);
+    assert.strictEqual(day.visibility, 13000, `13:00 KST 슬롯 visibility=${day && day.visibility}`);
+
+    // 한국 02:00 = 전날 17:00Z → 밤
+    const nightWs = new Date('2026-11-02T17:00:00.000Z').toISOString();
+    const night = idx.get(nightWs);
+    assert.ok(night !== null);
+    assert.strictEqual(night.isDay, 0, `한국 02:00은 밤이어야 함 isDay=${night && night.isDay}`);
+
+    // 입력(조회 시각)이 바뀌면 결과도 바뀐다 — 고정 폴백이 아님을 증명
+    assert.notStrictEqual(day.visibility, night.visibility);
+});
+
+test('buildPhotoIndex: 2시간 넘게 벌어진 조회는 데이터 없음(null)', () => {
+    const idx = buildPhotoIndex(makePhotoRaw());
+    // 범위 밖(며칠 뒤) → null
+    assert.strictEqual(idx.get('2026-11-10T00:00:00.000Z'), null);
+});
+
+test('buildPhotoIndex: 빈/깨진 입력도 안전', () => {
+    assert.strictEqual(buildPhotoIndex(null).get('x'), null);
+    assert.strictEqual(buildPhotoIndex({}).size, 0);
+    assert.strictEqual(buildPhotoIndex({ hourly: { time: [] } }).get('x'), null);
+});

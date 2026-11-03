@@ -170,7 +170,7 @@ const Dashboard: React.FC = () => {
             {currentForecast && (
                 <SeeingDetails
                     data={currentForecast}
-                    moonFraction={data.astronomy?.[0]?.moon.fraction ?? 0.5}
+                    moonFraction={data.astronomy?.[0]?.moon?.fraction ?? 0.5}
                     isDaytime={isDaytime}
                     sunsetTime={todayAstro?.sun?.sunset as string | null | undefined}
                     timezone={locationTz}
