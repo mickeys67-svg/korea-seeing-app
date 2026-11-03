@@ -723,10 +723,13 @@ export function buildScenarios(
     const moonDark = moon.sortScore >= 40 && (moon.nowValue ? parseInt(moon.nowValue) < 40 : true);
     const skyClear = clouds.sortScore <= 45;
     if (isNight && moonDark && skyClear) {
+        // 점수를 실제 moon/clouds sortScore에서 계산하고 등급도 그 점수로 매긴다.
+        // (과거엔 grade를 85로 하드코딩해 점수와 불일치 — 가짜 등급)
+        const starTrailScore = Math.round((moon.sortScore + (100 - (clouds.sortScore / 75 * 100))) / 2 + 15);
         scenarios.push({
             id: 'starTrail',
-            score: Math.round((moon.sortScore + (100 - (clouds.sortScore / 75 * 100))) / 2 + 15),
-            grade: gradeFromScore(85),
+            score: starTrailScore,
+            grade: gradeFromScore(starTrailScore),
             relatedObjects: ['moon', 'clouds', 'wind', 'visibility'],
             warnings: warnings.filter((w) => w.id === 'condensation' || w.id === 'cold'),
         });
@@ -762,10 +765,13 @@ export function buildScenarios(
         clouds.nowText.includes('흐림') || clouds.nowText.includes('평탄');
     const isDay = now?.solar?.isDay || (light.nowText.includes('day') || light.nowText.includes('낮'));
     if (isOvercast && isDay) {
+        // 흐린 날 부드러운 광질 포트레이트. 과거엔 조건 무관 65 고정(가짜)이었다.
+        // 실측 기반(잔잔한 바람 + 시정)으로 점수를 내고 등급도 그 점수로 매긴다.
+        const softPortraitScore = Math.round((wind.sortScore + visibility.sortScore) / 2);
         scenarios.push({
             id: 'softPortrait',
-            score: 65,
-            grade: gradeFromScore(65),
+            score: softPortraitScore,
+            grade: gradeFromScore(softPortraitScore),
             relatedObjects: ['clouds', 'light', 'wind'],
             warnings: [],
         });

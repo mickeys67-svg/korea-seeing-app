@@ -198,16 +198,13 @@ const MoonPhase: React.FC<MoonPhaseProps> = ({ data, timezone, lat, lon }) => {
                                                                 {w.quality === 'excellent' ? t.moonPhase.qualityExcellent : w.quality === 'good' ? t.moonPhase.qualityGood : t.moonPhase.qualityFair}
                                                             </span>
                                                         </div>
-                                                        <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mb-2">
-                                                            <div className={`h-full quality-fill-${w.quality} rounded-full`} style={{ width: `${w.score}%` }} />
-                                                        </div>
                                                         <p className="text-xs text-[var(--text-tertiary)] italic">{w.tip}</p>
                                                     </div>
                                                 ))}
 
                                                 {windows.length > 0 && (
                                                     <div className="p-2.5 border-l-2 border-emerald-500/50 text-xs text-emerald-400/80 bg-emerald-500/5 rounded-r-lg">
-                                                        {t.moonPhase.bestStart}: <strong>{minutesToTime(windows.reduce((p, c) => c.score > p.score ? c : p).start)}</strong>
+                                                        {t.moonPhase.bestStart}: <strong>{minutesToTime(windows.reduce((p, c) => c.duration > p.duration ? c : p).start)}</strong>
                                                     </div>
                                                 )}
                                             </div>

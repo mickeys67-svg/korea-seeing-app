@@ -79,7 +79,6 @@ export interface ObservationWindow {
     end: number;
     duration: number;
     quality: 'excellent' | 'good' | 'fair';
-    score: number;
     condition: string;
     icon: string;
     tip: string;
@@ -152,8 +151,6 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
     }
 
     // 3. Logic: Window Slicing based on Moon
-    const moonIllumination = currentDay.moon.fraction * 100;
-    const isMoonSuperBright = moonIllumination > 70;
 
     // Determine "Moon Up" status at the start of the night (obsStart)
     // Must consider whether rise/set happened BEFORE or AFTER obsStart
@@ -230,10 +227,9 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
         }
     }
 
-    // === Score & Format Windows ===
+    // === Format Windows ===
     return windowsList.map(w => {
         let quality: 'excellent' | 'good' | 'fair' = 'excellent';
-        let score = 100;
         let icon = '🌆';
         let tip = labels?.optimalDark ?? 'Optimal dark conditions.';
         let condition = labels?.darkSky ?? 'Dark Sky';
@@ -255,25 +251,17 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
             icon = '🌙';
         }
 
-        // Adjust scores
-        if (isMoonSuperBright) {
-            // Even if moon is down, if it's full moon night, sky might be brighter near horizon or twilight overlap?
-            // Let's keep it simple: Moon Down = Good.
-            score = 95;
-        }
-
-        // If window is short
+        // 어두운 창의 품질은 "길이"에서만 정성 등급으로 매긴다(길수록 딥스카이에 유리).
+        // 과거엔 길이를 85/95/100 "점수 %"로 바꿔 막대로 표시했으나 근거 없는
+        // 수치라 제거했다(가짜 데이터 금지). duration(길이)은 실측 그대로 표시한다.
         const duration = (w.end - w.start);
         if (duration < 60) {
-            score -= 10;
             quality = 'fair';
             tip = labels?.shortWindow ?? 'Short observation window.';
         } else if (duration > 240) {
-            score = 100;
             quality = 'excellent';
             tip = labels?.longDark ?? 'Long, dark night.';
         } else {
-            score = 85;
             quality = 'good';
         }
 
@@ -282,7 +270,6 @@ export const calculateObservationWindows = (currentDay: AstronomyDay, nextDay: A
             end: w.end,
             duration: duration,
             quality,
-            score,
             condition,
             icon,
             tip
