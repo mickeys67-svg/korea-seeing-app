@@ -128,8 +128,11 @@ async function fetchUltraSrtFcst(lat, lon) {
     const { nx, ny } = latLonToGrid(lat, lon);
     const { baseDate, baseTime } = getUltraSrtBaseTime();
 
-    // serviceKey를 URL에 직접 삽입 (axios params 인코딩 시 data.go.kr 401 발생 방지)
-    const url = `${KMA_BASE}/getUltraSrtFcst?serviceKey=${apiKey}&dataType=JSON&base_date=${baseDate}&base_time=${baseTime}&nx=${nx}&ny=${ny}&numOfRows=60&pageNo=1`;
+    // data.go.kr 서비스키는 두 형태로 발급된다: Encoding(이미 %-인코딩) / Decoding(+·/·= 포함 원문).
+    // URL에 그대로 넣으면 Decoding 키는 특수문자 때문에 401(SERVICE_KEY_IS_NOT_REGISTERED)로 깨진다.
+    // 이미 인코딩된 키(%XX 포함)는 그대로, 아니면 encodeURIComponent로 안전하게 → 두 형태 모두 동작.
+    const serviceKey = /%[0-9A-Fa-f]{2}/.test(apiKey) ? apiKey : encodeURIComponent(apiKey);
+    const url = `${KMA_BASE}/getUltraSrtFcst?serviceKey=${serviceKey}&dataType=JSON&base_date=${baseDate}&base_time=${baseTime}&nx=${nx}&ny=${ny}&numOfRows=60&pageNo=1`;
 
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });

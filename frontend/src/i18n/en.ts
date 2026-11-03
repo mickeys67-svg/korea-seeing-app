@@ -273,7 +273,8 @@ const en = {
     },
     apiHealth: {
         ok: 'Data OK',
-        recovering: 'Recovering...',
+        delayed: 'delayed',
+        sources: { timer: '7Timer', openmeteo: 'Open-Meteo', metno: 'Met.no', airquality: 'Air Quality', kma: 'KMA', ensemble: 'Ensemble', metar: 'METAR' },
     },
     feedback: {
         question: 'How was your observation tonight?',

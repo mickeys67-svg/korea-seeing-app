@@ -111,10 +111,16 @@ const Dashboard: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                     {data?.apiHealth && (() => {
-                        const vals = Object.values(data.apiHealth).filter(v => v !== null); // null = 해당 지역 미적용
-                        const healthy = vals.length > 0 && vals.every(Boolean);
+                        // null = 해당 지역 미적용(예: 한국 밖 KMA) → 판정에서 제외
+                        const entries = Object.entries(data.apiHealth).filter(([, v]) => v !== null);
+                        const srcNames = t.apiHealth.sources as Record<string, string>;
+                        const down = entries.filter(([, v]) => v === false).map(([k]) => srcNames[k] ?? k);
+                        const healthy = entries.length > 0 && down.length === 0;
+                        // '데이터 복구중'(앱 전체가 고장난 듯한 표현) 대신, 문제가 있는 소스만 구체적으로 표시.
+                        // 예: 기상청만 지연이면 "기상청 지연" → 나머지는 정상이라는 뜻이 분명해진다.
+                        const label = healthy ? t.apiHealth.ok : `${down.join('·')} ${t.apiHealth.delayed}`;
                         return (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5" title={healthy ? t.apiHealth.ok : `${down.join(', ')} ${t.apiHealth.delayed}`}>
                                 <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{
                                     background: healthy ? '#10b981' : '#f59e0b',
                                     boxShadow: healthy ? '0 0 6px #10b981' : '0 0 6px #f59e0b',
@@ -122,7 +128,7 @@ const Dashboard: React.FC = () => {
                                 <span className="text-[10px] font-medium" style={{
                                     color: healthy ? '#10b981' : '#f59e0b',
                                 }}>
-                                    {healthy ? t.apiHealth.ok : t.apiHealth.recovering}
+                                    {label}
                                 </span>
                             </div>
                         );

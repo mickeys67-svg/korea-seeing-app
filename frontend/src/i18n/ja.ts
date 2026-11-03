@@ -275,7 +275,8 @@ const ja: Translations = {
     },
     apiHealth: {
         ok: 'データ正常',
-        recovering: 'データ復旧中',
+        delayed: '遅延',
+        sources: { timer: '7Timer', openmeteo: 'Open-Meteo', metno: 'Met.no', airquality: '大気質', kma: '気象庁', ensemble: 'アンサンブル', metar: 'METAR' },
     },
     feedback: {
         question: '今夜の観測はいかがでしたか？',

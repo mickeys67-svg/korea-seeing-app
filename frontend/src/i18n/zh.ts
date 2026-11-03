@@ -275,7 +275,8 @@ const zh: Translations = {
     },
     apiHealth: {
         ok: '数据正常',
-        recovering: '数据恢复中',
+        delayed: '延迟',
+        sources: { timer: '7Timer', openmeteo: 'Open-Meteo', metno: 'Met.no', airquality: '空气质量', kma: '韩国气象厅', ensemble: '集合预报', metar: 'METAR' },
     },
     feedback: {
         question: '今晚的观测怎么样？',

@@ -275,7 +275,8 @@ const ko: Translations = {
     },
     apiHealth: {
         ok: '데이터 정상',
-        recovering: '데이터 복구중',
+        delayed: '지연',
+        sources: { timer: '7Timer', openmeteo: 'Open-Meteo', metno: 'Met.no', airquality: '공기질', kma: '기상청', ensemble: '앙상블', metar: 'METAR' },
     },
     feedback: {
         question: '오늘 관측은 어떠셨나요?',
