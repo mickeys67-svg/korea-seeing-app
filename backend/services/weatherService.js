@@ -517,10 +517,11 @@ const WeatherService = {
             openmeteo: !!(omData && omData.hourly),
             metno: !!metData,
             airquality: !!aqData,
-            // KMA는 유효한 KMA_API_KEY가 설정된 한국 좌표에서만 보고한다. 키가 없으면
-            // null(비한국과 동일) → 상태등에서 제외돼 '기상청 지연'으로 표시되지 않는다.
-            // 나중에 키를 설정하면 코드 변경 없이 자동으로 다시 상태에 반영된다(선택적화).
-            kma: (isKR && !!process.env.KMA_API_KEY) ? !!kmaData : null,
+            // KMA는 실제 데이터가 돌아왔을 때만 true로 보고한다. 데이터가 없으면
+            // (키 없음·만료·호출 실패 전부) null로 둬 상태등에서 제외 → '기상청 지연'으로
+            // 깎지 않는다. 즉 KMA는 신뢰도를 올릴 수만 있는 선택적 보강 소스다.
+            // 유효한 키로 데이터가 오면 자동으로 다시 true로 반영된다.
+            kma: (isKR && kmaData) ? true : null,
             ensemble: !!ensembleData,
             metar: !!metarData,
         };
