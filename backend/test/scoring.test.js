@@ -218,3 +218,35 @@ test('buildPhotoIndex: 빈/깨진 입력도 안전', () => {
     assert.strictEqual(buildPhotoIndex({}).size, 0);
     assert.strictEqual(buildPhotoIndex({ hourly: { time: [] } }).get('x'), null);
 });
+
+// ─────────────────────────────────────────────────────────────
+// 10. twilight 날짜 키 하루 어긋남 회귀 가드 (2026-11-03 고친 버그)
+//    date 키를 midnightUTC의 UTC 날짜로 쓰면 양수 오프셋(한국 +9h)에서 현지 날짜보다
+//    하루 빨라, photoService(현지 날짜로 조회)가 엉뚱한 날 twilight를 집어 한낮도 night로
+//    판정됐다. 날짜 키는 현지 날짜여야 한다.
+// ─────────────────────────────────────────────────────────────
+const TW = require('../services/photo/twilightService');
+
+test('getTwilightForecast: date 키가 한국 현지 날짜와 일치', () => {
+    const start = new Date('2026-11-03T12:00:00Z'); // KST 21:00 → 현지 2026-11-03
+    const days = TW.getTwilightForecast(start, 3, 37.5, 127, 9 * 3600);
+    assert.strictEqual(days[0].date, '2026-11-03', `day0 키=${days[0].date}`);
+    assert.strictEqual(days[1].date, '2026-11-04', `day1 키=${days[1].date}`);
+    assert.strictEqual(days[2].date, '2026-11-05', `day2 키=${days[2].date}`);
+});
+
+test('classifyTimePhase: 한국 한낮=day, 한밤=night (off-by-one 회귀 가드)', () => {
+    const days = TW.getTwilightForecast(new Date('2026-11-03T12:00:00Z'), 3, 37.5, 127, 9 * 3600);
+    const byDate = new Map(days.map(d => [d.date, d]));
+    const day0404 = byDate.get('2026-11-04');
+    assert.ok(day0404, '2026-11-04 현지 날짜 키로 조회돼야 함(어긋나면 undefined)');
+
+    // KST 2026-11-04 12:00 = UTC 2026-11-04T03:00Z → 한낮
+    assert.strictEqual(
+        TW.classifyTimePhase('2026-11-04T03:00:00Z', day0404), 'day',
+        '한국 정오가 day가 아니면 twilight 날짜 하루 어긋남 재발');
+    // KST 2026-11-04 03:00 = UTC 2026-11-03T18:00Z → 깊은 밤
+    assert.strictEqual(
+        TW.classifyTimePhase('2026-11-03T18:00:00Z', day0404), 'night',
+        '한국 새벽 3시는 night');
+});

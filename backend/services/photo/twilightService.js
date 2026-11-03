@@ -137,7 +137,14 @@ function getTwilightForecast(startDate, days, lat, lon, utcOffsetSeconds = 0) {
             0, 0, 0, 0
         );
         const midnightUTC = new Date(localMidnightMs - offsetMs);
-        out.push(calculateTwilightForDay(midnightUTC, lat, lon));
+        const td = calculateTwilightForDay(midnightUTC, lat, lon);
+        // date 키는 '현지 날짜'여야 한다. calculateTwilightForDay는 midnightUTC(현지 자정을
+        // UTC로 당긴 순간)의 UTC 날짜를 쓰는데, 양수 오프셋(한국 +9h)에선 그게 현지 날짜보다
+        // 하루 빠르다("2026-11-04" 현지 자정 → 2026-11-03T15:00Z → UTC 날짜 11-03).
+        // photoService는 현지 날짜로 조회하므로 그대로 두면 하루 어긋난 twilight를 집어
+        // 한낮도 night로 판정됐다. 현지 날짜(localMidnightMs의 UTC 표현)로 키를 맞춘다.
+        td.date = new Date(localMidnightMs).toISOString().slice(0, 10);
+        out.push(td);
     }
     return out;
 }
