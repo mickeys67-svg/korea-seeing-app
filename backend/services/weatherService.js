@@ -298,6 +298,8 @@ const WeatherService = {
                 } else if (ensSlot.maxCloud != null) {
                     values.ensembleCloud = ScoringService.normalizeCloud(ensSlot.maxCloud); // fallback
                 }
+                // 모델 간 구름 불일치(spread, 0-100%) → confidence 변동 신호로 사용
+                if (ensSlot.spread != null && !isNaN(ensSlot.spread)) values.ensembleSpread = ensSlot.spread;
             }
         }
 
@@ -409,6 +411,7 @@ const WeatherService = {
             pm25: pm25, aod: aod,
             cloudLow: values.cloudLow ?? null, cloudMid: values.cloudMid ?? null, cloudHigh: values.cloudHigh ?? null,
             dewPointSpread: dewPointSpread, dewPoint: values.dewPoint ?? null,
+            ensembleSpread: values.ensembleSpread ?? null,
         };
     },
 
@@ -600,7 +603,8 @@ const WeatherService = {
                     aod: mapped.aod, pm25: mapped.pm25,
                     variance: (mapped.tempMax != null && mapped.tempMin != null) ? mapped.tempMax - mapped.tempMin : null,
                     humidity: mapped.humidity,
-                    isCoastal: isCoastal
+                    isCoastal: isCoastal,
+                    ensembleSpread: mapped.ensembleSpread
                 });
                 return forecastUsp;
             });
@@ -614,7 +618,8 @@ const WeatherService = {
                     jetStreamSpeed: fallbackJet,
                     targetAltitude: 90, urban: isUrban, elevation: siteElevation,
                     humidity: mapped.humidity,
-                    isCoastal: isCoastal
+                    isCoastal: isCoastal,
+                    ensembleSpread: mapped.ensembleSpread
                 })];
             }
 

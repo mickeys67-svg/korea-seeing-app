@@ -155,19 +155,26 @@ const USPModel = {
         const vEff = Math.max(2, jetMs * 0.4); // effective wind (min 2 m/s)
         const tau0 = r0 > 0 ? (0.314 * r0 / vEff) * 1000 : 5; // ms
 
-        // Dynamic Confidence — reflects actual data quality & diversity
-        let confidence = 0.50; // base
-        if (data.layers && data.layers.length > 0) confidence += 0.25;  // has vertical profiles
-        if (data.layers && data.layers.length >= 4) confidence += 0.10; // full profile (5 pressure levels → 4 layers)
-        if (data.aod != null) confidence += 0.05;                       // has air quality
-        if (data.pm25 != null) confidence += 0.03;                      // has PM2.5
-        if (data.humidity != null) confidence += 0.02;                  // has humidity
-        if (typeof data.variance === 'number' && !isNaN(data.variance) && data.variance <= 1.0) confidence += 0.05;
+        // Dynamic Confidence — 실제로 "변하는" 신호 기반.
+        // 과거엔 가산점(layers/aod/pm25/humidity)이 프로덕션에서 전부 상시 충족돼
+        // 사실상 95 고정이었다(변별력 없음 = 가짜에 가까운 표시).
+        // 핵심 변동 신호: 앙상블 구름 spread(NWP 모델 간 불일치). 모델들이 비슷하게
+        // 예측할수록(spread 작음) 신뢰도↑, 크게 엇갈릴수록↓ — 기상학 표준 예보신뢰도.
+        let confidence = 0.45; // base
+        if (data.layers && data.layers.length >= 4) confidence += 0.12;       // 전체 수직 프로파일
+        else if (data.layers && data.layers.length > 0) confidence += 0.06;   // 일부 프로파일
+        if (data.aod != null || data.pm25 != null) confidence += 0.05;        // 공기질 실측 유무
+        // ── 변동 핵심: 앙상블 모델 일치도 ──
+        if (data.ensembleSpread != null && !isNaN(data.ensembleSpread)) {
+            const agreement = Math.max(0, 1 - data.ensembleSpread / 50); // spread 0%→1, 50%+→0
+            confidence += 0.33 * agreement;
+        }
+        // ensembleSpread가 없으면 그 가산이 빠져 자연히 낮아진다(과신 방지).
 
         return {
             seeing: parseFloat(Math.min(5.0, Math.max(0.35, finalSeeing)).toFixed(2)),
             score: parseFloat(score.toFixed(1)),
-            confidence: Math.round(confidence * 100),
+            confidence: Math.round(Math.min(0.98, Math.max(0.30, confidence)) * 100),
             details: {
                 r0: parseFloat((r0 * 100).toFixed(1)),
                 stability: data.layers && data.layers.length > 0 && data.layers[0].ri != null ? (data.layers[0].ri > 0 ? 'Stable' : 'Unstable') : 'Mixed',

@@ -82,12 +82,17 @@ test('fallback(층 없음)도 합리적 시잉', () => {
 // ─────────────────────────────────────────────────────────────
 // 4. confidence 회귀 가드 (6월에 고친 버그) — 전체 프로파일이면 높고, 층 없으면 ~50
 // ─────────────────────────────────────────────────────────────
-test('confidence 회귀 가드: 4레이어+공기질이면 >=90, 층 없으면 ~50', () => {
-    const full = USP.calculate({ layers: CALM(), surfaceWind: 3, jetStreamSpeed: 32, targetAltitude: 90, elevation: 50, aod: 0.1, pm25: 10, humidity: 50 });
+test('confidence 회귀 가드: 앙상블 불일치에 따라 변한다 (95 고정 방지) + 데이터 양에 반응', () => {
+    const base = { layers: CALM(), surfaceWind: 3, jetStreamSpeed: 32, targetAltitude: 90, elevation: 50, aod: 0.1, pm25: 10, humidity: 50 };
+    const agree = USP.calculate({ ...base, ensembleSpread: 5 });    // 모델 일치 → 신뢰도 높음
+    const disagree = USP.calculate({ ...base, ensembleSpread: 45 }); // 모델 엇갈림 → 낮음
     const none = USP.calculate({ layers: [], surfaceWind: 3, jetStreamSpeed: 32, targetAltitude: 90, elevation: 50 });
-    assert.ok(full.confidence >= 90, `전체 프로파일 confidence=${full.confidence} — 90 미만이면 layers>=N 임계값 회귀`);
-    assert.ok(none.confidence >= 45 && none.confidence <= 60, `층 없음 confidence=${none.confidence} (약 50 기대)`);
-    assert.ok(full.confidence > none.confidence, 'confidence가 데이터 양에 반응해야 함');
+    assert.ok(agree.confidence > disagree.confidence + 10,
+        `일치(${agree.confidence}) vs 불일치(${disagree.confidence}) — 변별 없으면 95 고정 회귀`);
+    assert.notStrictEqual(agree.confidence, disagree.confidence); // 고정값이면 안 됨
+    assert.ok(agree.confidence >= 85, `모델 일치 시 신뢰도=${agree.confidence} (높아야)`);
+    assert.ok(disagree.confidence < 80, `모델 불일치 신뢰도=${disagree.confidence} (과신 아님)`);
+    assert.ok(none.confidence < agree.confidence, 'confidence가 데이터 양에 반응해야 함');
 });
 
 // ─────────────────────────────────────────────────────────────
