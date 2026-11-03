@@ -35,7 +35,8 @@ export interface PhotoObject {
     grade: Grade;
     accent: string;           // CSS 컬러 (테두리·하이라이트)
     gradient: string;         // HERO background-image
-    nowText: string;          // "저녁 골든아워", "드라마틱 구름"
+    nowText: string;          // "저녁 골든아워", "드라마틱 구름" (화면 표시용 번역 문구)
+    nowStateKey?: string;     // 분류 상태 키('duskGolden','burning','dramatic'…) — 언어 무관 로직 판정용
     nowValue?: string;        // "42%", "2.3 m/s" 등 수치
     nextText?: string;        // "폭발적 일몰"
     nextWhenLabel?: string;   // "3시간 후", "내일 05:30"
@@ -178,6 +179,7 @@ function extractLight(
         accent: COLORS.light.accent,
         gradient: COLORS.light.gradient,
         nowText: t.object.light.state[nowState],
+        nowStateKey: nowState,
         nextText: next ? t.object.light.state[next.state] : undefined,
         nextWhenLabel: next ? formatRelativeTime(next.slot.time, data.location?.timezone, t, locale) : undefined,
         hintText: t.object.light.hint[nowIsPeak ? nowState : (next?.state ?? nowState)],
@@ -250,6 +252,7 @@ function extractSkyColor(
         accent: COLORS.skyColor.accent,
         gradient: COLORS.skyColor.gradient,
         nowText: t.object.skyColor.state[nowState],
+        nowStateKey: nowState,
         nextText: nextState ? t.object.skyColor.state[nextState] : undefined,
         nextWhenLabel,
         hintText: t.object.skyColor.hint[hintState === 'none' ? 'none' : hintState],
@@ -316,6 +319,7 @@ function extractClouds(
         accent: COLORS.clouds.accent,
         gradient: COLORS.clouds.gradient,
         nowText: t.object.clouds.state[nowState],
+        nowStateKey: nowState,
         nowValue: `${Math.round(nowTotal)}%`,
         nextText: nextState ? t.object.clouds.state[nextState] : undefined,
         nextWhenLabel: next ? formatRelativeTime(next.time, data.location?.timezone, t, locale) : undefined,
@@ -689,9 +693,12 @@ export function buildScenarios(
     // Helper: get twilight time windows from data
     const todayTwilight = data.twilight?.[0];
 
+    // 판정은 번역 문구(nowText)가 아니라 언어 무관 상태 키(nowStateKey)로 한다.
+    // (옛 코드는 nowText.includes('golden') 식이라 영문 'Night'/'Burning'/'Dramatic'처럼
+    //  대문자로 시작하는 표시 문구에서 매칭이 전부 실패했다.)
+
     // 1. Golden Drama — golden hour + dramatic clouds
-    const isGoldenNow = light.id === 'light' &&
-        (light.nowText.includes('golden') || light.nowText.includes('골든'));
+    const isGoldenNow = light.nowStateKey === 'dawnGolden' || light.nowStateKey === 'duskGolden';
     const isDramatic = clouds.sortScore >= 55;
     if (isGoldenNow && isDramatic) {
         const window = todayTwilight?.dusk?.goldenHour ?? todayTwilight?.dawn?.goldenHour;
@@ -706,7 +713,9 @@ export function buildScenarios(
     }
 
     // 2. Explosive Sunset — skyColor burning
-    if (skyColor.sortScore >= 70 && skyColor.nowText.includes('burn') || skyColor.nowText.includes('폭발')) {
+    // (옛 코드 `A >= 70 && B || C`는 연산자 우선순위상 `(A&&B)||C`로 묶여,
+    //  C가 참이면 점수 70 미만이어도 통과하는 버그가 있었다. 키 기준으로 한 줄로 정리.)
+    if (skyColor.sortScore >= 70 && skyColor.nowStateKey === 'burning') {
         const window = todayTwilight?.dusk?.goldenHour;
         scenarios.push({
             id: 'explosiveSunset',
@@ -719,7 +728,7 @@ export function buildScenarios(
     }
 
     // 3. Star Trail — night + dark moon + clear sky
-    const isNight = now?.solar?.isNight || (light.nowText.includes('night') || light.nowText.includes('밤'));
+    const isNight = now?.solar?.isNight || light.nowStateKey === 'night';
     const moonDark = moon.sortScore >= 40 && (moon.nowValue ? parseInt(moon.nowValue) < 40 : true);
     const skyClear = clouds.sortScore <= 45;
     if (isNight && moonDark && skyClear) {
@@ -761,9 +770,8 @@ export function buildScenarios(
     }
 
     // 6. Soft Portrait — overcast/flat + daytime
-    const isOvercast = clouds.nowText.includes('overcast') || clouds.nowText.includes('flat') ||
-        clouds.nowText.includes('흐림') || clouds.nowText.includes('평탄');
-    const isDay = now?.solar?.isDay || (light.nowText.includes('day') || light.nowText.includes('낮'));
+    const isOvercast = clouds.nowStateKey === 'overcast' || clouds.nowStateKey === 'flat';
+    const isDay = now?.solar?.isDay || light.nowStateKey === 'dayNormal' || light.nowStateKey === 'dayHarsh';
     if (isOvercast && isDay) {
         // 흐린 날 부드러운 광질 포트레이트. 과거엔 조건 무관 65 고정(가짜)이었다.
         // 실측 기반(잔잔한 바람 + 시정)으로 점수를 내고 등급도 그 점수로 매긴다.
@@ -778,7 +786,7 @@ export function buildScenarios(
     }
 
     // 7. City Night — blue hour
-    const isBlueHour = light.nowText.includes('blue') || light.nowText.includes('블루');
+    const isBlueHour = light.nowStateKey === 'dawnBlue' || light.nowStateKey === 'duskBlue';
     if (isBlueHour) {
         const window = todayTwilight?.dusk?.blueHour ?? todayTwilight?.dawn?.blueHour;
         scenarios.push({
@@ -793,8 +801,7 @@ export function buildScenarios(
 
     // 8. Cloud Trail — breeze/moderate wind + partly/dramatic clouds
     const windState = now?.weather?.windSpeed ?? 0;
-    const hasMovingClouds = (clouds.nowText.includes('dramatic') || clouds.nowText.includes('partly') ||
-        clouds.nowText.includes('드라마') || clouds.nowText.includes('부분'));
+    const hasMovingClouds = clouds.nowStateKey === 'dramatic' || clouds.nowStateKey === 'partly';
     if (windState >= 3 && windState <= 12 && hasMovingClouds) {
         scenarios.push({
             id: 'cloudTrail',

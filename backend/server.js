@@ -23,11 +23,15 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
+            // static.cloudflareinsights.com: Cloudflare 웹 분석(무료)이 자동 삽입하는 beacon 스크립트.
+            // 현재는 CF 대시보드에서 분석이 꺼져 있어 beacon이 안 들어오지만, 켜는 순간
+            // 이 허용이 없으면 CSP가 스크립트를 막는다. 미리 열어 둔다(켜는 건 대시보드에서).
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'"],
+            // cloudflareinsights.com: beacon이 수집 데이터를 POST하는 곳(/cdn-cgi/rum).
+            connectSrc: ["'self'", "https://cloudflareinsights.com", "https://static.cloudflareinsights.com"],
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
@@ -223,6 +227,13 @@ if (process.env.NODE_ENV === 'production') {
                 res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
                 res.setHeader('Pragma', 'no-cache');
                 res.setHeader('Expires', '0');
+            }
+            // 해시 없는 고정 이름 이미지(logo.jpg·logo.webp·moon.jpg·favicon·PWA 아이콘 등):
+            // maxAge '1y' + immutable 기본값이 걸리면 파일을 교체해도 브라우저가 1년간 옛 이미지를
+            // 재검증 없이 쓴다. 해시된 /assets/ 이미지는 파일명이 바뀌니 그대로 두고,
+            // 비해시 이미지만 하루 캐시 후 재검증으로 바꿔 교체가 반영되게 한다.
+            if (!filePath.includes('assets') && /\.(png|jpe?g|webp|gif|ico|avif)$/i.test(filePath)) {
+                res.setHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
             }
         }
     }));
