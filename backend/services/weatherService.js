@@ -721,7 +721,9 @@ const WeatherService = {
             try {
                 const col = db.collection('trainingData');
                 const batch = db.batch();
-                mappedForecast.forEach(f => {
+                // 비용 0원: 전체(~24슬롯) 대신 근시점 3슬롯(~9h, 관측 세션)만 저장 → Firestore 쓰기 8배↓.
+                // 피드백 매칭(±3h)·정확도 검증엔 근시점이면 충분. ML용 전량 수집이 필요하면 늘릴 것.
+                mappedForecast.slice(0, 3).forEach(f => {
                     batch.set(col.doc(), {
                         timestamp: new Date(f.time),
                         lat, lon, elevation: siteElevation, isUrban,
