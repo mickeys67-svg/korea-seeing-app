@@ -92,14 +92,43 @@
   </script>
 
   <!-- Location Selector Module -->
-  <link rel="stylesheet" href="/cls/location-selector.css?v=2">
-  <script type="module" crossorigin src="/assets/index-DAMYiO3x.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DR89z4Ub.css">
+  <link rel="stylesheet" href="/cls/location-selector.css?v=3">
+  <script type="module" crossorigin src="/assets/index-BtnDIgOs.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CS3n4zP5.css">
 <link rel="manifest" href="/manifest.webmanifest"></head>
 
-<body>
-  <div id="root"></div>
-  <script src="/cls/location-selector.js?v=2"></script>
+<body style="margin:0;background:#0c1220;color:#f7fafc;font-family:'Outfit',system-ui,-apple-system,sans-serif">
+  <div id="root">
+    <!-- 정적 폴백 본문: JS를 실행하지 않는 검색 봇(네이버 Yeti, 바이두 등)이 읽는 내용.
+         브라우저에서는 React가 마운트되면서 이 블록을 실제 앱 화면으로 교체한다.
+         (createRoot().render()가 #root의 기존 자식을 지우므로 사용자에겐 남지 않는다.) -->
+    <div style="max-width:640px;margin:0 auto;padding:48px 24px;line-height:1.7">
+      <div style="text-align:center">
+        <img src="/logo.webp" alt="Clear Skies 로고" width="64" height="64" style="border-radius:16px" />
+        <h1 style="font-size:1.5rem;margin:16px 0 4px">Clear Skies — 천체 관측 시잉 예보</h1>
+        <p style="color:#a0aec0;margin:0 0 24px">Astronomical Seeing Forecast · Target Suitability</p>
+      </div>
+      <p>
+        천문 관측과 천체사진을 위한 무료 시잉(대기 안정도) 예보입니다.
+        행성·은하수·성운·성단·은하 등 대상별 관측 적합도를 실시간 점수로 보여 줍니다.
+        시잉(FWHM), 제트기류(250hPa), 대기 투명도, 구름, 달 위상을 함께 분석해 오늘 밤 하늘이 관측에 좋은지 알려 줍니다.
+      </p>
+      <p style="color:#a0aec0">
+        A free precision astronomical seeing forecast for astrophotographers and amateur astronomers.
+        Real-time target suitability scoring for planets, the Milky Way, nebulae, star clusters, and
+        galaxies, from multi-source atmospheric data.
+      </p>
+      <ul style="color:#a0aec0;padding-left:20px">
+        <li>시잉(FWHM) 추정과 Pickering/Antoniadi 등급</li>
+        <li>대상별 관측 적합도 — 행성·은하수·성운·성단·은하</li>
+        <li>제트기류(250hPa)·대기 대류(CAPE)·투명도·구름 분석</li>
+        <li>달 위상과 어두운 하늘 관측 시간대</li>
+        <li>주소·도시 기반 위치 선택과 천문 박명 판정</li>
+      </ul>
+      <p style="color:#6b7280;font-size:.85rem;margin-top:24px;text-align:center">불러오는 중… · Loading…</p>
+    </div>
+  </div>
+  <script src="/cls/location-selector.js?v=3"></script>
 </body>
 
 </html>
