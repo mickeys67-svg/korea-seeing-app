@@ -68,6 +68,8 @@ function detectFogType(w, context, hour) {
 }
 
 // ─── 서브장르 매칭 ────────────────────────────────────────────
+// subject의 score는 '어떤 피사체를 먼저 추천할지' 정렬·선택용 우선순위 가중치다.
+// 화면에 숫자로 표시되지 않는다(프론트는 subject.id만 사용). 측정값/분석값 아님.
 function matchSubjects(w, context, fogType, fogScore) {
     const subjects = [];
     const solar = context?.solar;
