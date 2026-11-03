@@ -87,26 +87,26 @@ const Dashboard: React.FC = () => {
         <main className={`flex flex-col items-center w-full max-w-5xl mx-auto px-4 py-6 sm:px-6 bg-dot-pattern min-h-screen ${currentForecast ? getGradeBgClass(currentForecast.grade) : ''}`}>
 
             {/* ===== Header ===== */}
-            <header className="w-full flex justify-between items-center mb-8 animate-fade-in-up">
-                <div className="flex items-center gap-3">
+            <header className="w-full flex justify-between items-center mb-8 animate-fade-in-up gap-2">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="relative">
                         <img src="/logo.webp" alt="Clear Skies — Astronomical Seeing Forecast" width="48" height="48" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl object-cover shadow-lg shadow-indigo-500/20" />
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[var(--bg-void)]" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <h1 className="text-xl lg:text-2xl font-bold text-[var(--text-bright)] tracking-tight">
                             Clear Skies <span className="text-[var(--accent)]">!</span>
                         </h1>
                         <div className="flex items-center gap-1.5 text-[var(--text-secondary)] text-xs lg:text-sm">
-                            <MapPin className="w-3 h-3" />
-                            <span className="truncate max-w-[200px]">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            <span className="truncate">
                                 {location.name || t.common.defaultCity}
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     {data?.apiHealth && (() => {
                         // 상태등은 '예보가 정상인가'를 뜻한다. 핵심 예보 소스(Open-Meteo/7Timer/
                         // Met.no) 중 하나라도 살아있으면 정상(OK). KMA·METAR·공기질·앙상블은
@@ -124,7 +124,7 @@ const Dashboard: React.FC = () => {
                                     background: healthy ? '#10b981' : '#f59e0b',
                                     boxShadow: healthy ? '0 0 6px #10b981' : '0 0 6px #f59e0b',
                                 }} />
-                                <span className="text-[10px] font-medium" style={{
+                                <span className="text-[10px] font-medium whitespace-nowrap" style={{
                                     color: healthy ? '#10b981' : '#f59e0b',
                                 }}>
                                     {label}
