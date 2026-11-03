@@ -2,7 +2,6 @@ import React from 'react';
 import { Eye, Cloud, Wind, Droplets, Plane, ThermometerSun, ChevronRight } from 'lucide-react';
 import InfoModal from './InfoModal';
 import TargetPredictionGrid from './TargetPredictionGrid';
-import FeedbackButton from './FeedbackButton';
 import type { ForecastItem } from '../types/weather';
 import useI18n from '../hooks/useI18n';
 import { getScoreColor, getSeeingColor } from '../utils/weatherColors';
@@ -17,7 +16,7 @@ interface SeeingProps {
     lon?: number;
 }
 
-const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDaytime = false, sunsetTime, timezone, lat, lon }) => {
+const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDaytime = false, sunsetTime, timezone }) => {
     const t = useI18n();
     const [selectedMetric, setSelectedMetric] = React.useState<{ title: string; desc: string; ranges?: { label: string; value: string }[] } | null>(null);
     const scores = data.scores;
@@ -290,11 +289,6 @@ const SeeingDetails: React.FC<SeeingProps> = ({ data, moonFraction = 0.5, isDayt
 
                 {/* Target Suitability Grid */}
                 <TargetPredictionGrid forecast={data} moonFraction={moonFraction} />
-
-                {/* User Feedback */}
-                {lat != null && lon != null && (
-                    <FeedbackButton lat={lat} lon={lon} timestamp={data.time} />
-                )}
             </div>
 
             <InfoModal
