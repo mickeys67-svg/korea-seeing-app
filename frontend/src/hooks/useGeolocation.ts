@@ -11,11 +11,24 @@ interface LocationState {
 const DEFAULT_LAT = 37.5665;
 const DEFAULT_LON = 126.9780;
 
+// 이 기기에 저장된 마지막 위치 복원 — 위젯(location-selector.js)이 cls_current에 저장한다.
+// 새로고침해도 서울로 리셋되지 않고 사용자가 고른 위치를 유지한다.
+function readSavedLocation(): { lat: number; lon: number; name: string | null } | null {
+    try {
+        const s = JSON.parse(localStorage.getItem('cls_current') || 'null');
+        if (s && typeof s.lat === 'number' && typeof s.lng === 'number') {
+            return { lat: s.lat, lon: s.lng, name: s.name || null };
+        }
+    } catch { /* storage 차단 환경 */ }
+    return null;
+}
+
 const useGeolocation = () => {
+    const saved = readSavedLocation();
     const [location, setLocation] = useState<LocationState>({
         loaded: true,
-        val: { lat: DEFAULT_LAT, lon: DEFAULT_LON },
-        name: null,
+        val: saved ? { lat: saved.lat, lon: saved.lon } : { lat: DEFAULT_LAT, lon: DEFAULT_LON },
+        name: saved ? saved.name : null,
         error: null,
     });
 

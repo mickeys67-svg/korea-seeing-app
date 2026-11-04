@@ -89,6 +89,42 @@
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
+/* First-run onboarding (주소 탭 안내 블록) */
+[data-cls-element="addr-intro"] {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.22);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+[data-cls-element="addr-intro-title"] {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+[data-cls-element="addr-intro-sub"] {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+[data-cls-element="addr-privacy"] {
+    margin-top: 10px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: center;
+}
+
+[data-cls-element="city-intro"] {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 14px;
+}
+
 /* Search Container */
 [data-cls-element="search-container"] {
     position: relative;
